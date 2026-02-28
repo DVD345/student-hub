@@ -7,166 +7,565 @@
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg: #0a0a0f; --bg2: #111118; --bg3: #1a1a24;
-    --border: #2a2a3a; --accent: #f0c040; --accent2: #e05050;
-    --text: #e8e8f0; --text2: #8888aa; --card: #13131e;
-    --success: #40d080; --warning: #f0a030; --radius: 12px;
+    --bg: #0a0a0f;
+    --bg2: #111118;
+    --bg3: #1a1a24;
+    --border: #2a2a3a;
+    --accent: #f0c040;
+    --accent2: #e05050;
+    --text: #e8e8f0;
+    --text2: #8888aa;
+    --card: #13131e;
+    --success: #40d080;
+    --warning: #f0a030;
+    --radius: 12px;
   }
   [data-theme="light"] {
-    --bg: #f4f4f8; --bg2: #ffffff; --bg3: #ebebf3;
-    --border: #d0d0e0; --text: #1a1a2e; --text2: #606088; --card: #ffffff;
+    --bg: #f4f4f8;
+    --bg2: #ffffff;
+    --bg3: #ebebf3;
+    --border: #d0d0e0;
+    --text: #1a1a2e;
+    --text2: #6060880;
+    --card: #ffffff;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: 'Syne', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; transition: background 0.3s, color 0.3s; }
+  body {
+    font-family: 'Syne', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    transition: background 0.3s, color 0.3s;
+  }
+  code, .mono { font-family: 'JetBrains Mono', monospace; }
 
-  #login-screen { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: var(--bg); position: relative; overflow: hidden; }
-  #login-screen::before { content: ''; position: absolute; width: 600px; height: 600px; background: radial-gradient(circle, rgba(240,192,64,0.08) 0%, transparent 70%); top: -200px; right: -200px; pointer-events: none; }
-  #login-screen::after { content: ''; position: absolute; width: 400px; height: 400px; background: radial-gradient(circle, rgba(224,80,80,0.06) 0%, transparent 70%); bottom: -100px; left: -100px; pointer-events: none; }
-  .login-box { background: var(--card); border: 1px solid var(--border); border-radius: 20px; padding: 44px; width: 440px; max-width: 95vw; position: relative; z-index: 1; animation: fadeUp 0.6s ease; }
-  @keyframes fadeUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
-  .login-logo { display: flex; align-items: center; gap: 12px; margin-bottom: 28px; }
-  .login-logo .icon { width: 42px; height: 42px; background: var(--accent); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 20px; }
-  .login-logo h1 { font-size: 20px; font-weight: 800; }
+  /* ── LOGIN ── */
+  #login-screen {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg);
+    position: relative;
+    overflow: hidden;
+  }
+  #login-screen::before {
+    content: '';
+    position: absolute;
+    width: 600px; height: 600px;
+    background: radial-gradient(circle, rgba(240,192,64,0.08) 0%, transparent 70%);
+    top: -200px; right: -200px;
+    pointer-events: none;
+  }
+  #login-screen::after {
+    content: '';
+    position: absolute;
+    width: 400px; height: 400px;
+    background: radial-gradient(circle, rgba(224,80,80,0.06) 0%, transparent 70%);
+    bottom: -100px; left: -100px;
+    pointer-events: none;
+  }
+  .login-box {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 48px;
+    width: 420px;
+    max-width: 95vw;
+    position: relative;
+    z-index: 1;
+    animation: fadeUp 0.6s ease;
+  }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(30px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .login-logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 32px;
+  }
+  .login-logo .icon {
+    width: 44px; height: 44px;
+    background: var(--accent);
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px;
+  }
+  .login-logo h1 { font-size: 22px; font-weight: 800; letter-spacing: -0.5px; }
   .login-logo span { color: var(--accent); }
-  .login-box h2 { font-size: 24px; font-weight: 800; margin-bottom: 4px; }
-  .login-box > p { color: var(--text2); font-size: 13px; margin-bottom: 22px; }
-  .step-sep { display: flex; align-items: center; gap: 10px; margin: 18px 0; font-size: 11px; font-weight: 700; color: var(--text2); letter-spacing: 0.5px; text-transform: uppercase; }
-  .step-sep::before, .step-sep::after { content: ''; flex: 1; height: 1px; background: var(--border); }
-  .field { margin-bottom: 12px; }
-  .field label { display: block; font-size: 11px; font-weight: 700; color: var(--text2); margin-bottom: 5px; letter-spacing: 0.5px; text-transform: uppercase; }
-  .field input { width: 100%; background: var(--bg3); border: 1px solid var(--border); border-radius: var(--radius); padding: 11px 14px; color: var(--text); font-family: 'JetBrains Mono', monospace; font-size: 14px; outline: none; transition: border-color 0.2s; }
+  .login-box h2 { font-size: 28px; font-weight: 800; margin-bottom: 6px; }
+  .login-box p { color: var(--text2); font-size: 14px; margin-bottom: 28px; }
+  .field { margin-bottom: 16px; }
+  .field label { display: block; font-size: 12px; font-weight: 600; color: var(--text2); margin-bottom: 6px; letter-spacing: 0.5px; text-transform: uppercase; }
+  .field input {
+    width: 100%;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 12px 16px;
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
   .field input:focus { border-color: var(--accent); }
-  .btn-primary { width: 100%; background: var(--accent); color: #0a0a0f; border: none; border-radius: var(--radius); padding: 13px; font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 700; cursor: pointer; transition: opacity 0.2s, transform 0.1s; margin-top: 6px; }
+  .btn-primary {
+    width: 100%;
+    background: var(--accent);
+    color: #0a0a0f;
+    border: none;
+    border-radius: var(--radius);
+    padding: 14px;
+    font-family: 'Syne', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: opacity 0.2s, transform 0.1s;
+    margin-top: 8px;
+  }
   .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
-  .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
-  .login-error { background: rgba(224,80,80,0.1); border: 1px solid rgba(224,80,80,0.3); border-radius: var(--radius); padding: 10px 14px; font-size: 12px; color: var(--accent2); margin-top: 10px; display: none; }
-  .login-info { font-size: 11px; color: var(--text2); text-align: center; margin-top: 12px; line-height: 1.5; }
+  .btn-primary:active { transform: translateY(0); }
+  .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+  .login-error {
+    background: rgba(224,80,80,0.1);
+    border: 1px solid rgba(224,80,80,0.3);
+    border-radius: var(--radius);
+    padding: 12px 16px;
+    font-size: 13px;
+    color: var(--accent2);
+    margin-top: 12px;
+    display: none;
+  }
+  .login-info {
+    font-size: 12px;
+    color: var(--text2);
+    text-align: center;
+    margin-top: 16px;
+  }
 
+  /* ── APP ── */
   #app { display: none; min-height: 100vh; }
-  .sidebar { position: fixed; left: 0; top: 0; bottom: 0; width: 236px; background: var(--bg2); border-right: 1px solid var(--border); display: flex; flex-direction: column; z-index: 100; }
-  .sidebar-logo { padding: 20px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid var(--border); }
-  .sidebar-logo .icon { width: 32px; height: 32px; background: var(--accent); border-radius: 7px; display: flex; align-items: center; justify-content: center; font-size: 15px; flex-shrink: 0; }
-  .sidebar-logo h1 { font-size: 14px; font-weight: 800; }
+
+  /* Sidebar */
+  .sidebar {
+    position: fixed;
+    left: 0; top: 0; bottom: 0;
+    width: 240px;
+    background: var(--bg2);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    z-index: 100;
+    transition: background 0.3s;
+  }
+  .sidebar-logo {
+    padding: 24px 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border-bottom: 1px solid var(--border);
+  }
+  .sidebar-logo .icon {
+    width: 36px; height: 36px;
+    background: var(--accent);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+    flex-shrink: 0;
+  }
+  .sidebar-logo h1 { font-size: 16px; font-weight: 800; }
   .sidebar-logo span { color: var(--accent); }
-  .group-badge { padding: 5px 20px; background: rgba(240,192,64,0.06); border-bottom: 1px solid var(--border); font-size: 11px; color: var(--accent); font-family: 'JetBrains Mono', monospace; font-weight: 600; }
-  .nav { padding: 12px 10px; flex: 1; }
-  .nav-item { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 600; color: var(--text2); transition: all 0.15s; margin-bottom: 2px; user-select: none; }
+  .nav { padding: 16px 12px; flex: 1; }
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text2);
+    transition: all 0.15s;
+    margin-bottom: 2px;
+  }
   .nav-item:hover { background: var(--bg3); color: var(--text); }
   .nav-item.active { background: rgba(240,192,64,0.12); color: var(--accent); }
-  .nav-icon { font-size: 15px; width: 18px; text-align: center; }
-  .sidebar-bottom { padding: 12px 10px; border-top: 1px solid var(--border); }
-  .user-card { display: flex; align-items: center; gap: 8px; padding: 9px 12px; border-radius: 8px; background: var(--bg3); }
-  .user-avatar { width: 28px; height: 28px; background: var(--accent); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: #0a0a0f; flex-shrink: 0; }
+  .nav-item .nav-icon { font-size: 16px; width: 20px; text-align: center; }
+  .sidebar-bottom {
+    padding: 16px 12px;
+    border-top: 1px solid var(--border);
+  }
+  .user-card {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    background: var(--bg3);
+  }
+  .user-avatar {
+    width: 32px; height: 32px;
+    background: var(--accent);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px;
+    font-weight: 700;
+    color: #0a0a0f;
+    flex-shrink: 0;
+  }
   .user-info { flex: 1; min-width: 0; }
-  .user-name { font-size: 12px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .user-role { font-size: 10px; color: var(--text2); }
-  .icon-btn { background: none; border: none; color: var(--text2); cursor: pointer; font-size: 14px; padding: 3px; border-radius: 5px; transition: color 0.2s; }
-  .icon-btn:hover { color: var(--text); }
-  .fb-status { font-size: 10px; color: var(--text2); display: flex; align-items: center; gap: 5px; margin-top: 6px; padding: 0 4px; }
-  .fb-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--warning); flex-shrink: 0; }
-  .fb-dot.on { background: var(--success); }
+  .user-name { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .user-role { font-size: 11px; color: var(--text2); }
+  .theme-btn {
+    background: none;
+    border: none;
+    color: var(--text2);
+    cursor: pointer;
+    font-size: 16px;
+    padding: 4px;
+    border-radius: 6px;
+    transition: color 0.2s;
+  }
+  .theme-btn:hover { color: var(--text); }
 
-  .main { margin-left: 236px; min-height: 100vh; padding: 30px; }
+  /* Main */
+  .main {
+    margin-left: 240px;
+    min-height: 100vh;
+    padding: 32px;
+  }
   .page { display: none; animation: fadeIn 0.3s ease; }
   .page.active { display: block; }
   @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
-  .page-header { margin-bottom: 22px; }
-  .page-header h2 { font-size: 24px; font-weight: 800; margin-bottom: 3px; }
-  .page-header p { color: var(--text2); font-size: 12px; }
 
-  .cards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; margin-bottom: 24px; }
-  .stat-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; display: flex; align-items: center; gap: 12px; }
-  .stat-icon { width: 40px; height: 40px; border-radius: 9px; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+  .page-header { margin-bottom: 28px; }
+  .page-header h2 { font-size: 28px; font-weight: 800; margin-bottom: 4px; }
+  .page-header p { color: var(--text2); font-size: 14px; }
+
+  /* Cards grid */
+  .cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 16px;
+  }
+  .stat-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  .stat-icon {
+    width: 48px; height: 48px;
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px;
+    flex-shrink: 0;
+  }
   .stat-icon.yellow { background: rgba(240,192,64,0.15); }
   .stat-icon.red { background: rgba(224,80,80,0.15); }
   .stat-icon.green { background: rgba(64,208,128,0.15); }
   .stat-icon.blue { background: rgba(64,128,240,0.15); }
-  .stat-val { font-size: 24px; font-weight: 800; font-family: 'JetBrains Mono', monospace; }
-  .stat-label { font-size: 11px; color: var(--text2); }
+  .stat-val { font-size: 28px; font-weight: 800; font-family: 'JetBrains Mono', monospace; }
+  .stat-label { font-size: 13px; color: var(--text2); }
 
-  .deadline-list { display: flex; flex-direction: column; gap: 7px; }
-  .deadline-item { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 16px; display: flex; align-items: center; gap: 12px; transition: border-color 0.2s, background 0.2s; }
-  .deadline-item.clickable:hover { border-color: var(--accent); background: var(--bg3); cursor: pointer; }
-  .deadline-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
-  .deadline-dot.urgent { background: var(--accent2); box-shadow: 0 0 6px rgba(224,80,80,0.5); }
+  /* Deadlines */
+  .deadline-list { display: flex; flex-direction: column; gap: 10px; margin-top: 8px; }
+  .deadline-item {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px 20px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    transition: border-color 0.2s;
+  }
+  .deadline-item:hover { border-color: var(--accent); }
+  .deadline-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .deadline-dot.urgent { background: var(--accent2); box-shadow: 0 0 8px rgba(224,80,80,0.5); }
   .deadline-dot.soon { background: var(--warning); }
   .deadline-dot.ok { background: var(--success); }
-  .deadline-info { flex: 1; min-width: 0; }
-  .deadline-name { font-size: 13px; font-weight: 600; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .deadline-course { font-size: 11px; color: var(--text2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .deadline-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
-  .deadline-date { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--text2); }
+  .deadline-info { flex: 1; }
+  .deadline-name { font-size: 14px; font-weight: 600; margin-bottom: 2px; }
+  .deadline-course { font-size: 12px; color: var(--text2); }
+  .deadline-date {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--text2);
+    text-align: right;
+  }
   .deadline-date.urgent { color: var(--accent2); }
   .deadline-date.soon { color: var(--warning); }
 
-  .toolbar { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
-  .toolbar input[type="text"] { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 8px 12px; color: var(--text); font-family: 'Syne', sans-serif; font-size: 12px; outline: none; width: 200px; transition: border-color 0.2s; }
-  .toolbar input[type="text"]:focus { border-color: var(--accent); }
-  .toolbar select { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 7px 10px; color: var(--text); font-family: 'Syne', sans-serif; font-size: 12px; outline: none; }
-  .toolbar-right { margin-left: auto; display: flex; gap: 6px; align-items: center; }
-  .section-title { font-size: 10px; font-weight: 700; color: var(--text2); letter-spacing: 1px; text-transform: uppercase; margin: 20px 0 9px; }
-
-  .upload-zone { border: 2px dashed var(--border); border-radius: var(--radius); padding: 26px; text-align: center; cursor: pointer; transition: border-color 0.2s, background 0.2s; margin-bottom: 16px; }
-  .upload-zone:hover, .upload-zone.drag { border-color: var(--accent); background: rgba(240,192,64,0.04); }
-  .upload-zone .up-icon { font-size: 26px; margin-bottom: 7px; }
-  .upload-zone p { font-size: 12px; color: var(--text2); }
-  .upload-zone strong { color: var(--accent); }
-  #file-input { display: none; }
-
-  .file-list { display: flex; flex-direction: column; gap: 7px; }
-  .file-item { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 11px 14px; display: flex; align-items: center; gap: 11px; }
-  .file-ext { width: 34px; height: 34px; border-radius: 7px; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 700; font-family: 'JetBrains Mono', monospace; flex-shrink: 0; }
-  .ext-pdf { background: rgba(224,80,80,0.15); color: var(--accent2); }
-  .ext-docx { background: rgba(64,128,240,0.15); color: #4080f0; }
-  .ext-pptx { background: rgba(240,128,64,0.15); color: #f08040; }
-  .ext-other { background: var(--bg3); color: var(--text2); }
-  .file-info { flex: 1; min-width: 0; }
-  .file-name { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .file-meta { font-size: 10px; color: var(--text2); margin-top: 2px; }
-  .file-actions { display: flex; gap: 5px; flex-shrink: 0; }
-
-  .btn-sm { background: var(--bg3); border: 1px solid var(--border); border-radius: 6px; padding: 5px 10px; font-size: 11px; font-weight: 600; color: var(--text2); cursor: pointer; transition: all 0.15s; font-family: 'Syne', sans-serif; }
+  /* Files / Materials */
+  .section-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text2);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin: 24px 0 12px;
+  }
+  .file-list { display: flex; flex-direction: column; gap: 8px; }
+  .file-item {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 18px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+  }
+  .file-item:hover { border-color: var(--accent); background: var(--bg3); }
+  .file-ext {
+    width: 38px; height: 38px;
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px;
+    font-weight: 700;
+    font-family: 'JetBrains Mono', monospace;
+    flex-shrink: 0;
+  }
+  .file-ext.pdf { background: rgba(224,80,80,0.15); color: var(--accent2); }
+  .file-ext.docx { background: rgba(64,128,240,0.15); color: #4080f0; }
+  .file-ext.pptx { background: rgba(240,128,64,0.15); color: #f08040; }
+  .file-ext.other { background: var(--bg3); color: var(--text2); }
+  .file-info { flex: 1; }
+  .file-name { font-size: 14px; font-weight: 600; }
+  .file-meta { font-size: 12px; color: var(--text2); margin-top: 2px; }
+  .file-actions { display: flex; gap: 8px; }
+  .btn-sm {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 6px 12px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text2);
+    cursor: pointer;
+    transition: all 0.15s;
+    font-family: 'Syne', sans-serif;
+  }
   .btn-sm:hover { border-color: var(--accent); color: var(--accent); }
   .btn-sm.accent { background: var(--accent); border-color: var(--accent); color: #0a0a0f; }
   .btn-sm.accent:hover { opacity: 0.85; color: #0a0a0f; }
-  .btn-sm.danger:hover { border-color: var(--accent2); color: var(--accent2); }
 
-  .course-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 11px; }
+  /* Upload zone */
+  .upload-zone {
+    border: 2px dashed var(--border);
+    border-radius: var(--radius);
+    padding: 32px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+    margin-bottom: 20px;
+  }
+  .upload-zone:hover, .upload-zone.drag { border-color: var(--accent); background: rgba(240,192,64,0.04); }
+  .upload-zone .up-icon { font-size: 32px; margin-bottom: 8px; }
+  .upload-zone p { font-size: 14px; color: var(--text2); }
+  .upload-zone strong { color: var(--accent); }
+  #file-input { display: none; }
+
+  /* Courses */
+  .course-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; }
   .course-list.list-view { grid-template-columns: 1fr; }
-  .course-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; cursor: pointer; transition: border-color 0.2s, transform 0.15s; text-decoration: none; color: var(--text); display: block; }
+  .course-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    cursor: pointer;
+    transition: border-color 0.2s, transform 0.15s;
+    text-decoration: none;
+    color: var(--text);
+    display: block;
+  }
   .course-card:hover { border-color: var(--accent); transform: translateY(-2px); }
-  .list-view .course-card { display: flex; align-items: center; gap: 12px; padding: 11px 14px; }
+  .list-view .course-card { display: flex; align-items: center; gap: 16px; padding: 12px 18px; }
   .list-view .course-card:hover { transform: none; }
-  .course-num { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--accent); font-weight: 500; margin-bottom: 5px; flex-shrink: 0; }
+  .course-num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--accent);
+    font-weight: 500;
+    margin-bottom: 8px;
+    flex-shrink: 0;
+  }
   .list-view .course-num { margin-bottom: 0; }
-  .course-name { font-size: 13px; font-weight: 700; line-height: 1.3; flex: 1; margin-bottom: 3px; }
+  .course-name { font-size: 15px; font-weight: 700; margin-bottom: 6px; line-height: 1.3; flex: 1; }
   .list-view .course-name { margin-bottom: 0; }
-  .course-meta { font-size: 11px; color: var(--text2); }
-  .filter-tab { padding: 5px 11px; border-radius: 20px; font-size: 11px; font-weight: 600; border: 1px solid var(--border); background: var(--card); color: var(--text2); cursor: pointer; transition: all 0.15s; font-family: 'Syne', sans-serif; }
+  .course-meta { font-size: 12px; color: var(--text2); }
+  .filter-tab {
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    border: 1px solid var(--border);
+    background: var(--card);
+    color: var(--text2);
+    cursor: pointer;
+    transition: all 0.15s;
+    font-family: 'Syne', sans-serif;
+  }
   .filter-tab:hover { border-color: var(--accent); color: var(--accent); }
   .filter-tab.active { background: var(--accent); border-color: var(--accent); color: #0a0a0f; }
-  .view-btn { width: 28px; height: 28px; border-radius: 6px; border: 1px solid var(--border); background: var(--card); color: var(--text2); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 12px; transition: all 0.15s; }
+  .view-btn {
+    width: 32px; height: 32px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--card);
+    color: var(--text2);
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px;
+    transition: all 0.15s;
+  }
   .view-btn.active { background: var(--accent); border-color: var(--accent); color: #0a0a0f; }
 
-  .tag { display: inline-block; padding: 2px 7px; border-radius: 20px; font-size: 10px; font-weight: 600; background: var(--bg3); color: var(--text2); border: 1px solid var(--border); }
+  /* Loading */
+  .loading {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--text2);
+    font-size: 14px;
+    padding: 20px 0;
+  }
+  .spinner {
+    width: 18px; height: 18px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .empty-state {
+    text-align: center;
+    padding: 48px 20px;
+    color: var(--text2);
+  }
+  .empty-state .emoji { font-size: 40px; margin-bottom: 12px; }
+  .empty-state p { font-size: 14px; }
+
+  /* Tags */
+  .tag {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 600;
+    background: var(--bg3);
+    color: var(--text2);
+    border: 1px solid var(--border);
+  }
+  .tag.yellow { background: rgba(240,192,64,0.12); color: var(--accent); border-color: rgba(240,192,64,0.2); }
   .tag.green { background: rgba(64,208,128,0.12); color: var(--success); border-color: rgba(64,208,128,0.2); }
-  .sync-badge { display: inline-flex; align-items: center; gap: 6px; background: rgba(64,208,128,0.1); border: 1px solid rgba(64,208,128,0.2); border-radius: 20px; padding: 3px 10px; font-size: 11px; color: var(--success); font-weight: 600; }
-  .sync-dot { width: 5px; height: 5px; background: var(--success); border-radius: 50%; animation: pulse 2s infinite; }
+  .tag.red { background: rgba(224,80,80,0.12); color: var(--accent2); border-color: rgba(224,80,80,0.2); }
+
+  /* Toolbar */
+  .toolbar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+  }
+  .toolbar input[type="text"] {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 10px 14px;
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    font-size: 13px;
+    outline: none;
+    width: 240px;
+    transition: border-color 0.2s;
+  }
+  .toolbar input[type="text"]:focus { border-color: var(--accent); }
+  .toolbar-right { margin-left: auto; display: flex; gap: 8px; }
+
+  /* Logout */
+  .logout-btn {
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 6px 10px;
+    color: var(--text2);
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.15s;
+  }
+  .logout-btn:hover { border-color: var(--accent2); color: var(--accent2); }
+
+  /* Responsive */
+  @media (max-width: 768px) {
+    .sidebar { transform: translateX(-100%); }
+    .main { margin-left: 0; padding: 20px; }
+  }
+
+  /* Sync badge */
+  .sync-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(64,208,128,0.1);
+    border: 1px solid rgba(64,208,128,0.2);
+    border-radius: 20px;
+    padding: 4px 12px;
+    font-size: 11px;
+    color: var(--success);
+    font-weight: 600;
+  }
+  .sync-dot { width: 6px; height: 6px; background: var(--success); border-radius: 50%; animation: pulse 2s infinite; }
   @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
 
-  .loading { display: flex; align-items: center; gap: 9px; color: var(--text2); font-size: 12px; padding: 18px 0; }
-  .spinner { width: 15px; height: 15px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.7s linear infinite; }
-  @keyframes spin { to { transform: rotate(360deg); } }
-  .empty-state { text-align: center; padding: 36px 20px; color: var(--text2); }
-  .empty-state .emoji { font-size: 32px; margin-bottom: 9px; }
-  .empty-state p { font-size: 12px; }
-
-  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: none; align-items: center; justify-content: center; z-index: 999; }
+  /* Modal */
+  .modal-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.7);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 999;
+    display: none;
+  }
   .modal-overlay.show { display: flex; }
-  .modal { background: var(--bg2); border: 1px solid var(--border); border-radius: 16px; padding: 26px; width: 440px; max-width: 95vw; animation: fadeUp 0.3s ease; }
-  .modal h3 { font-size: 17px; font-weight: 800; margin-bottom: 16px; }
-  .modal .field input { font-family: 'Syne', sans-serif; }
-  .modal-actions { display: flex; gap: 7px; justify-content: flex-end; margin-top: 16px; }
+  .modal {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 32px;
+    width: 480px;
+    max-width: 95vw;
+    animation: fadeUp 0.3s ease;
+  }
+  .modal h3 { font-size: 20px; font-weight: 800; margin-bottom: 20px; }
+  .modal .field { margin-bottom: 14px; }
+  .modal select {
+    width: 100%;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 12px 16px;
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    font-size: 14px;
+    outline: none;
+  }
+  .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
 </style>
 </head>
 <body>
@@ -179,23 +578,18 @@
       <h1>Student<span>Hub</span></h1>
     </div>
     <h2>Вхід</h2>
-    <p>Портал студентів УкрДУЗТ</p>
+    <p>Використовуйте логін та пароль від Moodle УкрДУЗТ</p>
     <div class="field">
-      <label>Логін від Moodle</label>
-      <input type="text" id="login-input" placeholder="••••••••••••" autocomplete="username">
+      <label>Логін (email або username)</label>
+      <input type="text" id="login-input" placeholder="••••••••••••••••" autocomplete="username">
     </div>
     <div class="field">
-      <label>Пароль від Moodle</label>
+      <label>Пароль</label>
       <input type="password" id="pass-input" placeholder="••••••••" autocomplete="current-password">
     </div>
-    <div class="step-sep">Ваша група</div>
-    <div class="field">
-      <label>Код групи (наприклад КН-23-1)</label>
-      <input type="text" id="group-input" placeholder="КН-23-1" autocomplete="off" style="font-family:'Syne',sans-serif;text-transform:uppercase;">
-    </div>
-    <button class="btn-primary" id="login-btn" onclick="doLogin()">Увійти</button>
+    <button class="btn-primary" id="login-btn" onclick="doLogin()">Увійти через Moodle</button>
     <div class="login-error" id="login-error"></div>
-    <p class="login-info">Логін/пароль передаються напряму на сервер УкрДУЗТ і не зберігаються.<br>Файли групи зберігаються у Firebase.</p>
+    <p class="login-info">Ваші дані передаються напряму на сервер УкрДУЗТ і ніде не зберігаються</p>
   </div>
 </div>
 
@@ -206,25 +600,33 @@
       <div class="icon">🎓</div>
       <h1>Student<span>Hub</span></h1>
     </div>
-    <div class="group-badge" id="group-badge">Група: —</div>
     <div class="nav">
-      <div class="nav-item active" onclick="showPage('dashboard')"><span class="nav-icon">🏠</span>Головна</div>
-      <div class="nav-item" onclick="showPage('deadlines')"><span class="nav-icon">⏰</span>Дедлайни</div>
-      <div class="nav-item" onclick="showPage('courses')"><span class="nav-icon">📚</span>Курси</div>
-      <div class="nav-item" onclick="showPage('files')"><span class="nav-icon">📁</span>Файли групи</div>
-      <div class="nav-item" onclick="showPage('materials')"><span class="nav-icon">📝</span>Матеріали</div>
+      <div class="nav-item active" onclick="showPage('dashboard')">
+        <span class="nav-icon">🏠</span> Головна
+      </div>
+      <div class="nav-item" onclick="showPage('deadlines')">
+        <span class="nav-icon">⏰</span> Дедлайни
+      </div>
+      <div class="nav-item" onclick="showPage('courses')">
+        <span class="nav-icon">📚</span> Курси
+      </div>
+      <div class="nav-item" onclick="showPage('files')">
+        <span class="nav-icon">📁</span> Файли групи
+      </div>
+      <div class="nav-item" onclick="showPage('materials')">
+        <span class="nav-icon">📝</span> Матеріали
+      </div>
     </div>
     <div class="sidebar-bottom">
       <div class="user-card">
         <div class="user-avatar" id="user-avatar">?</div>
         <div class="user-info">
           <div class="user-name" id="user-name">...</div>
-          <div class="user-role" id="user-group-label">Студент</div>
+          <div class="user-role">Студент</div>
         </div>
-        <button class="icon-btn" onclick="toggleTheme()" title="Тема">🌓</button>
-        <button class="icon-btn" onclick="doLogout()" title="Вийти">↩</button>
+        <button class="theme-btn" onclick="toggleTheme()" title="Змінити тему">🌓</button>
+        <button class="logout-btn" onclick="doLogout()" title="Вийти">↩</button>
       </div>
-      <div class="fb-status"><div class="fb-dot" id="fb-dot"></div><span id="fb-label">Підключення до Firebase...</span></div>
     </div>
   </nav>
 
@@ -233,17 +635,29 @@
     <div class="page active" id="page-dashboard">
       <div class="page-header">
         <h2>Добрий день! 👋</h2>
-        <p id="dash-subtitle">Завантаження...</p>
+        <p id="dash-subtitle">Завантаження даних з Moodle...</p>
       </div>
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:18px;flex-wrap:wrap;">
-        <div class="sync-badge"><div class="sync-dot"></div>Синхронізовано з Moodle</div>
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:24px;">
+        <div class="sync-badge"><div class="sync-dot"></div> Синхронізовано з Moodle</div>
         <button class="btn-sm" onclick="syncMoodle()">🔄 Оновити</button>
       </div>
-      <div class="cards-grid">
-        <div class="stat-card"><div class="stat-icon yellow">📚</div><div><div class="stat-val" id="stat-courses">—</div><div class="stat-label">Активних курсів</div></div></div>
-        <div class="stat-card"><div class="stat-icon red">⏰</div><div><div class="stat-val" id="stat-urgent">—</div><div class="stat-label">Терміново здати</div></div></div>
-        <div class="stat-card"><div class="stat-icon green">✅</div><div><div class="stat-val" id="stat-done">—</div><div class="stat-label">Дедлайнів минуло</div></div></div>
-        <div class="stat-card"><div class="stat-icon blue">📁</div><div><div class="stat-val" id="stat-files">—</div><div class="stat-label">Файлів у групі</div></div></div>
+      <div class="cards-grid" id="stat-cards">
+        <div class="stat-card">
+          <div class="stat-icon yellow">📚</div>
+          <div><div class="stat-val" id="stat-courses">—</div><div class="stat-label">Активних курсів</div></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon red">⏰</div>
+          <div><div class="stat-val" id="stat-urgent">—</div><div class="stat-label">Терміново здати</div></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon green">✅</div>
+          <div><div class="stat-val" id="stat-done">—</div><div class="stat-label">Здано завдань</div></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon blue">📁</div>
+          <div><div class="stat-val" id="stat-files">—</div><div class="stat-label">Файлів у групі</div></div>
+        </div>
       </div>
       <div class="section-title">Найближчі дедлайни</div>
       <div id="dash-deadlines"><div class="loading"><div class="spinner"></div>Завантаження...</div></div>
@@ -251,15 +665,12 @@
 
     <!-- DEADLINES -->
     <div class="page" id="page-deadlines">
-      <div class="page-header"><h2>⏰ Дедлайни</h2><p>Завдання з Moodle — натисніть щоб відкрити завдання</p></div>
+      <div class="page-header">
+        <h2>⏰ Дедлайни</h2>
+        <p>Завдання з Moodle — оновлюються автоматично</p>
+      </div>
       <div class="toolbar">
-        <input type="text" id="dl-search" placeholder="🔍 Пошук завдання..." oninput="applyDeadlineFilter()">
-        <select id="dl-filter" onchange="applyDeadlineFilter()">
-          <option value="all">Всі</option>
-          <option value="active">Тільки активні</option>
-          <option value="urgent">Термінові (48 год)</option>
-          <option value="past">Минулі</option>
-        </select>
+        <input type="text" placeholder="🔍 Пошук завдання..." oninput="filterDeadlines(this.value)">
         <div class="toolbar-right">
           <button class="btn-sm accent" onclick="syncMoodle()">🔄 Синхронізувати</button>
         </div>
@@ -269,16 +680,17 @@
 
     <!-- COURSES -->
     <div class="page" id="page-courses">
-      <div class="page-header"><h2>📚 Мої курси</h2><p>Список курсів з Moodle — натисніть щоб відкрити</p></div>
-      <div class="toolbar">
-        <input type="text" id="course-search" placeholder="🔍 Пошук курсу..." oninput="filterCourses()">
+      <div class="page-header">
+        <h2>📚 Мої курси</h2>
+        <p>Список курсів з Moodle</p>
+      </div>
+      <div class="toolbar" style="margin-bottom:16px;flex-wrap:wrap;">
+        <input type="text" id="course-search" placeholder="🔍 Пошук курсу..." oninput="filterCourses()" style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:10px 14px;color:var(--text);font-family:'Syne',sans-serif;font-size:13px;outline:none;width:200px;">
         <button class="filter-tab active" id="sort-name" onclick="setCourseSort('name')">За назвою</button>
         <button class="filter-tab" id="sort-num" onclick="setCourseSort('num')">За номером</button>
-        <div class="toolbar-right">
-          <div style="display:flex;gap:4px;">
-            <button class="view-btn active" id="view-grid" onclick="setCourseView('grid')" title="Картки">⊞</button>
-            <button class="view-btn" id="view-list" onclick="setCourseView('list')" title="Список">☰</button>
-          </div>
+        <div style="margin-left:auto;display:flex;gap:4px;">
+          <button class="view-btn active" id="view-grid" onclick="setCourseView('grid')" title="Картки">⊞</button>
+          <button class="view-btn" id="view-list" onclick="setCourseView('list')" title="Список">☰</button>
         </div>
       </div>
       <div id="courses-list"><div class="loading"><div class="spinner"></div>Завантаження...</div></div>
@@ -288,23 +700,26 @@
     <div class="page" id="page-files">
       <div class="page-header">
         <h2>📁 Файли групи</h2>
-        <p id="files-group-label">Спільні файли вашої групи</p>
+        <p>Діліться файлами з одногрупниками</p>
       </div>
-      <div class="upload-zone" id="upload-zone" onclick="document.getElementById('file-input').click()" ondragover="event.preventDefault();this.classList.add('drag')" ondragleave="this.classList.remove('drag')" ondrop="handleDrop(event)">
+      <div class="upload-zone" id="upload-zone" onclick="document.getElementById('file-input').click()"
+           ondragover="event.preventDefault();this.classList.add('drag')"
+           ondragleave="this.classList.remove('drag')"
+           ondrop="handleDrop(event)">
         <div class="up-icon">📤</div>
         <p><strong>Натисніть або перетягніть файл</strong></p>
-        <p style="margin-top:3px;font-size:11px;">PDF, DOCX, PPTX, XLSX та інші (до 5МБ)</p>
+        <p style="margin-top:4px;font-size:12px;">PDF, DOCX, PPTX, XLSX, ZIP та інші</p>
       </div>
       <input type="file" id="file-input" multiple onchange="handleFileSelect(this)">
       <div class="section-title">Завантажені файли</div>
-      <div id="group-files-list"><div class="loading"><div class="spinner"></div>Завантаження файлів...</div></div>
+      <div id="group-files-list"></div>
     </div>
 
     <!-- MATERIALS -->
     <div class="page" id="page-materials">
       <div class="page-header">
         <h2>📝 Матеріали</h2>
-        <p id="materials-group-label">Конспекти та посилання вашої групи</p>
+        <p>Конспекти, лекції, шпаргалки</p>
       </div>
       <div class="toolbar">
         <input type="text" placeholder="🔍 Пошук матеріалу..." oninput="filterMaterials(this.value)">
@@ -312,18 +727,27 @@
           <button class="btn-sm accent" onclick="showAddMaterial()">+ Додати</button>
         </div>
       </div>
-      <div id="materials-list"><div class="loading"><div class="spinner"></div>Завантаження матеріалів...</div></div>
+      <div id="materials-list"></div>
     </div>
   </main>
 </div>
 
-<!-- Modal -->
+<!-- Modal: Add Material -->
 <div class="modal-overlay" id="add-material-modal">
   <div class="modal">
     <h3>📝 Додати матеріал</h3>
-    <div class="field"><label>Назва</label><input type="text" id="mat-name" placeholder="Конспект по вищій математиці"></div>
-    <div class="field"><label>Предмет</label><input type="text" id="mat-subject" placeholder="Вища математика"></div>
-    <div class="field"><label>Посилання або опис</label><input type="text" id="mat-desc" placeholder="https://drive.google.com/..."></div>
+    <div class="field">
+      <label>Назва</label>
+      <input type="text" id="mat-name" placeholder="Конспект по вищій математиці" style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:12px 16px;color:var(--text);font-family:'Syne',sans-serif;font-size:14px;outline:none;">
+    </div>
+    <div class="field">
+      <label>Предмет / курс</label>
+      <input type="text" id="mat-subject" placeholder="Вища математика" style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:12px 16px;color:var(--text);font-family:'Syne',sans-serif;font-size:14px;outline:none;">
+    </div>
+    <div class="field">
+      <label>Опис або посилання</label>
+      <input type="text" id="mat-desc" placeholder="https://drive.google.com/... або короткий опис" style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:12px 16px;color:var(--text);font-family:'Syne',sans-serif;font-size:14px;outline:none;">
+    </div>
     <div class="modal-actions">
       <button class="btn-sm" onclick="closeModal()">Скасувати</button>
       <button class="btn-sm accent" onclick="addMaterial()">Додати</button>
@@ -331,69 +755,54 @@
   </div>
 </div>
 
-<!-- Firebase SDK -->
-<script type="module">
-import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-import { getFirestore, collection, addDoc, deleteDoc, doc, query, where, orderBy, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
-
-const cfg = {
-  apiKey: "AIzaSyAXscEMkW51sejM_yBkMcL_QyvgfAWT7sE",
-  authDomain: "student-hub-ukrdust.firebaseapp.com",
-  projectId: "student-hub-ukrdust",
-  storageBucket: "student-hub-ukrdust.firebasestorage.app",
-  messagingSenderId: "181184327168",
-  appId: "1:181184327168:web:3ceca4b24980f900eff2e5"
-};
-const fbApp = initializeApp(cfg);
-const db = getFirestore(fbApp);
-window._db = db;
-window._fb = { collection, addDoc, deleteDoc, doc, query, where, orderBy, onSnapshot };
-document.getElementById('fb-dot').classList.add('on');
-document.getElementById('fb-label').textContent = 'Firebase підключено ✓';
-</script>
-
 <script>
 const MOODLE = 'https://do.kart.edu.ua';
-let token = '', userData = {}, allDeadlines = [], courses = [], currentGroup = '';
-let unsubFiles = null, unsubMats = null, cachedFiles = [], cachedMats = [];
+let token = '';
+let userData = {};
+let allDeadlines = [];
+let allMaterials = JSON.parse(localStorage.getItem('sh_materials') || '[]');
+let groupFiles = JSON.parse(localStorage.getItem('sh_files') || '[]');
 
 // ── AUTH ──
 async function doLogin() {
   const username = document.getElementById('login-input').value.trim();
   const password = document.getElementById('pass-input').value;
-  const group = document.getElementById('group-input').value.trim().toUpperCase().replace(/\s+/g,'-');
   const btn = document.getElementById('login-btn');
   const err = document.getElementById('login-error');
   err.style.display = 'none';
   if (!username || !password) { showErr('Введіть логін та пароль'); return; }
-  if (!group) { showErr('Введіть код вашої групи'); return; }
   btn.disabled = true; btn.textContent = 'Входимо...';
   try {
-    const r = await fetch(MOODLE + '/login/token.php?username=' + encodeURIComponent(username) + '&password=' + encodeURIComponent(password) + '&service=moodle_mobile_app');
+    const r = await fetch(`${MOODLE}/login/token.php?username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}&service=moodle_mobile_app`);
     const d = await r.json();
     if (d.token) {
-      token = d.token; currentGroup = group;
+      token = d.token;
       localStorage.setItem('sh_token', token);
-      localStorage.setItem('sh_group', group);
       await initApp();
-    } else { showErr(d.error || 'Невірний логін або пароль'); }
-  } catch(e) { showErr('Помилка підключення. Перевірте інтернет.'); }
-  btn.disabled = false; btn.textContent = 'Увійти';
+    } else {
+      showErr(d.error || 'Невірний логін або пароль');
+    }
+  } catch(e) {
+    showErr('Помилка підключення до Moodle. Перевірте інтернет.');
+  }
+  btn.disabled = false; btn.textContent = 'Увійти через Moodle';
 }
-function showErr(msg) { const e = document.getElementById('login-error'); e.textContent = msg; e.style.display = 'block'; }
+
+function showErr(msg) {
+  const err = document.getElementById('login-error');
+  err.textContent = msg; err.style.display = 'block';
+}
+
 document.getElementById('pass-input').addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
-document.getElementById('group-input').addEventListener('input', function() { this.value = this.value.toUpperCase(); });
+document.getElementById('login-input').addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
 
 async function initApp() {
   document.getElementById('login-screen').style.display = 'none';
   document.getElementById('app').style.display = 'block';
-  document.getElementById('group-badge').textContent = '📌 ' + currentGroup;
-  document.getElementById('files-group-label').textContent = 'Спільні файли групи ' + currentGroup;
-  document.getElementById('materials-group-label').textContent = 'Матеріали групи ' + currentGroup;
   await loadUserInfo();
   await syncMoodle();
-  listenFiles();
-  listenMats();
+  renderGroupFiles();
+  renderMaterials();
 }
 
 async function loadUserInfo() {
@@ -403,31 +812,37 @@ async function loadUserInfo() {
     const name = d.fullname || 'Студент';
     document.getElementById('user-name').textContent = name;
     document.getElementById('user-avatar').textContent = name[0].toUpperCase();
-    document.getElementById('user-group-label').textContent = currentGroup;
     const today = new Date().toLocaleDateString('uk-UA', {weekday:'long', day:'numeric', month:'long'});
     document.getElementById('dash-subtitle').textContent = today + ' • ' + name;
   } catch(e) {}
 }
 
-async function syncMoodle() { await Promise.all([loadCourses(), loadDeadlines()]); }
+async function syncMoodle() {
+  await Promise.all([loadCourses(), loadDeadlines()]);
+}
 
-async function moodleCall(fn, params={}) {
+// ── MOODLE API ──
+async function moodleCall(fn, params = {}) {
   const p = new URLSearchParams({ wstoken: token, wsfunction: fn, moodlewsrestformat: 'json', ...params });
-  const r = await fetch(MOODLE + '/webservice/rest/server.php?' + p);
+  const r = await fetch(`${MOODLE}/webservice/rest/server.php?${p}`);
   return r.json();
 }
 
-// ── COURSES ──
-let courseView = 'grid', courseSort = 'name';
+let courses = [];
 async function loadCourses() {
   try {
     const info = await moodleCall('core_webservice_get_site_info');
-    const d = await moodleCall('core_enrol_get_users_courses', { userid: info.userid });
+    const userId = info.userid;
+    const d = await moodleCall('core_enrol_get_users_courses', { userid: userId });
     courses = Array.isArray(d) ? d : [];
     document.getElementById('stat-courses').textContent = courses.length;
-    filterCourses();
+    renderCourses();
   } catch(e) { courses = []; }
 }
+
+let courseView = 'grid';
+let courseSort = 'name';
+
 function setCourseView(v) {
   courseView = v;
   document.getElementById('view-grid').classList.toggle('active', v==='grid');
@@ -441,249 +856,244 @@ function setCourseSort(s) {
   filterCourses();
 }
 function filterCourses() {
-  const q = (document.getElementById('course-search')||{value:''}).value.toLowerCase();
+  const el = document.getElementById('course-search');
+  const q = el ? el.value.toLowerCase() : '';
   let list = courses.filter(c => !q || (c.fullname||c.shortname||'').toLowerCase().includes(q));
-  if (courseSort==='name') list = list.slice().sort((a,b) => (a.fullname||a.shortname).localeCompare(b.fullname||b.shortname));
+  if (courseSort==='name') list = list.slice().sort((a,b)=>(a.fullname||a.shortname).localeCompare(b.fullname||b.shortname));
+  renderCourses(list);
+}
+function renderCourses(list) {
+  list = list || courses;
   const el = document.getElementById('courses-list');
   if (!list.length) { el.innerHTML = '<div class="empty-state"><div class="emoji">📚</div><p>Курси не знайдено</p></div>'; return; }
-  const cls = courseView==='list' ? 'course-list list-view' : 'course-list';
-  el.innerHTML = '<div class="' + cls + '">' + list.map((c,i) =>
-    '<a class="course-card" href="https://do.kart.edu.ua/course/view.php?id=' + c.id + '" target="_blank">' +
-    '<div class="course-num">Курс #' + (i+1) + '</div>' +
-    '<div class="course-name">' + (c.fullname||c.shortname) + '</div>' +
-    '<div class="course-meta">' + (c.shortname||'') + '</div>' +
-    '</a>'
-  ).join('') + '</div>';
+  const cls = courseView === 'list' ? 'course-list list-view' : 'course-list';
+  el.innerHTML = '<div class="' + cls + '">' + list.map((c,i) => {
+    const url = c.id ? 'https://do.kart.edu.ua/course/view.php?id=' + c.id : '#';
+    return '<a class="course-card" href="' + url + '" target="_blank">' +
+      '<div class="course-num">Курс #' + (i+1) + '</div>' +
+      '<div class="course-name">' + (c.fullname || c.shortname) + '</div>' +
+      '<div class="course-meta">' + (c.shortname || '') + '</div>' +
+      '</a>';
+  }).join('') + '</div>';
 }
 
-// ── DEADLINES ──
 async function loadDeadlines() {
   try {
     const now = Math.floor(Date.now()/1000);
+    const future = now + 60*60*24*60;
     const d = await moodleCall('core_calendar_get_action_events_by_timesort', {
-      timesortfrom: now - 60*60*24*30,
-      timesortto: now + 60*60*24*90,
-      limitnum: 100
+      timesortfrom: now, timesortto: future, limitnum: 50
     });
     const events = d.events || [];
-    allDeadlines = events
-      .filter(e => e.timesort)
-      .map(e => ({
-        id: e.id,
-        name: e.name,
-        course: e.course ? e.course.fullname : '—',
-        due: e.timesort,
-        past: e.timesort < now,
-        url: e.url || '#'
-      }))
-      .sort((a,b) => a.due - b.due);
+    allDeadlines = events.map(e => ({
+      id: e.id,
+      name: e.name,
+      course: e.course ? e.course.fullname : 'Невідомий курс',
+      due: e.timesort || e.timeusermidnight,
+      submitted: e.action ? e.action.actionable === false : false,
+      url: e.url || '#'
+    }));
     updateDeadlineStats();
-    applyDeadlineFilter();
+    renderDeadlines(allDeadlines);
     renderDashDeadlines();
   } catch(e) {
     document.getElementById('deadlines-list').innerHTML = '<div class="empty-state"><div class="emoji">⚠️</div><p>Не вдалось завантажити дедлайни</p></div>';
   }
 }
 
-function getDotClass(d) {
-  if (d.past) return 'urgent';
-  const diff = d.due - Date.now()/1000;
+function getDotClass(ts) {
+  const diff = ts - Date.now()/1000;
   if (diff < 60*60*48) return 'urgent';
   if (diff < 60*60*24*7) return 'soon';
   return 'ok';
 }
-function fmtDate(ts) {
+
+function formatDate(ts) {
   return new Date(ts*1000).toLocaleDateString('uk-UA', {day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'});
 }
+
 function updateDeadlineStats() {
   const now = Date.now()/1000;
-  const urgent = allDeadlines.filter(d => !d.past && (d.due - now) < 60*60*48).length;
-  const past = allDeadlines.filter(d => d.past).length;
+  const urgent = allDeadlines.filter(d => !d.submitted && (d.due - now) < 60*60*48).length;
+  const done = allDeadlines.filter(d => d.submitted).length;
   document.getElementById('stat-urgent').textContent = urgent;
-  document.getElementById('stat-done').textContent = past;
+  document.getElementById('stat-done').textContent = done;
 }
-function applyDeadlineFilter() {
-  const q = (document.getElementById('dl-search')||{value:''}).value.toLowerCase();
-  const f = (document.getElementById('dl-filter')||{value:'all'}).value;
-  const now = Date.now()/1000;
-  let list = allDeadlines.filter(d => !q || d.name.toLowerCase().includes(q) || d.course.toLowerCase().includes(q));
-  if (f === 'active') list = list.filter(d => !d.past);
-  else if (f === 'urgent') list = list.filter(d => !d.past && (d.due - now) < 60*60*48);
-  else if (f === 'past') list = list.filter(d => d.past);
-  renderDeadlines(list, document.getElementById('deadlines-list'));
-}
-function renderDeadlines(list, el) {
-  if (!list.length) { el.innerHTML = '<div class="empty-state"><div class="emoji">🎉</div><p>Немає дедлайнів за цим фільтром!</p></div>'; return; }
+
+function renderDeadlines(list) {
+  const el = document.getElementById('deadlines-list');
+  if (!list.length) { el.innerHTML = '<div class="empty-state"><div class="emoji">🎉</div><p>Немає активних дедлайнів!</p></div>'; return; }
   el.innerHTML = '<div class="deadline-list">' + list.map(d => {
-    const cls = getDotClass(d);
-    const hasUrl = d.url && d.url !== '#';
-    return '<div class="deadline-item' + (hasUrl ? ' clickable' : '') + '"' +
-      (hasUrl ? ' onclick="window.open(\'' + d.url.replace(/'/g,"\\'") + '\',\'_blank\')"' : '') + '>' +
+    const cls = getDotClass(d.due);
+    const click = d.url && d.url !== '#' ? 'onclick="window.open(\'' + d.url + '\',\'_blank\')" style="cursor:pointer"' : '';
+    const arrow = d.url && d.url !== '#' ? ' <span style="font-size:11px;opacity:0.6">↗</span>' : '';
+    return '<div class="deadline-item" ' + click + '>' +
       '<div class="deadline-dot ' + cls + '"></div>' +
       '<div class="deadline-info">' +
-        '<div class="deadline-name">' + d.name + (hasUrl ? ' <span style="opacity:0.4;font-size:10px">↗</span>' : '') + '</div>' +
+        '<div class="deadline-name">' + d.name + arrow + '</div>' +
         '<div class="deadline-course">' + d.course + '</div>' +
       '</div>' +
-      '<div class="deadline-right">' +
-        '<div class="deadline-date ' + cls + '">' + fmtDate(d.due) + '</div>' +
-        (d.past ? '<span class="tag">Минув</span>' : '') +
-      '</div>' +
+      '<div class="deadline-date ' + cls + '">' + formatDate(d.due) + '</div>' +
+      (d.submitted ? '<span class="tag green">Здано</span>' : '') +
       '</div>';
   }).join('') + '</div>';
 }
+
 function renderDashDeadlines() {
   const el = document.getElementById('dash-deadlines');
-  const top = allDeadlines.filter(d => !d.past).slice(0,5);
+  const top = allDeadlines.filter(d => !d.submitted).slice(0,5);
   if (!top.length) { el.innerHTML = '<div class="empty-state"><div class="emoji">🎉</div><p>Немає активних дедлайнів!</p></div>'; return; }
-  renderDeadlines(top, el);
+  el.innerHTML = '<div class="deadline-list">' + top.map(d => {
+    const cls = getDotClass(d.due);
+    const click = d.url && d.url !== '#' ? 'onclick="window.open(\'' + d.url + '\',\'_blank\')" style="cursor:pointer"' : '';
+    const arrow = d.url && d.url !== '#' ? ' <span style="font-size:11px;opacity:0.6">↗</span>' : '';
+    return '<div class="deadline-item" ' + click + '>' +
+      '<div class="deadline-dot ' + cls + '"></div>' +
+      '<div class="deadline-info">' +
+        '<div class="deadline-name">' + d.name + arrow + '</div>' +
+        '<div class="deadline-course">' + d.course + '</div>' +
+      '</div>' +
+      '<div class="deadline-date ' + cls + '">' + formatDate(d.due) + '</div>' +
+      '</div>';
+  }).join('') + '</div>';
 }
 
-// ── FILES (Firebase Firestore) ──
-function listenFiles() {
-  if (!window._db || !currentGroup) return;
-  const { collection, query, where, orderBy, onSnapshot } = window._fb;
-  if (unsubFiles) unsubFiles();
-  const q = query(collection(window._db, 'files'), where('group', '==', currentGroup), orderBy('createdAt', 'desc'));
-  unsubFiles = onSnapshot(q, snap => {
-    cachedFiles = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-    renderFiles(cachedFiles);
-    document.getElementById('stat-files').textContent = cachedFiles.length;
-  }, () => {
-    document.getElementById('group-files-list').innerHTML = '<div class="empty-state"><div class="emoji">⚠️</div><p>Помилка завантаження. Можливо, Firebase ще налаштовується.</p></div>';
-  });
+function filterDeadlines(q) {
+  const filtered = allDeadlines.filter(d => d.name.toLowerCase().includes(q.toLowerCase()) || d.course.toLowerCase().includes(q.toLowerCase()));
+  renderDeadlines(filtered);
 }
-function handleFileSelect(inp) { Array.from(inp.files).forEach(uploadFile); inp.value=''; }
+
+// ── FILES ──
+function handleFileSelect(input) {
+  Array.from(input.files).forEach(addFile);
+}
 function handleDrop(e) {
   e.preventDefault();
   document.getElementById('upload-zone').classList.remove('drag');
-  Array.from(e.dataTransfer.files).forEach(uploadFile);
+  Array.from(e.dataTransfer.files).forEach(addFile);
 }
-async function uploadFile(file) {
-  if (file.size > 5*1024*1024) { alert('Файл більше 5МБ — спробуйте менший.'); return; }
-  if (!window._db) { alert('Firebase не готовий — зачекайте секунду.'); return; }
-  const { collection, addDoc } = window._fb;
-  const zone = document.getElementById('upload-zone');
-  zone.innerHTML = '<div class="up-icon">⏳</div><p>Завантаження ' + file.name + '...</p>';
+function addFile(file) {
+  const entry = {
+    id: Date.now() + Math.random(),
+    name: file.name,
+    size: file.size,
+    type: file.type,
+    uploader: userData.fullname || 'Ви',
+    date: new Date().toLocaleDateString('uk-UA'),
+    dataUrl: null
+  };
   const reader = new FileReader();
-  reader.onload = async e => {
-    try {
-      await addDoc(collection(window._db, 'files'), {
-        group: currentGroup,
-        name: file.name,
-        size: file.size,
-        uploader: userData.fullname || 'Студент',
-        createdAt: Date.now(),
-        dataUrl: e.target.result
-      });
-    } catch(err) { alert('Помилка: ' + err.message); }
-    zone.innerHTML = '<div class="up-icon">📤</div><p><strong>Натисніть або перетягніть файл</strong></p><p style="margin-top:3px;font-size:11px;">PDF, DOCX, PPTX, XLSX та інші (до 5МБ)</p>';
+  reader.onload = e => {
+    entry.dataUrl = e.target.result;
+    groupFiles.unshift(entry);
+    saveFiles();
+    renderGroupFiles();
   };
   reader.readAsDataURL(file);
 }
-function renderFiles(files) {
+function saveFiles() {
+  // Store only metadata (not dataUrl for large files) to avoid quota issues
+  const meta = groupFiles.map(f => ({...f, dataUrl: f.dataUrl && f.dataUrl.length < 500000 ? f.dataUrl : null}));
+  try { localStorage.setItem('sh_files', JSON.stringify(meta)); } catch(e) {}
+  document.getElementById('stat-files').textContent = groupFiles.length;
+}
+function renderGroupFiles() {
   const el = document.getElementById('group-files-list');
-  if (!files.length) { el.innerHTML = '<div class="empty-state"><div class="emoji">📂</div><p>Файлів ще немає. Завантажте перший!</p></div>'; return; }
-  el.innerHTML = '<div class="file-list">' + files.map(f => {
-    const ext = (f.name||'file').split('.').pop().toLowerCase();
-    const extCls = ext==='pdf'?'ext-pdf':['doc','docx'].includes(ext)?'ext-docx':['ppt','pptx'].includes(ext)?'ext-pptx':'ext-other';
-    const size = f.size>1048576 ? (f.size/1048576).toFixed(1)+' МБ' : Math.round(f.size/1024)+' КБ';
-    return '<div class="file-item">' +
-      '<div class="file-ext ' + extCls + '">' + ext.toUpperCase() + '</div>' +
-      '<div class="file-info"><div class="file-name">' + f.name + '</div>' +
-      '<div class="file-meta">' + (f.uploader||'?') + ' • ' + new Date(f.createdAt).toLocaleDateString('uk-UA') + ' • ' + size + '</div></div>' +
-      '<div class="file-actions">' +
-        (f.dataUrl ? '<button class="btn-sm accent" onclick="dlFile(\'' + f.id + '\')">⬇</button>' : '') +
-        '<button class="btn-sm danger" onclick="rmFile(\'' + f.id + '\')">🗑</button>' +
-      '</div></div>';
+  document.getElementById('stat-files').textContent = groupFiles.length;
+  if (!groupFiles.length) { el.innerHTML = '<div class="empty-state"><div class="emoji">📂</div><p>Файлів ще немає. Завантажте перший!</p></div>'; return; }
+  el.innerHTML = '<div class="file-list">' + groupFiles.map((f,i) => {
+    const ext = f.name.split('.').pop().toLowerCase();
+    const extClass = ['pdf'].includes(ext) ? 'pdf' : ['doc','docx'].includes(ext) ? 'docx' : ['ppt','pptx'].includes(ext) ? 'pptx' : 'other';
+    const size = f.size > 1048576 ? (f.size/1048576).toFixed(1)+' МБ' : (f.size/1024).toFixed(0)+' КБ';
+    return `<div class="file-item">
+      <div class="file-ext ${extClass}">${ext.toUpperCase()}</div>
+      <div class="file-info">
+        <div class="file-name">${f.name}</div>
+        <div class="file-meta">${f.uploader} • ${f.date} • ${size}</div>
+      </div>
+      <div class="file-actions">
+        ${f.dataUrl ? `<button class="btn-sm accent" onclick="downloadFile(${i})">⬇ Завантажити</button>` : ''}
+        <button class="btn-sm" onclick="deleteFile(${i})" style="color:var(--accent2)">🗑</button>
+      </div>
+    </div>`;
   }).join('') + '</div>';
 }
-async function dlFile(id) {
-  const f = cachedFiles.find(x => x.id===id);
-  if (!f || !f.dataUrl) return;
-  const a = document.createElement('a'); a.href=f.dataUrl; a.download=f.name; a.click();
+function downloadFile(i) {
+  const f = groupFiles[i];
+  if (!f.dataUrl) return;
+  const a = document.createElement('a');
+  a.href = f.dataUrl; a.download = f.name; a.click();
 }
-async function rmFile(id) {
-  if (!confirm('Видалити файл?')) return;
-  const { doc, deleteDoc } = window._fb;
-  await deleteDoc(doc(window._db, 'files', id));
+function deleteFile(i) {
+  groupFiles.splice(i, 1);
+  saveFiles(); renderGroupFiles();
 }
 
-// ── MATERIALS (Firebase) ──
-function listenMats() {
-  if (!window._db || !currentGroup) return;
-  const { collection, query, where, orderBy, onSnapshot } = window._fb;
-  if (unsubMats) unsubMats();
-  const q = query(collection(window._db, 'materials'), where('group', '==', currentGroup), orderBy('createdAt', 'desc'));
-  unsubMats = onSnapshot(q, snap => {
-    cachedMats = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-    renderMats(cachedMats);
-  });
-}
-function filterMaterials(q) { renderMats(cachedMats, q.toLowerCase()); }
-function renderMats(list, q='') {
+// ── MATERIALS ──
+function renderMaterials(filter = '') {
   const el = document.getElementById('materials-list');
-  const items = q ? list.filter(m => (m.name||'').toLowerCase().includes(q)||(m.subject||'').toLowerCase().includes(q)) : list;
-  if (!items.length) { el.innerHTML = '<div class="empty-state"><div class="emoji">📝</div><p>Матеріалів ще немає. Додайте перший!</p></div>'; return; }
-  el.innerHTML = '<div class="file-list">' + items.map(m =>
-    '<div class="file-item">' +
-    '<div class="file-ext ext-other">📝</div>' +
-    '<div class="file-info"><div class="file-name">' + (m.name||'') + '</div>' +
-    '<div class="file-meta">' + (m.subject||'') + (m.desc?' • '+m.desc:'') + ' • ' + (m.uploader||'?') + '</div></div>' +
-    '<div class="file-actions">' +
-      (m.desc&&m.desc.startsWith('http') ? '<a href="' + m.desc + '" target="_blank"><button class="btn-sm accent">🔗</button></a>' : '') +
-      '<button class="btn-sm danger" onclick="rmMat(\'' + m.id + '\')">🗑</button>' +
-    '</div></div>'
+  const list = filter ? allMaterials.filter(m => m.name.toLowerCase().includes(filter) || m.subject.toLowerCase().includes(filter)) : allMaterials;
+  if (!list.length) { el.innerHTML = '<div class="empty-state"><div class="emoji">📝</div><p>Матеріалів ще немає. Додайте перший!</p></div>'; return; }
+  el.innerHTML = '<div class="file-list">' + list.map((m,i) =>
+    `<div class="file-item">
+      <div class="file-ext other">📝</div>
+      <div class="file-info">
+        <div class="file-name">${m.name}</div>
+        <div class="file-meta">${m.subject} • ${m.desc || ''}</div>
+      </div>
+      <div class="file-actions">
+        ${m.desc && m.desc.startsWith('http') ? `<a href="${m.desc}" target="_blank"><button class="btn-sm accent">🔗 Відкрити</button></a>` : ''}
+        <button class="btn-sm" onclick="deleteMaterial(${i})" style="color:var(--accent2)">🗑</button>
+      </div>
+    </div>`
   ).join('') + '</div>';
 }
+function filterMaterials(q) { renderMaterials(q.toLowerCase()); }
 function showAddMaterial() { document.getElementById('add-material-modal').classList.add('show'); }
 function closeModal() { document.getElementById('add-material-modal').classList.remove('show'); }
-async function addMaterial() {
+function addMaterial() {
   const name = document.getElementById('mat-name').value.trim();
   const subject = document.getElementById('mat-subject').value.trim();
   const desc = document.getElementById('mat-desc').value.trim();
   if (!name) return;
-  if (!window._db) { alert('Firebase не готовий'); return; }
-  const { collection, addDoc } = window._fb;
-  await addDoc(collection(window._db, 'materials'), { group: currentGroup, name, subject, desc, uploader: userData.fullname||'Студент', createdAt: Date.now() });
+  allMaterials.unshift({ name, subject, desc, date: new Date().toLocaleDateString('uk-UA') });
+  localStorage.setItem('sh_materials', JSON.stringify(allMaterials));
   closeModal();
-  ['mat-name','mat-subject','mat-desc'].forEach(id => document.getElementById(id).value='');
+  renderMaterials();
+  document.getElementById('mat-name').value = '';
+  document.getElementById('mat-subject').value = '';
+  document.getElementById('mat-desc').value = '';
 }
-async function rmMat(id) {
-  if (!confirm('Видалити матеріал?')) return;
-  const { doc, deleteDoc } = window._fb;
-  await deleteDoc(doc(window._db, 'materials', id));
-}
+function deleteMaterial(i) { allMaterials.splice(i,1); localStorage.setItem('sh_materials', JSON.stringify(allMaterials)); renderMaterials(); }
 
 // ── NAV ──
 function showPage(name) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   document.getElementById('page-'+name).classList.add('active');
-  const map = { dashboard:'Головна', deadlines:'Дедлайни', courses:'Курси', files:'Файли', materials:'Матеріали' };
-  document.querySelectorAll('.nav-item').forEach(n => n.classList.toggle('active', n.textContent.trim()===map[name]));
+  document.querySelectorAll('.nav-item').forEach(n => { if(n.textContent.trim().toLowerCase().includes(name === 'dashboard' ? 'голов' : name === 'deadlines' ? 'дедл' : name === 'courses' ? 'курс' : name === 'files' ? 'файл' : 'матер')) n.classList.add('active'); });
 }
 
 // ── THEME ──
 function toggleTheme() {
-  const t = document.documentElement.getAttribute('data-theme')==='dark'?'light':'dark';
+  const t = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
   document.documentElement.setAttribute('data-theme', t);
   localStorage.setItem('sh_theme', t);
 }
-const st = localStorage.getItem('sh_theme');
-if (st) document.documentElement.setAttribute('data-theme', st);
+const savedTheme = localStorage.getItem('sh_theme');
+if (savedTheme) document.documentElement.setAttribute('data-theme', savedTheme);
 
 // ── LOGOUT ──
 function doLogout() {
-  if (unsubFiles) unsubFiles();
-  if (unsubMats) unsubMats();
-  token=''; userData={}; allDeadlines=[]; courses=[]; currentGroup=''; cachedFiles=[]; cachedMats=[];
-  localStorage.removeItem('sh_token'); localStorage.removeItem('sh_group');
-  document.getElementById('app').style.display='none';
-  document.getElementById('login-screen').style.display='flex';
+  token = ''; userData = {}; allDeadlines = []; courses = [];
+  localStorage.removeItem('sh_token');
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('login-screen').style.display = 'flex';
 }
 
 // ── AUTO LOGIN ──
-const sv = localStorage.getItem('sh_token'), sg = localStorage.getItem('sh_group');
-if (sv && sg) { token=sv; currentGroup=sg; initApp(); }
+const savedToken = localStorage.getItem('sh_token');
+if (savedToken) { token = savedToken; initApp(); }
 </script>
 </body>
 </html>

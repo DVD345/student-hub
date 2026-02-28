@@ -381,6 +381,7 @@
 
   /* Courses */
   .course-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; }
+  .course-list.list-view { grid-template-columns: 1fr; }
   .course-card {
     background: var(--card);
     border: 1px solid var(--border);
@@ -388,17 +389,51 @@
     padding: 20px;
     cursor: pointer;
     transition: border-color 0.2s, transform 0.15s;
+    text-decoration: none;
+    color: var(--text);
+    display: block;
   }
   .course-card:hover { border-color: var(--accent); transform: translateY(-2px); }
+  .list-view .course-card { display: flex; align-items: center; gap: 16px; padding: 12px 18px; }
+  .list-view .course-card:hover { transform: none; }
   .course-num {
     font-family: 'JetBrains Mono', monospace;
     font-size: 11px;
     color: var(--accent);
     font-weight: 500;
     margin-bottom: 8px;
+    flex-shrink: 0;
   }
-  .course-name { font-size: 15px; font-weight: 700; margin-bottom: 6px; line-height: 1.3; }
+  .list-view .course-num { margin-bottom: 0; }
+  .course-name { font-size: 15px; font-weight: 700; margin-bottom: 6px; line-height: 1.3; flex: 1; }
+  .list-view .course-name { margin-bottom: 0; }
   .course-meta { font-size: 12px; color: var(--text2); }
+  .filter-tab {
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    border: 1px solid var(--border);
+    background: var(--card);
+    color: var(--text2);
+    cursor: pointer;
+    transition: all 0.15s;
+    font-family: 'Syne', sans-serif;
+  }
+  .filter-tab:hover { border-color: var(--accent); color: var(--accent); }
+  .filter-tab.active { background: var(--accent); border-color: var(--accent); color: #0a0a0f; }
+  .view-btn {
+    width: 32px; height: 32px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--card);
+    color: var(--text2);
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px;
+    transition: all 0.15s;
+  }
+  .view-btn.active { background: var(--accent); border-color: var(--accent); color: #0a0a0f; }
 
   /* Loading */
   .loading {
@@ -649,6 +684,15 @@
         <h2>📚 Мої курси</h2>
         <p>Список курсів з Moodle</p>
       </div>
+      <div class="toolbar" style="margin-bottom:16px;flex-wrap:wrap;">
+        <input type="text" id="course-search" placeholder="🔍 Пошук курсу..." oninput="filterCourses()" style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:10px 14px;color:var(--text);font-family:'Syne',sans-serif;font-size:13px;outline:none;width:200px;">
+        <button class="filter-tab active" id="sort-name" onclick="setCourseSort('name')">За назвою</button>
+        <button class="filter-tab" id="sort-num" onclick="setCourseSort('num')">За номером</button>
+        <div style="margin-left:auto;display:flex;gap:4px;">
+          <button class="view-btn active" id="view-grid" onclick="setCourseView('grid')" title="Картки">⊞</button>
+          <button class="view-btn" id="view-list" onclick="setCourseView('list')" title="Список">☰</button>
+        </div>
+      </div>
       <div id="courses-list"><div class="loading"><div class="spinner"></div>Завантаження...</div></div>
     </div>
 
@@ -796,16 +840,41 @@ async function loadCourses() {
   } catch(e) { courses = []; }
 }
 
-function renderCourses() {
+let courseView = 'grid';
+let courseSort = 'name';
+
+function setCourseView(v) {
+  courseView = v;
+  document.getElementById('view-grid').classList.toggle('active', v==='grid');
+  document.getElementById('view-list').classList.toggle('active', v==='list');
+  filterCourses();
+}
+function setCourseSort(s) {
+  courseSort = s;
+  document.getElementById('sort-name').classList.toggle('active', s==='name');
+  document.getElementById('sort-num').classList.toggle('active', s==='num');
+  filterCourses();
+}
+function filterCourses() {
+  const el = document.getElementById('course-search');
+  const q = el ? el.value.toLowerCase() : '';
+  let list = courses.filter(c => !q || (c.fullname||c.shortname||'').toLowerCase().includes(q));
+  if (courseSort==='name') list = list.slice().sort((a,b)=>(a.fullname||a.shortname).localeCompare(b.fullname||b.shortname));
+  renderCourses(list);
+}
+function renderCourses(list) {
+  list = list || courses;
   const el = document.getElementById('courses-list');
-  if (!courses.length) { el.innerHTML = '<div class="empty-state"><div class="emoji">📚</div><p>Курси не знайдено</p></div>'; return; }
-  el.innerHTML = '<div class="course-list">' + courses.map((c,i) =>
-    `<div class="course-card">
-      <div class="course-num">Курс #${i+1}</div>
-      <div class="course-name">${c.fullname || c.shortname}</div>
-      <div class="course-meta">${c.shortname || ''}</div>
-    </div>`
-  ).join('') + '</div>';
+  if (!list.length) { el.innerHTML = '<div class="empty-state"><div class="emoji">📚</div><p>Курси не знайдено</p></div>'; return; }
+  const cls = courseView === 'list' ? 'course-list list-view' : 'course-list';
+  el.innerHTML = '<div class="' + cls + '">' + list.map((c,i) => {
+    const url = c.id ? 'https://do.kart.edu.ua/course/view.php?id=' + c.id : '#';
+    return '<a class="course-card" href="' + url + '" target="_blank">' +
+      '<div class="course-num">Курс #' + (i+1) + '</div>' +
+      '<div class="course-name">' + (c.fullname || c.shortname) + '</div>' +
+      '<div class="course-meta">' + (c.shortname || '') + '</div>' +
+      '</a>';
+  }).join('') + '</div>';
 }
 
 async function loadDeadlines() {
@@ -856,15 +925,17 @@ function renderDeadlines(list) {
   if (!list.length) { el.innerHTML = '<div class="empty-state"><div class="emoji">🎉</div><p>Немає активних дедлайнів!</p></div>'; return; }
   el.innerHTML = '<div class="deadline-list">' + list.map(d => {
     const cls = getDotClass(d.due);
-    return `<div class="deadline-item">
-      <div class="deadline-dot ${cls}"></div>
-      <div class="deadline-info">
-        <div class="deadline-name">${d.name}</div>
-        <div class="deadline-course">${d.course}</div>
-      </div>
-      <div class="deadline-date ${cls}">${formatDate(d.due)}</div>
-      ${d.submitted ? '<span class="tag green">Здано</span>' : ''}
-    </div>`;
+    const click = d.url && d.url !== '#' ? 'onclick="window.open(\'' + d.url + '\',\'_blank\')" style="cursor:pointer"' : '';
+    const arrow = d.url && d.url !== '#' ? ' <span style="font-size:11px;opacity:0.6">↗</span>' : '';
+    return '<div class="deadline-item" ' + click + '>' +
+      '<div class="deadline-dot ' + cls + '"></div>' +
+      '<div class="deadline-info">' +
+        '<div class="deadline-name">' + d.name + arrow + '</div>' +
+        '<div class="deadline-course">' + d.course + '</div>' +
+      '</div>' +
+      '<div class="deadline-date ' + cls + '">' + formatDate(d.due) + '</div>' +
+      (d.submitted ? '<span class="tag green">Здано</span>' : '') +
+      '</div>';
   }).join('') + '</div>';
 }
 
@@ -874,14 +945,16 @@ function renderDashDeadlines() {
   if (!top.length) { el.innerHTML = '<div class="empty-state"><div class="emoji">🎉</div><p>Немає активних дедлайнів!</p></div>'; return; }
   el.innerHTML = '<div class="deadline-list">' + top.map(d => {
     const cls = getDotClass(d.due);
-    return `<div class="deadline-item">
-      <div class="deadline-dot ${cls}"></div>
-      <div class="deadline-info">
-        <div class="deadline-name">${d.name}</div>
-        <div class="deadline-course">${d.course}</div>
-      </div>
-      <div class="deadline-date ${cls}">${formatDate(d.due)}</div>
-    </div>`;
+    const click = d.url && d.url !== '#' ? 'onclick="window.open(\'' + d.url + '\',\'_blank\')" style="cursor:pointer"' : '';
+    const arrow = d.url && d.url !== '#' ? ' <span style="font-size:11px;opacity:0.6">↗</span>' : '';
+    return '<div class="deadline-item" ' + click + '>' +
+      '<div class="deadline-dot ' + cls + '"></div>' +
+      '<div class="deadline-info">' +
+        '<div class="deadline-name">' + d.name + arrow + '</div>' +
+        '<div class="deadline-course">' + d.course + '</div>' +
+      '</div>' +
+      '<div class="deadline-date ' + cls + '">' + formatDate(d.due) + '</div>' +
+      '</div>';
   }).join('') + '</div>';
 }
 

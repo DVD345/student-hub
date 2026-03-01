@@ -474,7 +474,7 @@ a{text-decoration:none;color:inherit;}
     <div class="field"><label>Курс (1-6)</label><input type="number" id="gc" placeholder="1" min="1" max="6"></div>
     <div class="modal-actions">
       <button class="btn" onclick="closeModal('add-group')">Скасувати</button>
-      <button class="btn a" onclick="createGroup()">Створити</button>
+      <button class="btn a" id="group-modal-btn" onclick="groupModalAction()">Створити</button>
     </div>
   </div>
 </div>
@@ -847,12 +847,35 @@ function renderMats(list,q='') {
     '</div></div>'
   ).join('')+'</div>';
 }
+let _groupModalMode = 'create';
+let _groupEditId = null;
+
+function groupModalAction() {
+  if(_groupModalMode === 'edit' && _groupEditId) {
+    _doEditGroup(_groupEditId);
+  } else {
+    createGroup();
+  }
+}
+
+async function _doEditGroup(id) {
+  const name = document.getElementById('gn').value.trim();
+  const faculty = document.getElementById('gf').value.trim();
+  const course = parseInt(document.getElementById('gc').value)||1;
+  if(!name) return;
+  const {doc, updateDoc} = window._fb;
+  await updateDoc(doc(window._db,'groups',id), {name, faculty, course});
+  closeModal('add-group');
+  ['gn','gf','gc'].forEach(i=>document.getElementById(i).value='');
+  if(window._loadGroupsForLogin) window._loadGroupsForLogin();
+}
+
 function showModal(id) { 
   if(id==='add-group') {
+    _groupModalMode = 'create';
+    _groupEditId = null;
     document.querySelector('#modal-add-group h3').textContent = '🏫 Створити групу';
-    const btn = document.querySelector('#modal-add-group .btn.a');
-    btn.textContent = 'Створити';
-    btn.onclick = createGroup;
+    document.getElementById('group-modal-btn').textContent = 'Створити';
   }
   document.getElementById('modal-'+id).classList.add('show'); 
 }
@@ -1017,27 +1040,14 @@ async function createGroup() {
   if(window._loadGroupsForLogin) window._loadGroupsForLogin();
 }
 function editGroup(id, name, faculty, course) {
+  _groupModalMode = 'edit';
+  _groupEditId = id;
   document.getElementById('gn').value = name;
   document.getElementById('gf').value = faculty;
   document.getElementById('gc').value = course;
-  // Change modal button to update mode
-  const btn = document.querySelector('#modal-add-group .btn.a');
-  btn.textContent = 'Зберегти';
-  btn.onclick = async () => {
-    const newName = document.getElementById('gn').value.trim();
-    const newFaculty = document.getElementById('gf').value.trim();
-    const newCourse = parseInt(document.getElementById('gc').value)||1;
-    if(!newName) return;
-    const {doc, updateDoc} = window._fb;
-    await updateDoc(doc(window._db,'groups',id), {name:newName, faculty:newFaculty, course:newCourse});
-    closeModal('add-group');
-    ['gn','gf','gc'].forEach(i=>document.getElementById(i).value='');
-    btn.textContent = 'Створити';
-    btn.onclick = createGroup;
-    if(window._loadGroupsForLogin) window._loadGroupsForLogin();
-  };
-  showModal('add-group');
   document.querySelector('#modal-add-group h3').textContent = '✏️ Редагувати групу';
+  document.getElementById('group-modal-btn').textContent = 'Зберегти';
+  document.getElementById('modal-add-group').classList.add('show');
 }
 
 async function delGroup(id) {

@@ -302,14 +302,13 @@ a{text-decoration:none;color:inherit;}
       <div class="nav-item active" onclick="go('dashboard')"><span class="ni">🏠</span>Головна</div>
       <div class="nav-item" onclick="go('deadlines')"><span class="ni">⏰</span>Дедлайни</div>
       <div class="nav-item" onclick="go('courses')"><span class="ni">📚</span>Курси</div>
+      <div class="nav-item" onclick="go('calendar')"><span class="ni">📅</span>Календар</div>
+      <div class="nav-item" onclick="go('assistant')"><span class="ni">🤖</span>Асистент</div>
       <div class="nav-section">Група</div>
       <div class="nav-item" onclick="go('files')"><span class="ni">📁</span>Файли</div>
       <div class="nav-item" onclick="go('materials')"><span class="ni">📝</span>Матеріали</div>
-      <div class="nav-item" onclick="go('chat')"><span class="ni">💬</span>Чати<span class="nav-badge" id="chat-badge" style="display:none">0</span></div>
-      <div class="nav-item" onclick="go('calendar')"><span class="ni">📅</span>Календар</div>
-      <div class="nav-item" onclick="go('grades')"><span class="ni">🏆</span>Оцінки</div>
       <div class="nav-item" onclick="go('notes')"><span class="ni">✍️</span>Нотатки</div>
-      <div class="nav-item" onclick="go('assistant')"><span class="ni">🤖</span>Асистент</div>
+      <div class="nav-item" onclick="go('chat')"><span class="ni">💬</span>Чати<span class="nav-badge" id="chat-badge" style="display:none">0</span></div>
       <div class="nav-section" id="admin-section" style="display:none">Адміністрування</div>
       <div class="nav-item" id="nav-admin" onclick="go('admin')" style="display:none"><span class="ni">⚙️</span>Адмін-панель</div>
     </div>
@@ -442,19 +441,7 @@ a{text-decoration:none;color:inherit;}
         <div id="cal-grid"></div>
       </div>
 
-      <!-- GRADES -->
-      <div class="page" id="page-grades">
-        <div class="page-header"><h2>🏆 Оцінки</h2><p>Успішність по предметах з Moodle</p></div>
-        <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;">
-          <button class="btn a" onclick="loadGrades()">🔄 Оновити</button>
-          <select class="tb-select" id="grades-course-filter" onchange="filterGradesByCourse(this.value)">
-            <option value="all">Всі курси</option>
-          </select>
-        </div>
-        <div id="grades-list"><div class="loading"><div class="spinner"></div>Завантаження оцінок...</div></div>
-      </div>
-
-      <!-- NOTES -->
+            <!-- NOTES -->
       <div class="page" id="page-notes">
         <div class="page-header"><h2>✍️ Нотатки</h2><p>Особисті конспекти з Markdown підтримкою</p></div>
         <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;align-items:center;">
@@ -466,7 +453,11 @@ a{text-decoration:none;color:inherit;}
 
       <!-- ASSISTANT -->
       <div class="page" id="page-assistant">
-        <div class="page-header"><h2>🤖 Асистент</h2><p>AI-помічник для навчання</p></div>
+        <div class="page-header"><h2>🤖 Асистент</h2><p>AI-помічник для навчання (потрібен Anthropic API ключ)</p></div>
+        <div style="display:flex;gap:8px;margin-bottom:12px;align-items:center;">
+          <input type="password" id="ai-key-inp" placeholder="sk-ant-... (Anthropic API Key)" style="flex:1;background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:8px 12px;color:var(--text);font-family:'Syne',sans-serif;font-size:12px;outline:none;" oninput="window.ANTHROPIC_KEY=this.value;localStorage.setItem('sh_akey',this.value)">
+          <span style="font-size:10px;color:var(--text2);">Ключ зберігається локально</span>
+        </div>
         <div style="display:flex;flex-direction:column;height:calc(100vh - 200px);min-height:400px;background:var(--card);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;">
           <div id="ai-msgs" style="flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:10px;">
             <div class="msg other"><div class="msg-bubble">Привіт! Я твій навчальний асистент 🎓<br>Можу допомогти з поясненням матеріалу, підготовкою до іспитів, написанням конспектів та іншим. Що тебе цікавить?</div></div>
@@ -1441,18 +1432,19 @@ async function delGroup(id) {
 }
 
 // ── NAV ──
-const PAGE_TITLES={dashboard:'Головна',deadlines:'Дедлайни',courses:'Курси',files:'Файли',materials:'Матеріали',chat:'Чати',admin:'Адмін-панель',calendar:'Календар',grades:'Оцінки',notes:'Нотатки',assistant:'Асистент',notifications:'Сповіщення'};
+const PAGE_TITLES={dashboard:'Головна',deadlines:'Дедлайни',courses:'Курси',files:'Файли',materials:'Матеріали',chat:'Чати',admin:'Адмін-панель',calendar:'Календар',notes:'Нотатки',assistant:'Асистент',notifications:'Сповіщення'};
 function go(name) {
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   const pg = document.getElementById('page-'+name);
   if(!pg) return;
   pg.classList.add('active');
-  const labels={dashboard:'Голов',deadlines:'Дедл',courses:'Курс',files:'Файл',materials:'Матер',chat:'Чат',admin:'Адмін',calendar:'Календ',grades:'Оцін',notes:'Нотат',assistant:'Асист',notifications:'Сповіщ'};
+  const labels={dashboard:'Голов',deadlines:'Дедл',courses:'Курс',files:'Файл',materials:'Матер',chat:'Чат',admin:'Адмін',calendar:'Календ',notes:'Нотат',assistant:'Асист',notifications:'Сповіщ'};
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.toggle('active',n.textContent.trim().startsWith(labels[name]||'_')));
   document.getElementById('topbar-title').textContent=PAGE_TITLES[name]||name;
-  if(name==='grades' && !allGrades.length) loadGrades();
+  // grades removed
   if(name==='calendar') renderCalendar();
   if(name==='notes') loadNotes();
+  if(name==='assistant') { const k=document.getElementById('ai-key-inp'); if(k&&window.ANTHROPIC_KEY) k.value=window.ANTHROPIC_KEY; }
   if(name==='notifications') { markAllRead(); }
   closeSidebar();
 }
@@ -1503,7 +1495,7 @@ function renderCalendar() {
     // Find deadlines on this day
     const dayStart = cellDate.getTime() / 1000;
     const dayEnd = dayStart + 86400;
-    const dayDl = allDl.filter(dl => dl.due >= dayStart && dl.due < dayEnd && !dl.past);
+    const dayDl = allDl.filter(dl => dl.due >= dayStart && dl.due < dayEnd);
     
     const hasEvents = dayDl.length > 0;
     html += '<div class="cal-cell'+(isToday?' today':'')+(hasEvents?' has-events':'')+'">';
@@ -1765,7 +1757,12 @@ async function sendAI() {
     
     const resp = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        'x-api-key': window.ANTHROPIC_KEY || '',
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
       body: JSON.stringify({
         model: 'claude-sonnet-4-20250514',
         max_tokens: 1000,
@@ -1775,13 +1772,23 @@ async function sendAI() {
     });
     
     const data = await resp.json();
+    if(data.error) {
+      thinkingDiv.remove();
+      if(data.error.type === 'authentication_error') {
+        appendAIMsg('other', '🔑 Потрібен API ключ Anthropic. Зверніться до адміністратора.');
+      } else {
+        appendAIMsg('other', '⚠️ Помилка API: ' + (data.error.message || 'Невідома помилка'));
+      }
+      document.getElementById('ai-send').disabled = false;
+      return;
+    }
     const reply = data.content?.[0]?.text || 'Вибачте, не вдалося отримати відповідь.';
     aiHistory.push({ role:'assistant', content: reply });
     thinkingDiv.remove();
     appendAIMsg('other', reply);
   } catch(e) {
     thinkingDiv.remove();
-    appendAIMsg('other', '⚠️ Помилка: ' + e.message + '. Перевірте підключення.');
+    appendAIMsg('other', '⚠️ Помилка: ' + e.message);
   }
   
   document.getElementById('ai-send').disabled = false;
@@ -1926,6 +1933,10 @@ function doLogout() {
   document.getElementById('screen-app').classList.remove('active');
   document.getElementById('screen-login').classList.add('active');
 }
+
+// Load saved AI key
+const savedAKey = localStorage.getItem('sh_akey');
+if(savedAKey) window.ANTHROPIC_KEY = savedAKey;
 
 // ── AUTO LOGIN ──
 const sv=localStorage.getItem('sh_token'), sgid=localStorage.getItem('sh_gid');

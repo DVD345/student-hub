@@ -934,9 +934,9 @@ async function loadDeadlines() {
     // Method 1: Action events by timesort — без limitcourse щоб не блокувати
     try {
       const d1 = await moodleCall('core_calendar_get_action_events_by_timesort',{
-        timesortfrom: now - 60*60*24*60,
-        timesortto: now + 60*60*24*120,
-        limitnum: 200
+        timesortfrom: now - 60*60*24*365*3,
+        timesortto: now + 60*60*24*365,
+        limitnum: 50
       });
       console.log('Method 1 raw:', JSON.stringify(d1).slice(0,200));
       if(d1 && !d1.errorcode) {
@@ -945,38 +945,7 @@ async function loadDeadlines() {
       }
     } catch(e1) { console.warn('Method 1 failed:', e1); }
     
-    // Method 2: Upcoming view (якщо метод 1 нічого не дав)
-    if(!events.length) {
-      try {
-        const d2 = await moodleCall('core_calendar_get_upcoming_view');
-        console.log('Method 2 raw:', JSON.stringify(d2).slice(0,200));
-        if(d2 && !d2.errorcode) {
-          const evts = d2.events || [];
-          if(evts.length) { events = evts; console.log('Method 2:', evts.length); }
-        }
-      } catch(e2) { console.warn('Method 2 failed:', e2); }
-    }
-
-    // Method 3: По кожному курсу (якщо методи 1-2 нічого не дали)
-    if(!events.length && courses.length) {
-      try {
-        const fetches = courses.slice(0,15).map(c =>
-          moodleCall('core_calendar_get_action_events_by_course',{
-            courseid: c.id,
-            timesortfrom: now - 60*60*24*30,
-            timesortto: now + 60*60*24*120,
-            limitnum: 50
-          }).catch(()=>null)
-        );
-        const results = await Promise.all(fetches);
-        results.forEach(r => {
-          if(r && !r.errorcode && r.events && r.events.length) events = events.concat(r.events);
-        });
-        const seen = new Set();
-        events = events.filter(e => { if(seen.has(e.id)){return false;} seen.add(e.id); return true; });
-        console.log('Method 3:', events.length);
-      } catch(e3) { console.warn('Method 3 failed:', e3); }
-    }
+    // Method 2 і 3 видалені — блокуються CORS університетського сервера
 
     // Method 4 + 5: ЗАВЖДИ запускаємо паралельно — завдання (assign) і тести (quiz)
     // Це ловить тести без duedate (тільки timeclose) та завдання яких немає в календарі
@@ -984,18 +953,11 @@ async function loadDeadlines() {
       try {
         const courseids = courses.slice(0,25).map((c,i)=>`courseids[${i}]=${c.id}`).join('&');
         
-        const [d4, d5] = await Promise.all([
-          // Завдання
-          fetch(MOODLE+'/webservice/rest/server.php?wstoken='+token+'&wsfunction=mod_assign_get_assignments&moodlewsrestformat=json&'+courseids)
-            .then(r=>r.json()).catch(()=>null),
-          // Тести (квізи)
-          fetch(MOODLE+'/webservice/rest/server.php?wstoken='+token+'&wsfunction=mod_quiz_get_quizzes_by_courses&moodlewsrestformat=json&'+courseids)
-            .then(r=>r.json()).catch(()=>null)
-        ]);
+        const d4 = await fetch(MOODLE+'/webservice/rest/server.php?wstoken='+token+'&wsfunction=mod_assign_get_assignments&moodlewsrestformat=json&'+courseids)
+            .then(r=>r.json()).catch(()=>null);
 
         const extraEvents = [];
 
-        // Завдання з duedate
         if(d4 && d4.courses) {
           d4.courses.forEach(course => {
             (course.assignments||[]).forEach(a => {
@@ -1011,23 +973,6 @@ async function loadDeadlines() {
             });
           });
           console.log('Method 4 (assign):', extraEvents.length);
-        }
-
-        // Тести з timeclose (навіть якщо немає duedate)
-        const quizBefore = extraEvents.length;
-        if(d5 && d5.quizzes) {
-          d5.quizzes.forEach(q => {
-            const deadline = q.timeclose || q.duedate || 0;
-            if(deadline > 0) {
-              extraEvents.push({
-                id: 'quiz_'+q.id, name: q.name,
-                course: { fullname: q.course || q.coursefullname || '' },
-                timesort: deadline, modulename: 'quiz',
-                url: MOODLE+'/mod/quiz/view.php?id='+q.coursemodule
-              });
-            }
-          });
-          console.log('Method 5 (quiz):', extraEvents.length - quizBefore, 'quizzes');
         }
 
         // Мержимо: дедуплікація по назві+курс+дата

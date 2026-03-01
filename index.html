@@ -794,12 +794,22 @@ async function loadDeadlines() {
     
     // Типи подій які треба ІГНОРУВАТИ (відкриття — не дедлайн)
     const IGNORE_TYPES = ['open', 'opensubmission', 'expectcompletionon'];
+    // Модулі які не є дедлайнами (оголошення, форуми тощо)
+    const IGNORE_MODULES = ['forum', 'announcement', 'news', 'chat', 'survey', 'feedback', 'wiki', 'glossary'];
     // Типи які є дедлайнами
     const DEADLINE_TYPES = ['due', 'close', 'closingdate', 'gradingdue', 'duedate', 'timeclose'];
     
     allDl = events.filter(e => {
       const t = e.timesort || e.timestart || e.timefinish || 0;
       if(t <= 0) return false;
+      
+      // Фільтруємо оголошення та форуми по modname
+      const modname = (e.modulename || e.modname || e.activitytype || '').toLowerCase();
+      if(IGNORE_MODULES.some(x => modname.includes(x))) return false;
+      
+      // Фільтруємо оголошення по назві якщо modname не заданий
+      const nameL = (e.name || '').toLowerCase();
+      if(!modname && (nameL.includes('оголошен') || nameL.includes('announcement') || nameL.includes('завершується'))) return false;
       
       const etype = (e.eventtype || e.type || '').toLowerCase();
       
@@ -822,9 +832,9 @@ async function loadDeadlines() {
       const courseName = e.course ? (e.course.fullname || e.course.shortname || '—') : 
                         (e.coursename || (e.courseid ? 'Курс '+e.courseid : '—'));
       
-      // Прибираємо "спливає", "закривається" та інші службові суфікси з назви
+      // Прибираємо всі службові суфікси з назви (укр та англ варіанти)
       let name = e.name || e.activityname || 'Завдання';
-      name = name.replace(/\s*(спливає|закривається|відкривається|closes|due|open|is due)\s*$/i, '').trim();
+      name = name.replace(/\s*(спливає|закрито|закривається|відкрито|відкривається|завершується|closes|due|open|is due|is closing|has closed|closed)\s*$/i, '').trim();
       
       return {
         id: e.id,

@@ -790,12 +790,18 @@ function renderFiles(files) {
       '<div class="file-meta">'+escHtml(f.uploader||'?')+' • '+new Date(f.createdAt).toLocaleDateString('uk-UA')+' • '+escHtml(sz)+'</div></div>'+
       '<div class="file-actions">'+
         (f.dataUrl?'<button class="btn a" onclick="dlFile(this.dataset.id)" data-id="'+escHtml(f.id)+'">⬇</button>':'')+
-        (canMod()||f.uploader===userData.fullname?'<button class="btn d" onclick="rmFile(this.dataset.id)" data-id="'+escHtml(f.id)+'">🗑</button>':'')+
+        '<button class="btn d" onclick="rmFile(this.dataset.id)" data-id="'+escHtml(f.id)+'">🗑</button>'+
       '</div></div>';
   }).join('')+'</div>';
 }
 async function dlFile(id) { const f=cachedFiles.find(x=>x.id===id); if(!f||!f.dataUrl)return; const a=document.createElement('a');a.href=f.dataUrl;a.download=f.name;a.click(); }
-async function rmFile(id) { if(!confirm('Видалити файл?'))return; const {doc,deleteDoc}=window._fb; await deleteDoc(doc(window._db,'files',id)); }
+async function rmFile(id) { 
+  if(!confirm('Видалити файл?'))return; 
+  try {
+    const {doc,deleteDoc}=window._fb; 
+    await deleteDoc(doc(window._db,'files',id));
+  } catch(e) { alert('Помилка видалення: ' + e.message); }
+}
 
 // ── MATERIALS ──
 function listenMats() {
@@ -821,7 +827,7 @@ function renderMats(list,q='') {
     '<div class="file-meta">'+escHtml(m.subject||'')+(m.desc?' • '+escHtml(m.desc):'')+'</div></div>'+
     '<div class="file-actions">'+
       (m.desc&&/^https?:\/\//i.test(m.desc)?'<a href="'+escHtml(m.desc)+'" target="_blank" rel="noopener noreferrer"><button class="btn a">🔗</button></a>':'')+
-      (canMod()||m.uploader===userData.fullname?'<button class="btn d" onclick="rmMat(this.dataset.id)" data-id="'+escHtml(m.id)+'">🗑</button>':'')+
+      '<button class="btn d" onclick="rmMat(this.dataset.id)" data-id="'+escHtml(m.id)+'">🗑</button>'+
     '</div></div>'
   ).join('')+'</div>';
 }
@@ -837,7 +843,13 @@ async function addMat() {
   closeModal('add-mat');
   ['mn','ms','md'].forEach(id=>document.getElementById(id).value='');
 }
-async function rmMat(id) { if(!confirm('Видалити?'))return; const {doc,deleteDoc}=window._fb; await deleteDoc(doc(window._db,'materials',id)); }
+async function rmMat(id) { 
+  if(!confirm('Видалити матеріал?'))return; 
+  try {
+    const {doc,deleteDoc}=window._fb; 
+    await deleteDoc(doc(window._db,'materials',id));
+  } catch(e) { alert('Помилка видалення: ' + e.message); }
+}
 
 // ── CHAT ──
 function setupChatRooms() {
@@ -860,9 +872,9 @@ function openChatRoom(roomId, label) {
   if(activeRoom) activeRoom.classList.add('active');
   if(chatUnsub) chatUnsub();
   const {collection,query,orderBy,onSnapshot,where,limit}=window._fb;
-  const q=query(collection(window._db,'messages'),where('room','==',roomId),orderBy('ts','asc'),limit(50));
+  const q=query(collection(window._db,'messages'),where('room','==',roomId),limit(50));
   chatUnsub=onSnapshot(q,snap=>{
-    const msgs=snap.docs.map(d=>d.data());
+    const msgs=snap.docs.map(d=>d.data()).sort((a,b)=>(a.ts||0)-(b.ts||0));
     renderMessages(msgs);
   }, err=>{
     console.warn('Chat listener error:', err);

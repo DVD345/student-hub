@@ -1016,10 +1016,14 @@ async function loadDeadlines() {
           console.log('Method 5 (quiz):', extraEvents.length - quizBefore, 'quizzes');
         }
 
-        // Мержимо: додаємо тільки ті що не дублюють вже знайдені за назвою+курсом
-        const existingKeys = new Set(events.map(e => (e.name||'').toLowerCase().trim()));
+        // Мержимо: дедуплікація по назві+курс+дата
+        const existingKeys = new Set(events.map(e => {
+          const cn = e.course ? (e.course.fullname||e.course.shortname||'') : '';
+          return (e.name||'').toLowerCase().trim() + '|' + cn.toLowerCase().trim() + '|' + (e.timesort||0);
+        }));
         extraEvents.forEach(e => {
-          const key = (e.name||'').toLowerCase().trim();
+          const cn = e.course ? (e.course.fullname||e.course.shortname||'') : '';
+          const key = (e.name||'').toLowerCase().trim() + '|' + cn.toLowerCase().trim() + '|' + (e.timesort||0);
           if(!existingKeys.has(key)) {
             events.push(e);
             existingKeys.add(key);
@@ -1039,6 +1043,15 @@ async function loadDeadlines() {
     // Типи які є дедлайнами
     const DEADLINE_TYPES = ['due', 'close', 'closingdate', 'gradingdue', 'duedate', 'timeclose'];
     
+    // Final global dedup by id first
+    const seenIds = new Set();
+    events = events.filter(e => {
+      const key = String(e.id);
+      if(seenIds.has(key)) return false;
+      seenIds.add(key);
+      return true;
+    });
+
     allDl = events.filter(e => {
       const t = e.timesort || e.timestart || e.timefinish || 0;
       if(t <= 0) return false;

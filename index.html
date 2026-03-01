@@ -471,7 +471,11 @@ a{text-decoration:none;color:inherit;}
     <h3>🏫 Створити групу</h3>
     <div class="field"><label>Назва групи</label><input type="text" id="gn" placeholder="103-ОПУТ-Д24"></div>
     <div class="field"><label>Факультет</label><input type="text" id="gf" placeholder="Інформаційні технології"></div>
-    <div class="field"><label>Курс (1-6)</label><input type="number" id="gc" placeholder="1" min="1" max="6"></div>
+    <div class="field">
+      <label>Курс (1-4 авто, 5-6 вручну)</label>
+      <input type="number" id="gc" placeholder="1" min="1" max="6">
+      <div id="gc-hint" style="font-size:9px;color:var(--text2);margin-top:3px;"></div>
+    </div>
     <div class="modal-actions">
       <button class="btn" onclick="closeModal('add-group')">Скасувати</button>
       <button class="btn a" id="group-modal-btn" onclick="groupModalAction()">Створити</button>
@@ -538,6 +542,18 @@ let cvMode='grid', csMode='name';
 
 // ── XSS PROTECTION ──
 function escHtml(t) { return (t==null?'':String(t)).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;'); }
+
+// ── COURSE CALC ──
+function calcCourse(entryYear) {
+  const now = new Date();
+  const acadYear = now.getMonth() >= 7 ? now.getFullYear() : now.getFullYear() - 1;
+  return Math.min(Math.max(acadYear - entryYear + 1, 1), 6);
+}
+function getGroupCourse(g) {
+  if(g.manualCourse) return g.manualCourse;
+  if(g.entryYear) return calcCourse(g.entryYear);
+  return g.course || '?';
+}
 
 // ── ROLES ──
 const ROLES = { superadmin:'🔴 Супер-адмін', admin:'🟠 Адмін', moderator:'🟡 Модератор', student:'🟢 Студент' };
@@ -863,8 +879,12 @@ async function _doEditGroup(id) {
   const faculty = document.getElementById('gf').value.trim();
   const course = parseInt(document.getElementById('gc').value)||1;
   if(!name) return;
+  const now = new Date();
+  const acadYear = now.getMonth() >= 7 ? now.getFullYear() : now.getFullYear() - 1;
+  const entryYear = course <= 4 ? acadYear - course + 1 : null;
+  const manualCourse = course > 4 ? course : null;
   const {doc, updateDoc} = window._fb;
-  await updateDoc(doc(window._db,'groups',id), {name, faculty, course});
+  await updateDoc(doc(window._db,'groups',id), {name, faculty, course, entryYear, manualCourse});
   closeModal('add-group');
   ['gn','gf','gc'].forEach(i=>document.getElementById(i).value='');
   if(window._loadGroupsForLogin) window._loadGroupsForLogin();
@@ -1001,7 +1021,7 @@ function renderAdminGroups(groups) {
     '<div class="group-item">'+
     '<div>'+
       '<div class="gname">'+escHtml(g.name)+'</div>'+
-      '<div class="gcnt">'+escHtml(g.faculty||'—')+' • Курс '+escHtml(String(g.course||'?'))+'</div>'+
+      '<div class="gcnt">'+escHtml(g.faculty||'—')+' • Курс '+escHtml(String(getGroupCourse(g)))+(g.entryYear?' 🔄':'')+'</div>'+
     '</div>'+
     '<div style="display:flex;gap:3px;flex-shrink:0;">'+
     '<button class="btn" onclick="editGroup(this.dataset.id,this.dataset.name,this.dataset.faculty,this.dataset.course)" data-id="'+escHtml(g.id)+'" data-name="'+escHtml(g.name)+'" data-faculty="'+escHtml(g.faculty||'')+'" data-course="'+escHtml(String(g.course||'1'))+'">✏️</button>'+
@@ -1034,7 +1054,13 @@ async function createGroup() {
   const course=parseInt(document.getElementById('gc').value)||1;
   if(!name)return;
   const {collection,addDoc}=window._fb;
-  await addDoc(collection(window._db,'groups'),{name,faculty,course,createdAt:Date.now()});
+  // For courses 1-4: calc entryYear so it auto-updates each August
+  // For courses 5-6: save as manualCourse so it never auto-changes
+  const now = new Date();
+  const acadYear = now.getMonth() >= 7 ? now.getFullYear() : now.getFullYear() - 1;
+  const entryYear = course <= 4 ? acadYear - course + 1 : null;
+  const manualCourse = course > 4 ? course : null;
+  await addDoc(collection(window._db,'groups'),{name,faculty,course,entryYear,manualCourse,createdAt:Date.now()});
   closeModal('add-group');
   ['gn','gf','gc'].forEach(id=>document.getElementById(id).value='');
   if(window._loadGroupsForLogin) window._loadGroupsForLogin();

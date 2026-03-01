@@ -717,83 +717,105 @@ async function loadDeadlines() {
   try {
     let events = [];
     
-    // Method 1: Action events by timesort (main method)
+    // Method 1: Action events by timesort — без limitcourse щоб не блокувати
     try {
       const d1 = await moodleCall('core_calendar_get_action_events_by_timesort',{
-        timesortfrom: now - 60*60*24*30,
-        timesortto: now + 60*60*24*90,
-        limitnum: 200,
-        limitcourse: 0
+        timesortfrom: now - 60*60*24*60,
+        timesortto: now + 60*60*24*120,
+        limitnum: 200
       });
-      if(d1 && !d1.errorcode && d1.events && d1.events.length) {
-        events = d1.events;
-        console.log('Method 1 got events:', events.length);
+      console.log('Method 1 raw:', JSON.stringify(d1).slice(0,200));
+      if(d1 && !d1.errorcode) {
+        const evts = d1.events || d1.data?.events || [];
+        if(evts.length) { events = evts; console.log('Method 1:', evts.length); }
       }
     } catch(e1) { console.warn('Method 1 failed:', e1); }
     
-    // Method 2: Upcoming events (fallback)
+    // Method 2: Upcoming view
     if(!events.length) {
       try {
         const d2 = await moodleCall('core_calendar_get_upcoming_view');
-        if(d2 && !d2.errorcode && d2.events && d2.events.length) {
-          events = d2.events;
-          console.log('Method 2 got events:', events.length);
+        console.log('Method 2 raw:', JSON.stringify(d2).slice(0,200));
+        if(d2 && !d2.errorcode) {
+          const evts = d2.events || [];
+          if(evts.length) { events = evts; console.log('Method 2:', evts.length); }
         }
       } catch(e2) { console.warn('Method 2 failed:', e2); }
     }
-    
-    // Method 3: Events by course (iterate enrolled courses)
+
+    // Method 3: По кожному курсу окремо
     if(!events.length && courses.length) {
       try {
-        for(const c of courses.slice(0,10)) {
-          const d3 = await moodleCall('core_calendar_get_action_events_by_course',{
+        const fetches = courses.slice(0,15).map(c =>
+          moodleCall('core_calendar_get_action_events_by_course',{
             courseid: c.id,
-            timesortfrom: now,
-            timesortto: now + 60*60*24*90,
+            timesortfrom: now - 60*60*24*30,
+            timesortto: now + 60*60*24*120,
             limitnum: 50
-          });
-          if(d3 && !d3.errorcode && d3.events && d3.events.length) {
-            events = events.concat(d3.events);
-          }
-        }
-        // Deduplicate
+          }).catch(()=>null)
+        );
+        const results = await Promise.all(fetches);
+        results.forEach(r => {
+          if(r && !r.errorcode && r.events && r.events.length) events = events.concat(r.events);
+        });
         const seen = new Set();
         events = events.filter(e => { if(seen.has(e.id)){return false;} seen.add(e.id); return true; });
-        console.log('Method 3 got events:', events.length);
+        console.log('Method 3:', events.length);
       } catch(e3) { console.warn('Method 3 failed:', e3); }
     }
+
+    // Method 4: mod_assign — отримати завдання з дедлайнами напряму
+    if(!events.length && courses.length) {
+      try {
+        const courseids = courses.slice(0,20).map((c,i)=>`courseids[${i}]=${c.id}`).join('&');
+        const r4 = await fetch(MOODLE+'/webservice/rest/server.php?wstoken='+token+'&wsfunction=mod_assign_get_assignments&moodlewsrestformat=json&'+courseids);
+        const d4 = await r4.json();
+        console.log('Method 4 raw:', JSON.stringify(d4).slice(0,200));
+        if(d4 && d4.courses) {
+          d4.courses.forEach(course => {
+            (course.assignments||[]).forEach(a => {
+              if(a.duedate && a.duedate > 0) {
+                events.push({
+                  id: a.id,
+                  name: a.name,
+                  course: { fullname: course.fullname },
+                  timesort: a.duedate,
+                  url: MOODLE+'/mod/assign/view.php?id='+a.cmid
+                });
+              }
+            });
+          });
+        }
+        console.log('Method 4:', events.length);
+      } catch(e4) { console.warn('Method 4 failed:', e4); }
+    }
     
-    console.log('Total deadline events:', events.length, events.slice(0,2));
+    console.log('Total events found:', events.length);
     
     allDl = events.filter(e => {
-      // Accept events with any time field
       const t = e.timesort || e.timestart || e.timefinish || 0;
       return t > 0;
     }).map(e => {
       const due = e.timesort || e.timestart || e.timefinish;
       const courseName = e.course ? (e.course.fullname || e.course.shortname || '—') : 
-                        (e.coursename || e.courseid ? 'Курс ' + e.courseid : '—');
+                        (e.coursename || (e.courseid ? 'Курс '+e.courseid : '—'));
       return {
         id: e.id,
         name: e.name || e.activityname || 'Завдання',
         course: courseName,
         due: due,
         past: due < now,
-        url: e.url || (e.activityurl) || '#'
+        url: e.url || e.activityurl || '#'
       };
     }).sort((a,b) => a.due - b.due);
     
     const urgent = allDl.filter(d=>!d.past&&(d.due-now)<60*60*48).length;
     const past = allDl.filter(d=>d.past).length;
-    document.getElementById('s-urgent').textContent=urgent;
-    document.getElementById('s-done').textContent=past;
+    document.getElementById('s-urgent').textContent = urgent;
+    document.getElementById('s-done').textContent = past;
     applyDlFilter();
     renderDashDl();
     
-    if(!allDl.length) {
-      document.getElementById('dl-list').innerHTML='<div class="empty"><div class="emo">🎉</div><p>Активних дедлайнів немає! Або Moodle не повертає події для вашого акаунту.</p></div>';
-      document.getElementById('dash-dl').innerHTML='<div class="empty"><div class="emo">🎉</div><p>Немає активних дедлайнів!</p></div>';
-    }
   } catch(e) {
     console.error('Deadlines error:', e);
     const msg = e && e.message ? e.message : String(e);
@@ -820,7 +842,7 @@ function applyDlFilter() {
 }
 
 function renderDl(list, el) {
-  if(!list.length){el.innerHTML='<div class="empty"><div class="emo">🎉</div><p>Немає дедлайнів</p></div>';return;}
+  if(!list.length){el.innerHTML='<div class="empty"><div class="emo">🎉</div><p>Дедлайнів не знайдено</p></div>';return;}
   el.innerHTML='<div class="dl-list">'+list.map(d=>{
     const dc=dlDot(d), dtc=dlDateCls(d);
     const hasUrl=d.url&&d.url!=='#';

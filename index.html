@@ -201,9 +201,9 @@ a{text-decoration:none;color:inherit;}
 .admin-card h3{font-size:14px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:8px;}
 .group-item{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border);font-size:12px;}
 .group-item:last-child{border-bottom:none;}
-.group-item .gname{flex:1;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;}
-.group-item .gcnt{font-size:10px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;}
-.group-item>div:first-child{flex:1;min-width:0;overflow:hidden;}
+.group-item .gname{flex:1;font-weight:600;word-break:break-word;line-height:1.3;}
+.group-item .gcnt{font-size:10px;color:var(--text2);word-break:break-word;margin-top:2px;}
+.group-item>div:first-child{flex:1;min-width:0;}
 .user-row{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border);font-size:12px;}
 .user-row:last-child{border-bottom:none;}
 .user-row .uav{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#0a0a0f;flex-shrink:0;}
@@ -641,6 +641,8 @@ async function syncMoodle() { await Promise.all([loadCourses(), loadDeadlines()]
 
 // ── COURSES ──
 async function loadCourses() {
+  document.getElementById('courses-list').innerHTML='<div class="loading"><div class="spinner"></div>Завантаження курсів...</div>';
+  if(!token){ document.getElementById('courses-list').innerHTML='<div class="empty"><div class="emo">⚠️</div><p>Немає токену. Вийдіть і увійдіть знову.</p></div>'; return; }
   try {
     const info = await moodleCall('core_webservice_get_site_info');
     const d = await moodleCall('core_enrol_get_users_courses',{userid:info.userid});
@@ -669,6 +671,13 @@ function filterCourses() {
 // ── DEADLINES ──
 async function loadDeadlines() {
   const now=Math.floor(Date.now()/1000);
+  document.getElementById('dl-list').innerHTML='<div class="loading"><div class="spinner"></div>Завантаження з Moodle...</div>';
+  document.getElementById('dash-dl').innerHTML='<div class="loading"><div class="spinner"></div>Завантаження...</div>';
+  if(!token){ 
+    document.getElementById('dl-list').innerHTML='<div class="empty"><div class="emo">⚠️</div><p>Немає токену Moodle. Вийдіть і увійдіть знову.</p></div>';
+    document.getElementById('dash-dl').innerHTML='<div class="empty"><div class="emo">⚠️</div><p>Немає токену</p></div>';
+    return; 
+  }
   try {
     const d=await moodleCall('core_calendar_get_action_events_by_timesort',{
       timesortfrom:now-60*60*24*30, timesortto:now+60*60*24*90, limitnum:150
@@ -1034,15 +1043,23 @@ function doLogout() {
 const sv=localStorage.getItem('sh_token'), sgid=localStorage.getItem('sh_gid');
 if(sv&&sgid) {
   token=sv;
-  setTimeout(async()=>{
-    if(!window._fb)return;
+  const tryAutoLogin = async () => {
+    if(!window._fb || !window._db) { setTimeout(tryAutoLogin, 300); return; }
     const {doc,getDoc}=window._fb;
     try {
+      // Validate token is still working
+      const testR = await fetch(MOODLE+'/webservice/rest/server.php?wstoken='+sv+'&wsfunction=core_webservice_get_site_info&moodlewsrestformat=json');
+      const testD = await testR.json();
+      if(testD.errorcode) { 
+        localStorage.removeItem('sh_token'); localStorage.removeItem('sh_gid'); 
+        return; 
+      }
       const snap=await getDoc(doc(window._db,'groups',sgid));
       if(snap.exists()){group={id:sgid,...snap.data()};await initApp();}
       else {localStorage.removeItem('sh_token');localStorage.removeItem('sh_gid');}
-    } catch(e){}
-  },800);
+    } catch(e){ console.warn('Auto-login error:',e); }
+  };
+  setTimeout(tryAutoLogin, 500);
 }
 </script>
 </body>

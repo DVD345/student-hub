@@ -67,7 +67,7 @@ a{text-decoration:none;color:inherit;}
 .nav-badge{margin-left:auto;background:var(--accent2);color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:10px;min-width:16px;text-align:center;}
 .sidebar-bottom{padding:10px 8px;border-top:1px solid var(--border);}
 .user-card{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;background:var(--bg3);}
-.user-avatar{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#0a0a0f;flex-shrink:0;}
+.user-avatar{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#0a0a0f;flex-shrink:0;line-height:1;text-align:center;}
 .user-info{flex:1;min-width:0;}
 .user-name{font-size:11px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .user-role-badge{font-size:9px;color:var(--text2);}
@@ -507,8 +507,18 @@ a{text-decoration:none;color:inherit;}
             <div class="msg other"><div class="msg-bubble">Привіт! Я твій навчальний асистент 🎓<br>Можу допомогти з поясненням матеріалу, підготовкою до іспитів, написанням конспектів та іншим. Що тебе цікавить?</div></div>
           </div>
           <div style="padding:10px;border-top:1px solid var(--border);display:flex;gap:8px;">
-            <textarea id="ai-inp" style="flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:9px 12px;color:var(--text);font-family:'Syne',sans-serif;font-size:12px;outline:none;resize:none;" rows="2" placeholder="Запитай що завгодно про навчання..." onkeydown="aiKey(event)"></textarea>
-            <button class="btn a" onclick="sendAI()" id="ai-send">→</button>
+            <div style="flex:1;display:flex;flex-direction:column;gap:5px;">
+              <div id="ai-img-preview" style="display:none;position:relative;width:60px;">
+                <img id="ai-img-thumb" style="width:60px;height:60px;object-fit:cover;border-radius:8px;border:1px solid var(--border);">
+                <button onclick="clearAIImg()" style="position:absolute;top:-6px;right:-6px;width:18px;height:18px;border-radius:50%;background:var(--accent2);border:none;color:#fff;font-size:10px;cursor:pointer;line-height:1;">✕</button>
+              </div>
+              <textarea id="ai-inp" style="flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:9px 12px;color:var(--text);font-family:'Syne',sans-serif;font-size:12px;outline:none;resize:none;" rows="2" placeholder="Запитай або вставте фото (Ctrl+V)..." onkeydown="aiKey(event)" onpaste="handleAIPaste(event)"></textarea>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:5px;">
+              <button class="btn" onclick="document.getElementById('ai-img-input').click()" title="Додати фото">📎</button>
+              <button class="btn a" onclick="sendAI()" id="ai-send">→</button>
+            </div>
+            <input type="file" id="ai-img-input" accept="image/*" style="display:none" onchange="handleAIImg(this)">
           </div>
         </div>
       </div>
@@ -1827,6 +1837,47 @@ function updateNotePreview() {
 
 // ═══ AI ASSISTANT ═══
 let aiHistory = [];
+
+let aiImageBase64 = null;
+let aiImageMime = 'image/jpeg';
+
+function setAIImage(base64, mime) {
+  aiImageBase64 = base64;
+  aiImageMime = mime || 'image/jpeg';
+  document.getElementById('ai-img-thumb').src = 'data:'+aiImageMime+';base64,'+base64;
+  document.getElementById('ai-img-preview').style.display = 'block';
+}
+
+function handleAIImg(inp) {
+  const file = inp.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const result = e.target.result;
+    setAIImage(result.split(',')[1], file.type);
+  };
+  reader.readAsDataURL(file);
+  inp.value = '';
+}
+
+function handleAIPaste(e) {
+  const items = (e.clipboardData || e.originalEvent.clipboardData).items;
+  for(const item of items) {
+    if(item.type.startsWith('image/')) {
+      e.preventDefault();
+      const file = item.getAsFile();
+      const reader = new FileReader();
+      reader.onload = ev => setAIImage(ev.target.result.split(',')[1], file.type);
+      reader.readAsDataURL(file);
+      break;
+    }
+  }
+}
+
+function clearAIImg() {
+  aiImageBase64 = null;
+  document.getElementById('ai-img-preview').style.display = 'none';
+}
 
 function aiKey(e) { if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendAI();} }
 

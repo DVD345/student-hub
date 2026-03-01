@@ -392,7 +392,7 @@ a{text-decoration:none;color:inherit;}
         <div class="upload-zone" id="uz" onclick="document.getElementById('file-input').click()" ondragover="event.preventDefault();this.classList.add('drag')" ondragleave="this.classList.remove('drag')" ondrop="handleDrop(event)">
           <div class="ui">📤</div>
           <p><strong>Натисніть або перетягніть</strong></p>
-          <p style="font-size:10px;margin-top:2px;">PDF, DOCX, PPTX та ін. (до 5МБ)</p>
+          <p style="font-size:10px;margin-top:2px;">до 700КБ • більші файли — через Google Drive у Матеріали</p>
         </div>
         <input type="file" id="file-input" multiple onchange="handleFileSelect(this)">
         <div class="section-title">Файли</div>
@@ -685,9 +685,12 @@ async function loadDeadlines() {
     applyDlFilter();
     renderDashDl();
   } catch(e) {
-    console.warn('Deadlines error:', e);
-    document.getElementById('dl-list').innerHTML='<div class="empty"><div class="emo">⚠️</div><p>Помилка завантаження дедлайнів. Перевірте з&#39;єднання.</p></div>';
-    document.getElementById('dash-dl').innerHTML='<div class="empty"><div class="emo">⚠️</div><p>Помилка завантаження</p></div>';
+    console.error('Deadlines error:', e);
+    const msg = e && e.message ? e.message : String(e);
+    document.getElementById('dl-list').innerHTML='<div class="empty"><div class="emo">⚠️</div><p>Помилка дедлайнів: ' + escHtml(msg) + '</p></div>';
+    document.getElementById('dash-dl').innerHTML='<div class="empty"><div class="emo">⚠️</div><p>Помилка завантаження дедлайнів</p></div>';
+    document.getElementById('s-urgent').textContent='!';
+    document.getElementById('s-done').textContent='!';
   }
 }
 
@@ -734,9 +737,9 @@ function renderDashDl() {
 function listenFiles() {
   if(!window._db||!group.id) return;
   const {collection,query,where,orderBy,onSnapshot}=window._fb;
-  const q=query(collection(window._db,'files'),where('groupId','==',group.id),orderBy('createdAt','desc'));
+  const q=query(collection(window._db,'files'),where('groupId','==',group.id));
   const unsub=onSnapshot(q,snap=>{
-    cachedFiles=snap.docs.map(d=>({id:d.id,...d.data()}));
+    cachedFiles=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
     renderFiles(cachedFiles);
     document.getElementById('s-files').textContent=cachedFiles.length;
   },err=>{ 
@@ -748,10 +751,14 @@ function listenFiles() {
 function handleFileSelect(inp) { Array.from(inp.files).forEach(uploadFile); inp.value=''; }
 function handleDrop(e) { e.preventDefault(); document.getElementById('uz').classList.remove('drag'); Array.from(e.dataTransfer.files).forEach(uploadFile); }
 async function uploadFile(file) {
-  if(file.size>5*1024*1024){alert('Файл більше 5МБ');return;}
+  const MAX = 700 * 1024; // ~700KB safe Firestore limit
+  if(file.size > MAX){
+    alert('Файл більше 700КБ (\'' + file.name + '\'). Firestore не підтримує великі файли напряму.\n\nЗавантаж файл на Google Drive і додай посилання через розділ "Матеріали".');
+    return;
+  }
   if(!window._db){alert('Firebase не готовий');return;}
   const uz=document.getElementById('uz');
-  uz.innerHTML='<div class="ui">⏳</div><p>Завантаження '+file.name+'...</p>';
+  uz.innerHTML='<div class="ui">⏳</div><p>Завантаження ' + escHtml(file.name) + '...</p>';
   const {collection,addDoc}=window._fb;
   const reader=new FileReader();
   reader.onload=async e=>{
@@ -762,8 +769,11 @@ async function uploadFile(file) {
         uploader:userData.fullname||'Студент',
         createdAt:Date.now(), dataUrl:e.target.result
       });
-    } catch(err){alert('Помилка: '+err.message);}
-    uz.innerHTML='<div class="ui">📤</div><p><strong>Натисніть або перетягніть</strong></p><p style="font-size:10px;margin-top:2px;">PDF, DOCX, PPTX та ін. (до 5МБ)</p>';
+    } catch(err){
+      console.error('Upload error:', err);
+      alert('Помилка завантаження: ' + err.message);
+    }
+    uz.innerHTML='<div class="ui">📤</div><p><strong>Натисніть або перетягніть</strong></p><p style="font-size:10px;margin-top:2px;">до 700КБ • більші файли — через Google Drive у Матеріали</p>';
   };
   reader.readAsDataURL(file);
 }
@@ -791,8 +801,8 @@ async function rmFile(id) { if(!confirm('Видалити файл?'))return; co
 function listenMats() {
   if(!window._db||!group.id) return;
   const {collection,query,where,orderBy,onSnapshot}=window._fb;
-  const q=query(collection(window._db,'materials'),where('groupId','==',group.id),orderBy('createdAt','desc'));
-  const unsub=onSnapshot(q,snap=>{ cachedMats=snap.docs.map(d=>({id:d.id,...d.data()})); renderMats(cachedMats); },
+  const q=query(collection(window._db,'materials'),where('groupId','==',group.id));
+  const unsub=onSnapshot(q,snap=>{ cachedMats=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(b.createdAt||0)-(a.createdAt||0)); renderMats(cachedMats); },
   err=>{ 
     console.warn('Materials listener error:', err);
     document.getElementById('mats-list').innerHTML='<div class="empty"><div class="emo">⚠️</div><p>Помилка завантаження матеріалів.</p></div>'; 
@@ -850,9 +860,9 @@ function openChatRoom(roomId, label) {
   if(activeRoom) activeRoom.classList.add('active');
   if(chatUnsub) chatUnsub();
   const {collection,query,orderBy,onSnapshot,where,limit}=window._fb;
-  const q=query(collection(window._db,'messages'),where('room','==',roomId),orderBy('ts','desc'),limit(50));
+  const q=query(collection(window._db,'messages'),where('room','==',roomId),orderBy('ts','asc'),limit(50));
   chatUnsub=onSnapshot(q,snap=>{
-    const msgs=snap.docs.map(d=>d.data()).reverse();
+    const msgs=snap.docs.map(d=>d.data());
     renderMessages(msgs);
   }, err=>{
     console.warn('Chat listener error:', err);

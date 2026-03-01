@@ -10,11 +10,12 @@
   --bg:#0a0a0f;--bg2:#111118;--bg3:#1a1a24;--border:#2a2a3a;
   --accent:#f0c040;--accent2:#e05050;--text:#e8e8f0;--text2:#8888aa;
   --card:#13131e;--success:#40d080;--warning:#f0a030;--r:12px;
-  --sidebar:240px;
+  --sidebar:250px;
 }
+html { font-size: 16px; }
 [data-theme="light"]{--bg:#f4f4f8;--bg2:#fff;--bg3:#ebebf3;--border:#d0d0e0;--text:#1a1a2e;--text2:#606088;--card:#fff;}
 *{box-sizing:border-box;margin:0;padding:0;}
-body{font-family:'Syne',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;transition:background .3s,color .3s;-webkit-tap-highlight-color:transparent;}
+body{font-family:'Syne',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;transition:background .3s,color .3s;-webkit-tap-highlight-color:transparent;font-size:15px;}
 a{text-decoration:none;color:inherit;}
 
 /* ═══ SCREENS ═══ */
@@ -59,7 +60,7 @@ a{text-decoration:none;color:inherit;}
 .group-pill{padding:5px 16px;background:rgba(240,192,64,.07);border-bottom:1px solid var(--border);font-size:10px;color:var(--accent);font-family:'JetBrains Mono',monospace;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .nav{padding:10px 8px;flex:1;overflow-y:auto;}
 .nav-section{font-size:9px;font-weight:700;color:var(--text2);letter-spacing:1px;text-transform:uppercase;padding:8px 8px 4px;}
-.nav-item{display:flex;align-items:center;gap:9px;padding:9px 10px;border-radius:8px;cursor:pointer;font-size:12px;font-weight:600;color:var(--text2);transition:all .15s;margin-bottom:1px;user-select:none;}
+.nav-item{display:flex;align-items:center;gap:9px;padding:10px 10px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;color:var(--text2);transition:all .15s;margin-bottom:1px;user-select:none;}
 .nav-item:hover{background:var(--bg3);color:var(--text);}
 .nav-item.active{background:rgba(240,192,64,.12);color:var(--accent);}
 .nav-item .ni{font-size:14px;width:16px;text-align:center;flex-shrink:0;}
@@ -78,7 +79,7 @@ a{text-decoration:none;color:inherit;}
 .topbar{display:none;padding:12px 16px;background:var(--bg2);border-bottom:1px solid var(--border);align-items:center;gap:10px;position:sticky;top:0;z-index:100;}
 .topbar-menu{background:none;border:none;color:var(--text);font-size:20px;cursor:pointer;padding:4px;}
 .topbar h2{font-size:15px;font-weight:800;flex:1;}
-.content{padding:24px;flex:1;}
+.content{padding:28px;flex:1;}
 
 /* OVERLAY */
 .sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:199;}
@@ -89,8 +90,8 @@ a{text-decoration:none;color:inherit;}
 .page.active{display:block;}
 @keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
 .page-header{margin-bottom:20px;}
-.page-header h2{font-size:22px;font-weight:800;margin-bottom:3px;}
-.page-header p{color:var(--text2);font-size:12px;}
+.page-header h2{font-size:26px;font-weight:800;margin-bottom:3px;}
+.page-header p{color:var(--text2);font-size:13px;}
 
 /* STATS */
 .stats-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;margin-bottom:20px;}
@@ -113,8 +114,8 @@ a{text-decoration:none;color:inherit;}
 .dot-s{background:var(--warning);}
 .dot-o{background:var(--success);}
 .dl-info{flex:1;min-width:0;}
-.dl-name{font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.dl-course{font-size:10px;color:var(--text2);}
+.dl-name{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.dl-course{font-size:11px;color:var(--text2);}
 .dl-right{display:flex;align-items:center;gap:6px;flex-shrink:0;}
 .dl-date{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text2);}
 .dl-date.u{color:var(--accent2);}
@@ -143,8 +144,8 @@ a{text-decoration:none;color:inherit;}
 .ex{background:rgba(64,192,80,.15);color:#40c050;}
 .eo{background:var(--bg3);color:var(--text2);}
 .file-info{flex:1;min-width:0;}
-.file-name{font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.file-meta{font-size:10px;color:var(--text2);margin-top:1px;}
+.file-name{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.file-meta{font-size:11px;color:var(--text2);margin-top:1px;}
 .file-actions{display:flex;gap:4px;flex-shrink:0;}
 
 /* BUTTONS */
@@ -439,6 +440,7 @@ a{text-decoration:none;color:inherit;}
           <!-- Users -->
           <div class="admin-card">
             <h3>👥 Користувачі</h3>
+            <input class="tb-input" id="users-search" placeholder="🔍 Пошук по імені..." oninput="filterAdminUsers(this.value)" style="width:100%;margin-bottom:10px;max-width:100%;">
             <div id="admin-users-list"><div class="loading"><div class="spinner"></div></div></div>
           </div>
           <!-- Stats -->
@@ -577,6 +579,24 @@ async function doLogin() {
     const d = await r.json();
     if (d.token) {
       token = d.token;
+      // Check if user is a teacher (block teacher accounts)
+      try {
+        const siteR = await fetch(MOODLE+'/webservice/rest/server.php?wstoken='+d.token+'&wsfunction=core_webservice_get_site_info&moodlewsrestformat=json');
+        const siteData = await siteR.json();
+        // Moodle returns 'roles' array for site-level roles
+        const roles = Array.isArray(siteData.roles) ? siteData.roles : [];
+        const teacherShortnames = ['teacher','editingteacher','coursecreator','manager'];
+        const isTeacher = roles.some(r => 
+          teacherShortnames.includes((r.shortname||'').toLowerCase()) ||
+          [1,2,3,4].includes(Number(r.roleid))
+        );
+        if (isTeacher) {
+          token = '';
+          showErr('Цей портал лише для студентів. Викладачі не можуть увійти.');
+          btn.disabled=false; btn.textContent='Увійти';
+          return;
+        }
+      } catch(roleErr) { console.warn('Role check failed, allowing login:', roleErr); }
       // Load group info
       const { doc, getDoc } = window._fb;
       const gSnap = await getDoc(doc(window._db, 'groups', groupId));
@@ -653,7 +673,7 @@ async function moodleCall(fn, params={}) {
 }
 
 // ── SYNC ──
-async function syncMoodle() { await Promise.all([loadCourses(), loadDeadlines()]); }
+async function syncMoodle() { await loadCourses(); await loadDeadlines(); }
 
 // ── COURSES ──
 async function loadCourses() {
@@ -695,27 +715,85 @@ async function loadDeadlines() {
     return; 
   }
   try {
-    let d = await moodleCall('core_calendar_get_action_events_by_timesort',{
-      timesortfrom:now-60*60*24*30, timesortto:now+60*60*24*90, limitnum:150
-    });
-    // If empty, try upcoming events API
-    if((!d.events || !d.events.length) && !d.errorcode) {
-      const d2 = await moodleCall('core_calendar_get_upcoming_view');
-      if(d2 && d2.events && d2.events.length) d = d2;
+    let events = [];
+    
+    // Method 1: Action events by timesort (main method)
+    try {
+      const d1 = await moodleCall('core_calendar_get_action_events_by_timesort',{
+        timesortfrom: now - 60*60*24*30,
+        timesortto: now + 60*60*24*90,
+        limitnum: 200,
+        limitcourse: 0
+      });
+      if(d1 && !d1.errorcode && d1.events && d1.events.length) {
+        events = d1.events;
+        console.log('Method 1 got events:', events.length);
+      }
+    } catch(e1) { console.warn('Method 1 failed:', e1); }
+    
+    // Method 2: Upcoming events (fallback)
+    if(!events.length) {
+      try {
+        const d2 = await moodleCall('core_calendar_get_upcoming_view');
+        if(d2 && !d2.errorcode && d2.events && d2.events.length) {
+          events = d2.events;
+          console.log('Method 2 got events:', events.length);
+        }
+      } catch(e2) { console.warn('Method 2 failed:', e2); }
     }
-    console.log('Deadlines raw:', d);
-    allDl=(d.events||[]).filter(e=>e.timesort||e.timestart).map(e=>({
-      id:e.id, name:e.name,
-      course:e.course?e.course.fullname:'—',
-      due:e.timesort||e.timestart, past:(e.timesort||e.timestart)<now,
-      url:e.url||'#'
-    })).sort((a,b)=>a.due-b.due);
-    const urgent=allDl.filter(d=>!d.past&&(d.due-now)<60*60*48).length;
-    const past=allDl.filter(d=>d.past).length;
+    
+    // Method 3: Events by course (iterate enrolled courses)
+    if(!events.length && courses.length) {
+      try {
+        for(const c of courses.slice(0,10)) {
+          const d3 = await moodleCall('core_calendar_get_action_events_by_course',{
+            courseid: c.id,
+            timesortfrom: now,
+            timesortto: now + 60*60*24*90,
+            limitnum: 50
+          });
+          if(d3 && !d3.errorcode && d3.events && d3.events.length) {
+            events = events.concat(d3.events);
+          }
+        }
+        // Deduplicate
+        const seen = new Set();
+        events = events.filter(e => { if(seen.has(e.id)){return false;} seen.add(e.id); return true; });
+        console.log('Method 3 got events:', events.length);
+      } catch(e3) { console.warn('Method 3 failed:', e3); }
+    }
+    
+    console.log('Total deadline events:', events.length, events.slice(0,2));
+    
+    allDl = events.filter(e => {
+      // Accept events with any time field
+      const t = e.timesort || e.timestart || e.timefinish || 0;
+      return t > 0;
+    }).map(e => {
+      const due = e.timesort || e.timestart || e.timefinish;
+      const courseName = e.course ? (e.course.fullname || e.course.shortname || '—') : 
+                        (e.coursename || e.courseid ? 'Курс ' + e.courseid : '—');
+      return {
+        id: e.id,
+        name: e.name || e.activityname || 'Завдання',
+        course: courseName,
+        due: due,
+        past: due < now,
+        url: e.url || (e.activityurl) || '#'
+      };
+    }).sort((a,b) => a.due - b.due);
+    
+    const urgent = allDl.filter(d=>!d.past&&(d.due-now)<60*60*48).length;
+    const past = allDl.filter(d=>d.past).length;
     document.getElementById('s-urgent').textContent=urgent;
     document.getElementById('s-done').textContent=past;
     applyDlFilter();
     renderDashDl();
+    
+    if(!allDl.length) {
+      document.getElementById('dl-list').innerHTML='<div class="empty"><div class="emo">🎉</div><p>Активних дедлайнів немає! Або Moodle не повертає події для вашого акаунту.</p></div>';
+      document.getElementById('dash-dl').innerHTML='<div class="empty"><div class="emo">🎉</div><p>Немає активних дедлайнів!</p></div>';
+    }
   } catch(e) {
     console.error('Deadlines error:', e);
     const msg = e && e.message ? e.message : String(e);
@@ -1005,7 +1083,9 @@ function listenAdminData() {
   // Users
   onSnapshot(collection(window._db,'users'),snap=>{
     const users=snap.docs.map(d=>({id:d.id,...d.data()}));
-    renderAdminUsers(users);
+    _allAdminUsers = users;
+    const q = (document.getElementById('users-search')||{value:''}).value;
+    filterAdminUsers(q);
     document.getElementById('admin-stats').innerHTML=
       '<div style="font-size:13px;line-height:2;">'+
       '👥 Користувачів: <b>'+users.length+'</b><br>'+
@@ -1029,6 +1109,11 @@ function renderAdminGroups(groups) {
     '</div>'+
     '</div>'
   ).join('');
+}
+let _allAdminUsers = [];
+function filterAdminUsers(q) {
+  const filtered = q ? _allAdminUsers.filter(u => (u.name||'').toLowerCase().includes(q.toLowerCase())) : _allAdminUsers;
+  renderAdminUsers(filtered);
 }
 function renderAdminUsers(users) {
   const el=document.getElementById('admin-users-list');

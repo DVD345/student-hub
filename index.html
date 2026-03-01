@@ -188,9 +188,16 @@ a{text-decoration:none;color:inherit;}
 .msg.me{align-self:flex-end;align-items:flex-end;}
 .msg.other{align-self:flex-start;}
 .msg-author{font-size:9px;color:var(--text2);font-weight:600;margin-bottom:1px;}
-.msg-bubble{background:var(--bg3);border-radius:10px;padding:8px 11px;font-size:12px;line-height:1.4;word-break:break-word;}
+.msg-bubble{background:var(--bg3);border-radius:10px;padding:10px 14px;font-size:14px;line-height:1.6;word-break:break-word;}
 .msg.me .msg-bubble{background:rgba(240,192,64,.15);border-radius:10px 10px 2px 10px;}
 .msg.other .msg-bubble{border-radius:10px 10px 10px 2px;}
+.ai-bubble strong{color:var(--text);font-weight:700;}
+.ai-bubble em{color:var(--text2);}
+.ai-bubble ul,.ai-bubble ol{padding-left:20px;margin:6px 0;}
+.ai-bubble li{margin:3px 0;}
+.ai-bubble p{margin:6px 0;}
+.ai-bubble p:first-child{margin-top:0;}
+.ai-bubble p:last-child{margin-bottom:0;}
 .msg-time{font-size:9px;color:var(--text2);font-family:'JetBrains Mono',monospace;}
 .chat-input-wrap{padding:10px;border-top:1px solid var(--border);display:flex;gap:7px;}
 .chat-input{flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:9px 12px;color:var(--text);font-family:'Syne',sans-serif;font-size:12px;outline:none;resize:none;}
@@ -1870,7 +1877,7 @@ ${contextParts.length ? 'Контекст студента: ' + contextParts.joi
         'Authorization': 'Bearer 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'
       },
       body: JSON.stringify({
-        model: 'deepseek-r1-distill-llama-70b',
+        model: 'llama-3.3-70b-versatile',
         max_tokens: 4096,
         messages: [
           { role: 'system', content: systemPrompt },
@@ -1898,13 +1905,66 @@ ${contextParts.length ? 'Контекст студента: ' + contextParts.joi
   document.getElementById('ai-send').disabled = false;
 }
 
+function renderMarkdown(text) {
+  // Escape HTML first
+  let t = text
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
+  // Code blocks ```lang\n...\n```
+  t = t.replace(/```(\w*)\n?([\s\S]*?)```/g, (_, lang, code) =>
+    '<pre style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px;overflow-x:auto;margin:8px 0;font-family:\'JetBrains Mono\',monospace;font-size:12px;line-height:1.5;">'+
+    (lang?'<div style="font-size:9px;color:var(--accent);margin-bottom:6px;text-transform:uppercase;">'+lang+'</div>':'')+
+    code+'</pre>'
+  );
+
+  // Inline code `code`
+  t = t.replace(/`([^`]+)`/g, '<code style="background:var(--bg3);border:1px solid var(--border);border-radius:4px;padding:1px 5px;font-family:\'JetBrains Mono\',monospace;font-size:12px;">$1</code>');
+
+  // Headers ### ## #
+  t = t.replace(/^### (.+)$/gm, '<div style="font-size:14px;font-weight:800;margin:12px 0 4px;color:var(--accent);">$1</div>');
+  t = t.replace(/^## (.+)$/gm, '<div style="font-size:16px;font-weight:800;margin:14px 0 5px;">$1</div>');
+  t = t.replace(/^# (.+)$/gm, '<div style="font-size:18px;font-weight:800;margin:16px 0 6px;">$1</div>');
+
+  // Bold **text** or __text__
+  t = t.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  t = t.replace(/__(.+?)__/g, '<strong>$1</strong>');
+
+  // Italic *text* or _text_
+  t = t.replace(/\*([^*\n]+)\*/g, '<em>$1</em>');
+  t = t.replace(/_([^_\n]+)_/g, '<em>$1</em>');
+
+  // Horizontal rule ---
+  t = t.replace(/^---+$/gm, '<hr style="border:none;border-top:1px solid var(--border);margin:12px 0;">');
+
+  // Unordered lists - item or * item
+  t = t.replace(/^[\-\*] (.+)$/gm, '<li style="margin:3px 0;padding-left:4px;">$1</li>');
+  t = t.replace(/(<li[^>]*>.*<\/li>\n?)+/g, m => '<ul style="margin:6px 0;padding-left:20px;">'+m+'</ul>');
+
+  // Numbered lists 1. item
+  t = t.replace(/^\d+\. (.+)$/gm, '<li style="margin:3px 0;padding-left:4px;">$1</li>');
+  t = t.replace(/(<li[^>]*>.*<\/li>\n?)+/g, m => {
+    if(m.includes('<ul')) return m;
+    return '<ol style="margin:6px 0;padding-left:20px;">'+m+'</ol>';
+  });
+
+  // Blockquote > text
+  t = t.replace(/^&gt; (.+)$/gm, '<blockquote style="border-left:3px solid var(--accent);padding:4px 12px;margin:6px 0;color:var(--text2);">$1</blockquote>');
+
+  // Line breaks
+  t = t.replace(/\n\n/g, '</p><p style="margin:8px 0;">');
+  t = t.replace(/\n/g, '<br>');
+  t = '<p style="margin:0;">'+t+'</p>';
+
+  return t;
+}
+
 function appendAIMsg(side, text) {
   const el = document.getElementById('ai-msgs');
   const div = document.createElement('div');
   div.className = 'msg ' + side;
-  // Simple link detection in AI responses
-  const safe = escHtml(text).replace(/\n/g,'<br>');
-  div.innerHTML = '<div class="msg-bubble" style="white-space:pre-wrap;max-width:85%;">'+safe+'</div>';
+  const isAI = side === 'other';
+  const content = isAI ? renderMarkdown(text) : '<p style="margin:0;">'+escHtml(text).replace(/\n/g,'<br>')+'</p>';
+  div.innerHTML = '<div class="msg-bubble ai-bubble" style="max-width:88%;line-height:1.65;font-size:14px;">'+content+'</div>';
   el.appendChild(div);
   el.scrollTop = 99999;
 }

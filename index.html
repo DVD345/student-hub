@@ -830,7 +830,7 @@ async function loadDeadlines() {
       }
     } catch(e1) { console.warn('Method 1 failed:', e1); }
     
-    // Method 2: Upcoming view
+    // Method 2: Upcoming view (якщо метод 1 нічого не дав)
     if(!events.length) {
       try {
         const d2 = await moodleCall('core_calendar_get_upcoming_view');
@@ -842,7 +842,7 @@ async function loadDeadlines() {
       } catch(e2) { console.warn('Method 2 failed:', e2); }
     }
 
-    // Method 3: По кожному курсу окремо
+    // Method 3: По кожному курсу (якщо методи 1-2 нічого не дали)
     if(!events.length && courses.length) {
       try {
         const fetches = courses.slice(0,15).map(c =>
@@ -863,30 +863,70 @@ async function loadDeadlines() {
       } catch(e3) { console.warn('Method 3 failed:', e3); }
     }
 
-    // Method 4: mod_assign — отримати завдання з дедлайнами напряму
-    if(!events.length && courses.length) {
+    // Method 4 + 5: ЗАВЖДИ запускаємо паралельно — завдання (assign) і тести (quiz)
+    // Це ловить тести без duedate (тільки timeclose) та завдання яких немає в календарі
+    if(courses.length) {
       try {
-        const courseids = courses.slice(0,20).map((c,i)=>`courseids[${i}]=${c.id}`).join('&');
-        const r4 = await fetch(MOODLE+'/webservice/rest/server.php?wstoken='+token+'&wsfunction=mod_assign_get_assignments&moodlewsrestformat=json&'+courseids);
-        const d4 = await r4.json();
-        console.log('Method 4 raw:', JSON.stringify(d4).slice(0,200));
+        const courseids = courses.slice(0,25).map((c,i)=>`courseids[${i}]=${c.id}`).join('&');
+        
+        const [d4, d5] = await Promise.all([
+          // Завдання
+          fetch(MOODLE+'/webservice/rest/server.php?wstoken='+token+'&wsfunction=mod_assign_get_assignments&moodlewsrestformat=json&'+courseids)
+            .then(r=>r.json()).catch(()=>null),
+          // Тести (квізи)
+          fetch(MOODLE+'/webservice/rest/server.php?wstoken='+token+'&wsfunction=mod_quiz_get_quizzes_by_courses&moodlewsrestformat=json&'+courseids)
+            .then(r=>r.json()).catch(()=>null)
+        ]);
+
+        const extraEvents = [];
+
+        // Завдання з duedate
         if(d4 && d4.courses) {
           d4.courses.forEach(course => {
             (course.assignments||[]).forEach(a => {
-              if(a.duedate && a.duedate > 0) {
-                events.push({
-                  id: a.id,
-                  name: a.name,
+              const deadline = a.duedate || 0;
+              if(deadline > 0) {
+                extraEvents.push({
+                  id: 'assign_'+a.id, name: a.name,
                   course: { fullname: course.fullname },
-                  timesort: a.duedate,
+                  timesort: deadline, modulename: 'assign',
                   url: MOODLE+'/mod/assign/view.php?id='+a.cmid
                 });
               }
             });
           });
+          console.log('Method 4 (assign):', extraEvents.length);
         }
-        console.log('Method 4:', events.length);
-      } catch(e4) { console.warn('Method 4 failed:', e4); }
+
+        // Тести з timeclose (навіть якщо немає duedate)
+        const quizBefore = extraEvents.length;
+        if(d5 && d5.quizzes) {
+          d5.quizzes.forEach(q => {
+            const deadline = q.timeclose || q.duedate || 0;
+            if(deadline > 0) {
+              extraEvents.push({
+                id: 'quiz_'+q.id, name: q.name,
+                course: { fullname: q.course || q.coursefullname || '' },
+                timesort: deadline, modulename: 'quiz',
+                url: MOODLE+'/mod/quiz/view.php?id='+q.coursemodule
+              });
+            }
+          });
+          console.log('Method 5 (quiz):', extraEvents.length - quizBefore, 'quizzes');
+        }
+
+        // Мержимо: додаємо тільки ті що не дублюють вже знайдені за назвою+курсом
+        const existingKeys = new Set(events.map(e => (e.name||'').toLowerCase().trim()));
+        extraEvents.forEach(e => {
+          const key = (e.name||'').toLowerCase().trim();
+          if(!existingKeys.has(key)) {
+            events.push(e);
+            existingKeys.add(key);
+          }
+        });
+        console.log('After merge total:', events.length);
+
+      } catch(e45) { console.warn('Method 4/5 failed:', e45); }
     }
     
     console.log('Total events found:', events.length);

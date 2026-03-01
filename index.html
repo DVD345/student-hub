@@ -1856,7 +1856,16 @@ async function sendAI() {
     const upcomingDl = allDl.filter(d=>!d.past).slice(0,5);
     if(upcomingDl.length) contextParts.push('Найближчі дедлайни: ' + upcomingDl.map(d=>d.name+' ('+fmtDate(d.due)+')').join(', '));
     
-    const systemPrompt = 'Ти навчальний асистент для студентів університету УкрДУЗТ (Українського державного університету залізничного транспорту). Відповідай українською мовою. Будь корисним, дружнім і точним. ' + (contextParts.length ? 'Контекст: ' + contextParts.join('. ') : '');
+    const systemPrompt = `Ти навчальний асистент для студентів університету УкрДУЗТ (Українського державного університету залізничного транспорту).
+
+ПРАВИЛА:
+- Відповідай ЗАВЖДИ українською мовою
+- Давай ТОЧНІ та ПОВНІ відповіді — не обривай на середині
+- Якщо задача — розв'яжи покроково з кінцевою відповіддю
+- Якщо питання теоретичне — дай чітке пояснення з прикладами
+- НЕ пиши зайвого тексту, тільки корисну інформацію
+- В кінці ЗАВЖДИ підводь підсумок або давай кінцеву відповідь
+${contextParts.length ? 'Контекст студента: ' + contextParts.join('. ') : ''}`;
     
     const resp = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
@@ -1865,8 +1874,8 @@ async function sendAI() {
         'Authorization': 'Bearer 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'
       },
       body: JSON.stringify({
-        model: 'llama-3.3-70b-versatile',
-        max_tokens: 1024,
+        model: 'deepseek-r1-distill-llama-70b',
+        max_tokens: 4096,
         messages: [
           { role: 'system', content: systemPrompt },
           ...aiHistory.slice(-10)

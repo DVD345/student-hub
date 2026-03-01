@@ -279,14 +279,9 @@ a{text-decoration:none;color:inherit;}
     <p>Портал студентів УкрДУЗТ</p>
     <div class="field"><label>Логін від Moodle</label><input type="text" id="li" placeholder="••••••••••" autocomplete="username"></div>
     <div class="field"><label>Пароль від Moodle</label><input type="password" id="lp" placeholder="••••••••" autocomplete="current-password"></div>
-    <div class="sep">Ваша група</div>
-    <div class="field">
-      <label>Оберіть групу</label>
-      <select id="lg"><option value="">— Завантаження груп... —</option></select>
-    </div>
     <button class="btn-primary" id="login-btn" onclick="doLogin()">Увійти</button>
     <div class="err-box" id="lerr"></div>
-    <p class="login-info">Логін/пароль передаються напряму на сервер УкрДУЗТ</p>
+    <p class="login-info">Логін/пароль передаються напряму на сервер УкрДУЗТ • Група визначається автоматично</p>
   </div>
 </div>
 
@@ -503,36 +498,13 @@ const db = getFirestore(app);
 window._db = db;
 window._fb = { collection, addDoc, deleteDoc, doc, query, where, orderBy, onSnapshot, getDocs, setDoc, getDoc, updateDoc, serverTimestamp, limit };
 
-// Load groups into login select
+// loadGroupsForLogin залишаємо для fallback у випадку коли Moodle не визначив групу
 async function loadGroupsForLogin() {
-  const sel = document.getElementById('lg');
   try {
     const snap = await getDocs(collection(db, 'groups'));
-    const groups = snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a,b) => (a.name||'').localeCompare(b.name||''));
-    if (!groups.length) {
-      sel.innerHTML = '<option value="">— Груп ще немає (зверніться до адміна) —</option>';
-      return;
-    }
-    // Group by faculty
-    const faculties = {};
-    groups.forEach(g => {
-      const f = g.faculty || 'Інші';
-      if (!faculties[f]) faculties[f] = [];
-      faculties[f].push(g);
-    });
-    let html = '<option value="">— Оберіть групу —</option>';
-    Object.keys(faculties).sort().forEach(f => {
-      html += '<optgroup label="' + f + '">';
-      faculties[f].forEach(g => { html += '<option value="' + g.id + '">' + g.name + '</option>'; });
-      html += '</optgroup>';
-    });
-    sel.innerHTML = html;
-  } catch(e) {
-    sel.innerHTML = '<option value="">— Помилка завантаження —</option>';
-  }
+    return snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a,b) => (a.name||'').localeCompare(b.name||''));
+  } catch(e) { return []; }
 }
-loadGroupsForLogin();
-
 window._loadGroupsForLogin = loadGroupsForLogin;
 </script>
 
@@ -567,48 +539,175 @@ function canMod() { return ['superadmin','admin','moderator'].includes(userRole)
 async function doLogin() {
   const username = document.getElementById('li').value.trim();
   const password = document.getElementById('lp').value;
-  const groupId = document.getElementById('lg').value;
   const btn = document.getElementById('login-btn');
   const err = document.getElementById('lerr');
   err.style.display='none';
   if (!username||!password) { showErr('Введіть логін та пароль'); return; }
-  if (!groupId) { showErr('Оберіть групу'); return; }
   btn.disabled=true; btn.textContent='Входимо...';
   try {
+    // 1. Отримати токен
     const r = await fetch(MOODLE+'/login/token.php?username='+encodeURIComponent(username)+'&password='+encodeURIComponent(password)+'&service=moodle_mobile_app');
     const d = await r.json();
-    if (d.token) {
-      token = d.token;
-      // Check if user is a teacher (block teacher accounts)
+    if (!d.token) { showErr(d.error || 'Невірний логін або пароль'); btn.disabled=false; btn.textContent='Увійти'; return; }
+    token = d.token;
+
+    // 2. Отримати інфо про користувача
+    btn.textContent='Визначаємо групу...';
+    const siteData = await moodleCall('core_webservice_get_site_info');
+
+    // 3. Перевірка — не викладач
+    const roles = Array.isArray(siteData.roles) ? siteData.roles : [];
+    const teacherShortnames = ['teacher','editingteacher','coursecreator','manager'];
+    const isTeacher = roles.some(r =>
+      teacherShortnames.includes((r.shortname||'').toLowerCase()) || [1,2,3,4].includes(Number(r.roleid))
+    );
+    if (isTeacher) {
+      token = '';
+      showErr('Цей портал лише для студентів. Викладачі не можуть увійти.');
+      btn.disabled=false; btn.textContent='Увійти'; return;
+    }
+
+    // 4. Спробувати отримати когорти (групу) студента
+    const userId = siteData.userid;
+    let moodleGroupName = null;
+    let moodleFaculty = null;
+
+    // Метод А: когорти через core_cohort_get_user_cohorts (якщо є доступ)
+    try {
+      const cohorts = await moodleCall('core_cohort_get_user_cohorts', { userid: userId });
+      if(Array.isArray(cohorts) && cohorts.length) {
+        // Беремо першу когорту — це зазвичай і є група
+        moodleGroupName = cohorts[0].name || cohorts[0].idnumber;
+        moodleFaculty = cohorts[0].description || cohorts[0].theme || null;
+        // Очищаємо HTML теги з faculty якщо є
+        if(moodleFaculty) moodleFaculty = moodleFaculty.replace(/<[^>]*>/g,'').trim() || null;
+        console.log('Cohort found:', moodleGroupName, moodleFaculty);
+      }
+    } catch(e) { console.warn('Cohort API failed:', e); }
+
+    // Метод Б: групи в курсах через core_group_get_course_user_groups
+    if(!moodleGroupName) {
       try {
-        const siteR = await fetch(MOODLE+'/webservice/rest/server.php?wstoken='+d.token+'&wsfunction=core_webservice_get_site_info&moodlewsrestformat=json');
-        const siteData = await siteR.json();
-        // Moodle returns 'roles' array for site-level roles
-        const roles = Array.isArray(siteData.roles) ? siteData.roles : [];
-        const teacherShortnames = ['teacher','editingteacher','coursecreator','manager'];
-        const isTeacher = roles.some(r => 
-          teacherShortnames.includes((r.shortname||'').toLowerCase()) ||
-          [1,2,3,4].includes(Number(r.roleid))
-        );
-        if (isTeacher) {
-          token = '';
-          showErr('Цей портал лише для студентів. Викладачі не можуть увійти.');
-          btn.disabled=false; btn.textContent='Увійти';
-          return;
+        const enrolledCourses = await moodleCall('core_enrol_get_users_courses', { userid: userId });
+        if(Array.isArray(enrolledCourses) && enrolledCourses.length) {
+          for(const course of enrolledCourses.slice(0,5)) {
+            try {
+              const grps = await moodleCall('core_group_get_course_user_groups', { courseid: course.id, userid: userId });
+              if(grps && Array.isArray(grps.groups) && grps.groups.length) {
+                moodleGroupName = grps.groups[0].name;
+                console.log('Group from course found:', moodleGroupName);
+                break;
+              }
+            } catch(e2) {}
+          }
         }
-      } catch(roleErr) { console.warn('Role check failed, allowing login:', roleErr); }
-      // Load group info
-      const { doc, getDoc } = window._fb;
-      const gSnap = await getDoc(doc(window._db, 'groups', groupId));
-      if (!gSnap.exists()) { showErr('Групу не знайдено'); btn.disabled=false; btn.textContent='Увійти'; return; }
-      group = { id: groupId, ...gSnap.data() };
-      localStorage.setItem('sh_token', token);
-      localStorage.setItem('sh_gid', groupId);
-      await initApp();
-    } else { showErr(d.error || 'Невірний логін або пароль'); }
-  } catch(e) { showErr('Помилка підключення'); }
+      } catch(e) { console.warn('Course groups API failed:', e); }
+    }
+
+    // Метод В: витягнути групу з назви курсу (pattern: "ГрупаХХХ" або "ХХХ-ХХ")
+    if(!moodleGroupName) {
+      try {
+        const enrolledCourses = await moodleCall('core_enrol_get_users_courses', { userid: userId });
+        if(Array.isArray(enrolledCourses) && enrolledCourses.length) {
+          // Шукаємо патерн групи в назві курсу: XXX-XXX-X або схоже
+          for(const c of enrolledCourses) {
+            const match = (c.fullname||'').match(/\b([А-ЯІЇЄA-Z]{1,5}-?\d{2,4}[А-ЯA-Z]?\d{0,2})\b/i);
+            if(match) { moodleGroupName = match[1]; break; }
+          }
+        }
+      } catch(e) {}
+    }
+
+    // 5. Якщо групу не знайдено — показати ручний вибір
+    if(!moodleGroupName) {
+      console.warn('Could not detect group from Moodle, falling back to manual selection');
+      await showGroupFallback(token, siteData);
+      btn.disabled=false; btn.textContent='Увійти';
+      return;
+    }
+
+    // 6. Знайти або створити групу в Firestore
+    btn.textContent='Синхронізація...';
+    group = await findOrCreateGroup(moodleGroupName, moodleFaculty);
+
+    // 7. Зайти
+    localStorage.setItem('sh_token', token);
+    localStorage.setItem('sh_gid', group.id);
+    await initApp();
+
+  } catch(e) { console.error('Login error:', e); showErr('Помилка підключення'); }
   btn.disabled=false; btn.textContent='Увійти';
 }
+
+// Знайти групу в Firestore або створити нову
+async function findOrCreateGroup(name, faculty) {
+  const { collection, getDocs, addDoc, query, where } = window._fb;
+  // Шукаємо по назві (регістронезалежно)
+  const snap = await getDocs(collection(window._db, 'groups'));
+  const existing = snap.docs.map(d=>({id:d.id,...d.data()}))
+    .find(g => (g.name||'').toLowerCase().trim() === name.toLowerCase().trim());
+  if(existing) { console.log('Found existing group:', existing.name); return existing; }
+
+  // Не знайдено — створюємо автоматично
+  console.log('Creating new group:', name, faculty);
+  const now2 = new Date();
+  const acadYear = now2.getMonth() >= 7 ? now2.getFullYear() : now2.getFullYear() - 1;
+  // Спробуємо витягти курс з назви групи (напр. "103-ОПУТ-Д24" → рік 24 → курс)
+  let course = 1, entryYear = null, manualCourse = null;
+  const yearMatch = name.match(/[ДД]?(\d{2})$/i) || name.match(/(\d{4})/);
+  if(yearMatch) {
+    let yr = parseInt(yearMatch[1]);
+    if(yr < 100) yr += 2000;
+    course = Math.min(Math.max(acadYear - yr + 1, 1), 6);
+    entryYear = yr;
+  }
+  const newDoc = await addDoc(collection(window._db,'groups'), {
+    name, faculty: faculty || '', course, entryYear, manualCourse,
+    createdAt: Date.now(), autoCreated: true
+  });
+  if(window._loadGroupsForLogin) window._loadGroupsForLogin();
+  return { id: newDoc.id, name, faculty: faculty||'', course, entryYear };
+}
+
+// Якщо автовизначення не вдалося — показати кнопку ручного вибору
+async function showGroupFallback(tok, siteData) {
+  showErr('Не вдалося визначити групу автоматично. Оберіть групу вручну:');
+  // Показати select якщо він ще не існує
+  let sel = document.getElementById('lg-fallback');
+  if(!sel) {
+    sel = document.createElement('select');
+    sel.id = 'lg-fallback';
+    sel.className = 'field';
+    sel.style.cssText = 'width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:11px 13px;color:var(--text);font-family:Syne,sans-serif;font-size:13px;outline:none;margin-top:8px;-webkit-appearance:none;';
+    sel.innerHTML = '<option value="">— Оберіть групу —</option>';
+    // Завантажити групи
+    const { collection, getDocs } = window._fb;
+    const gsnap = await getDocs(collection(window._db,'groups'));
+    const groups = gsnap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(a.name||'').localeCompare(b.name||''));
+    groups.forEach(g => { sel.innerHTML += '<option value="'+escHtml(g.id)+'">'+escHtml(g.name)+'</option>'; });
+    document.getElementById('lerr').after(sel);
+    // Кнопка підтвердження
+    const confirmBtn = document.createElement('button');
+    confirmBtn.className = 'btn-primary';
+    confirmBtn.style.marginTop = '8px';
+    confirmBtn.textContent = 'Продовжити';
+    confirmBtn.onclick = async () => {
+      const gid = sel.value;
+      if(!gid) { showErr('Оберіть групу'); return; }
+      confirmBtn.disabled=true; confirmBtn.textContent='Входимо...';
+      const { doc, getDoc } = window._fb;
+      const gSnap = await getDoc(doc(window._db,'groups',gid));
+      if(!gSnap.exists()) { showErr('Групу не знайдено'); confirmBtn.disabled=false; confirmBtn.textContent='Продовжити'; return; }
+      group = { id: gid, ...gSnap.data() };
+      sel.remove(); confirmBtn.remove();
+      localStorage.setItem('sh_token', tok);
+      localStorage.setItem('sh_gid', gid);
+      await initApp();
+    };
+    sel.after(confirmBtn);
+  }
+}
+
 function showErr(msg) { const e=document.getElementById('lerr'); e.textContent=msg; e.style.display='block'; }
 document.getElementById('lp').addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
 

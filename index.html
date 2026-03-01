@@ -792,10 +792,10 @@ async function loadDeadlines() {
     
     console.log('Total events found:', events.length);
     
-    // Типи подій які треба ІГНОРУВАТИ (відкриття — не дедлайн)
+    // Модулі які точно не є дедлайнами
+    const IGNORE_MODULES = ['forum', 'chat', 'wiki', 'glossary'];
+    // Типи подій-відкриттів які треба ігнорувати
     const IGNORE_TYPES = ['open', 'opensubmission', 'expectcompletionon'];
-    // Модулі які не є дедлайнами (оголошення, форуми тощо)
-    const IGNORE_MODULES = ['forum', 'announcement', 'news', 'chat', 'survey', 'feedback', 'wiki', 'glossary'];
     // Типи які є дедлайнами
     const DEADLINE_TYPES = ['due', 'close', 'closingdate', 'gradingdue', 'duedate', 'timeclose'];
     
@@ -803,27 +803,22 @@ async function loadDeadlines() {
       const t = e.timesort || e.timestart || e.timefinish || 0;
       if(t <= 0) return false;
       
-      // Фільтруємо оголошення та форуми по modname
+      // Фільтруємо тільки якщо modname явно вказаний і є в списку ігнорування
       const modname = (e.modulename || e.modname || e.activitytype || '').toLowerCase();
-      if(IGNORE_MODULES.some(x => modname.includes(x))) return false;
-      
-      // Фільтруємо оголошення по назві якщо modname не заданий
-      const nameL = (e.name || '').toLowerCase();
-      if(!modname && (nameL.includes('оголошен') || nameL.includes('announcement') || nameL.includes('завершується'))) return false;
+      if(modname && IGNORE_MODULES.some(x => modname === x)) return false;
       
       const etype = (e.eventtype || e.type || '').toLowerCase();
       
-      // Якщо є явний тип — перевіряємо
-      if(etype) {
-        if(IGNORE_TYPES.some(x => etype.includes(x))) return false;
-        // Якщо тип явно дедлайновий — беремо
-        if(DEADLINE_TYPES.some(x => etype.includes(x))) return true;
-      }
+      // Ігноруємо події-відкриття
+      if(etype && IGNORE_TYPES.some(x => etype === x)) return false;
       
-      // Якщо тип невідомий але є timesort — скоріш за все дедлайн (action event)
+      // Якщо тип явно дедлайновий — беремо
+      if(etype && DEADLINE_TYPES.some(x => etype.includes(x))) return true;
+      
+      // Якщо є timesort — це action event, беремо
       if(e.timesort) return true;
       
-      // Якщо тільки timestart і немає timesort — це "відкриття", ігноруємо
+      // Якщо тільки timestart без timesort і без timefinish — це "відкриття", ігноруємо
       if(!e.timesort && e.timestart && !e.timefinish) return false;
       
       return true;

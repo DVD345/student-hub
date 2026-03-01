@@ -306,6 +306,10 @@ a{text-decoration:none;color:inherit;}
       <div class="nav-item" onclick="go('files')"><span class="ni">📁</span>Файли</div>
       <div class="nav-item" onclick="go('materials')"><span class="ni">📝</span>Матеріали</div>
       <div class="nav-item" onclick="go('chat')"><span class="ni">💬</span>Чати<span class="nav-badge" id="chat-badge" style="display:none">0</span></div>
+      <div class="nav-item" onclick="go('calendar')"><span class="ni">📅</span>Календар</div>
+      <div class="nav-item" onclick="go('grades')"><span class="ni">🏆</span>Оцінки</div>
+      <div class="nav-item" onclick="go('notes')"><span class="ni">✍️</span>Нотатки</div>
+      <div class="nav-item" onclick="go('assistant')"><span class="ni">🤖</span>Асистент</div>
       <div class="nav-section" id="admin-section" style="display:none">Адміністрування</div>
       <div class="nav-item" id="nav-admin" onclick="go('admin')" style="display:none"><span class="ni">⚙️</span>Адмін-панель</div>
     </div>
@@ -329,6 +333,7 @@ a{text-decoration:none;color:inherit;}
       <button class="topbar-menu" onclick="openSidebar()">☰</button>
       <h2 id="topbar-title">Головна</h2>
       <button class="icon-btn" onclick="toggleTheme()">🌓</button>
+      <button class="icon-btn" id="bell-btn" onclick="go('notifications')" style="position:relative">🔔<span id="bell-count" style="display:none;position:absolute;top:-2px;right:-2px;background:var(--accent2);color:#fff;font-size:8px;font-weight:700;padding:1px 4px;border-radius:10px;min-width:14px;text-align:center"></span></button>
     </div>
 
     <div class="content">
@@ -359,7 +364,7 @@ a{text-decoration:none;color:inherit;}
           <input class="tb-input" id="dl-q" placeholder="🔍 Пошук..." oninput="applyDlFilter()">
           <select class="tb-select" id="dl-f" onchange="applyDlFilter()">
             <option value="all">Всі</option>
-            <option value="active">Активні</option>
+            <option value="active" selected>Активні</option>
             <option value="urgent">Термінові</option>
             <option value="past">Минулі</option>
           </select>
@@ -392,7 +397,9 @@ a{text-decoration:none;color:inherit;}
           <p style="font-size:10px;margin-top:2px;">до 700КБ • більші файли — через Google Drive у Матеріали</p>
         </div>
         <input type="file" id="file-input" multiple onchange="handleFileSelect(this)">
-        <div class="section-title">Файли</div>
+        <div class="file-search-row">
+          <input class="tb-input" placeholder="🔍 Пошук файлу..." oninput="filesSearchQuery=this.value;renderFilesWithSearch(cachedFiles,this.value)" style="flex:1;max-width:260px;">
+        </div>
         <div id="files-list"><div class="loading"><div class="spinner"></div>Завантаження...</div></div>
       </div>
 
@@ -422,6 +429,64 @@ a{text-decoration:none;color:inherit;}
         </div>
       </div>
 
+
+      <!-- CALENDAR -->
+      <div class="page" id="page-calendar">
+        <div class="page-header"><h2>📅 Календар</h2><p>Дедлайни та події по тижнях</p></div>
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
+          <button class="btn" onclick="calPrev()">← Назад</button>
+          <div id="cal-title" style="font-size:15px;font-weight:700;flex:1;text-align:center;"></div>
+          <button class="btn" onclick="calNext()">Вперед →</button>
+          <button class="btn a" onclick="calToday()">Сьогодні</button>
+        </div>
+        <div id="cal-grid"></div>
+      </div>
+
+      <!-- GRADES -->
+      <div class="page" id="page-grades">
+        <div class="page-header"><h2>🏆 Оцінки</h2><p>Успішність по предметах з Moodle</p></div>
+        <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;">
+          <button class="btn a" onclick="loadGrades()">🔄 Оновити</button>
+          <select class="tb-select" id="grades-course-filter" onchange="filterGradesByCourse(this.value)">
+            <option value="all">Всі курси</option>
+          </select>
+        </div>
+        <div id="grades-list"><div class="loading"><div class="spinner"></div>Завантаження оцінок...</div></div>
+      </div>
+
+      <!-- NOTES -->
+      <div class="page" id="page-notes">
+        <div class="page-header"><h2>✍️ Нотатки</h2><p>Особисті конспекти з Markdown підтримкою</p></div>
+        <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;align-items:center;">
+          <button class="btn a" onclick="showNewNote()">+ Нова нотатка</button>
+          <input class="tb-input" placeholder="🔍 Пошук..." oninput="searchNotes(this.value)" style="flex:1;max-width:260px;">
+        </div>
+        <div id="notes-container" style="display:flex;gap:14px;flex-wrap:wrap;"></div>
+      </div>
+
+      <!-- ASSISTANT -->
+      <div class="page" id="page-assistant">
+        <div class="page-header"><h2>🤖 Асистент</h2><p>AI-помічник для навчання</p></div>
+        <div style="display:flex;flex-direction:column;height:calc(100vh - 200px);min-height:400px;background:var(--card);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;">
+          <div id="ai-msgs" style="flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:10px;">
+            <div class="msg other"><div class="msg-bubble">Привіт! Я твій навчальний асистент 🎓<br>Можу допомогти з поясненням матеріалу, підготовкою до іспитів, написанням конспектів та іншим. Що тебе цікавить?</div></div>
+          </div>
+          <div style="padding:10px;border-top:1px solid var(--border);display:flex;gap:8px;">
+            <textarea id="ai-inp" style="flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:9px 12px;color:var(--text);font-family:'Syne',sans-serif;font-size:12px;outline:none;resize:none;" rows="2" placeholder="Запитай що завгодно про навчання..." onkeydown="aiKey(event)"></textarea>
+            <button class="btn a" onclick="sendAI()" id="ai-send">→</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- NOTIFICATIONS -->
+      <div class="page" id="page-notifications">
+        <div class="page-header"><h2>🔔 Сповіщення</h2><p>Нові файли, повідомлення та нагадування</p></div>
+        <div style="display:flex;gap:8px;margin-bottom:14px;">
+          <button class="btn a" onclick="requestNotifPerms()">🔔 Увімкнути push-сповіщення</button>
+          <button class="btn" onclick="markAllRead()">✓ Всі прочитані</button>
+        </div>
+        <div id="notif-list"><div class="empty"><div class="emo">🔔</div><p>Немає нових сповіщень</p></div></div>
+      </div>
       <!-- ADMIN -->
       <div class="page" id="page-admin">
         <div class="page-header"><h2>⚙️ Адмін-панель</h2><p>Управління групами та користувачами</p></div>
@@ -723,6 +788,11 @@ async function initApp() {
   await syncMoodle();
   listenFiles(); listenMats(); setupChatRooms();
   if (canAdmin()) listenAdminData();
+  loadNotes();
+  loadNotifications();
+  renderCalendar();
+  scheduleDeadlineNotifs();
+  updateBellCount();
 }
 
 async function loadUserInfo() {
@@ -986,6 +1056,8 @@ async function loadDeadlines() {
     document.getElementById('s-done').textContent = past;
     applyDlFilter();
     renderDashDl();
+    renderCalendar();
+    scheduleDeadlineNotifs();
     
   } catch(e) {
     console.error('Deadlines error:', e);
@@ -1003,7 +1075,7 @@ function fmtDate(ts) { return new Date(ts*1000).toLocaleDateString('uk-UA',{day:
 
 function applyDlFilter() {
   const q=(document.getElementById('dl-q')||{value:''}).value.toLowerCase();
-  const f=(document.getElementById('dl-f')||{value:'all'}).value;
+  const f=(document.getElementById('dl-f')||{value:'active'}).value;
   const now=Date.now()/1000;
   let list=allDl.filter(d=>!q||d.name.toLowerCase().includes(q)||d.course.toLowerCase().includes(q));
   if(f==='active') list=list.filter(d=>!d.past);
@@ -1049,7 +1121,9 @@ function listenFiles() {
   const q=query(collection(window._db,'files'),where('groupId','==',group.id));
   const unsub=onSnapshot(q,snap=>{
     cachedFiles=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
+    checkFileNotifs(cachedFiles);
     renderFiles(cachedFiles);
+    renderFilesWithSearch(cachedFiles, filesSearchQuery);
     document.getElementById('s-files').textContent=cachedFiles.length;
   },err=>{ 
     console.warn('Files listener error:', err);
@@ -1367,13 +1441,19 @@ async function delGroup(id) {
 }
 
 // ── NAV ──
-const PAGE_TITLES={dashboard:'Головна',deadlines:'Дедлайни',courses:'Курси',files:'Файли',materials:'Матеріали',chat:'Чати',admin:'Адмін-панель'};
+const PAGE_TITLES={dashboard:'Головна',deadlines:'Дедлайни',courses:'Курси',files:'Файли',materials:'Матеріали',chat:'Чати',admin:'Адмін-панель',calendar:'Календар',grades:'Оцінки',notes:'Нотатки',assistant:'Асистент',notifications:'Сповіщення'};
 function go(name) {
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
-  document.getElementById('page-'+name).classList.add('active');
-  const labels={dashboard:'Голов',deadlines:'Дедл',courses:'Курс',files:'Файл',materials:'Матер',chat:'Чат',admin:'Адмін'};
+  const pg = document.getElementById('page-'+name);
+  if(!pg) return;
+  pg.classList.add('active');
+  const labels={dashboard:'Голов',deadlines:'Дедл',courses:'Курс',files:'Файл',materials:'Матер',chat:'Чат',admin:'Адмін',calendar:'Календ',grades:'Оцін',notes:'Нотат',assistant:'Асист',notifications:'Сповіщ'};
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.toggle('active',n.textContent.trim().startsWith(labels[name]||'_')));
   document.getElementById('topbar-title').textContent=PAGE_TITLES[name]||name;
+  if(name==='grades' && !allGrades.length) loadGrades();
+  if(name==='calendar') renderCalendar();
+  if(name==='notes') loadNotes();
+  if(name==='notifications') { markAllRead(); }
   closeSidebar();
 }
 
@@ -1389,6 +1469,455 @@ function toggleTheme() {
 }
 const st=localStorage.getItem('sh_theme');
 if(st) document.documentElement.setAttribute('data-theme',st);
+
+
+// ═══ CALENDAR ═══
+let calDate = new Date();
+const CAL_DAYS = ['Пн','Вт','Ср','Чт','Пт','Сб','Нд'];
+const CAL_MONTHS = ['Січень','Лютий','Березень','Квітень','Травень','Червень','Липень','Серпень','Вересень','Жовтень','Листопад','Грудень'];
+
+function renderCalendar() {
+  const year = calDate.getFullYear(), month = calDate.getMonth();
+  document.getElementById('cal-title').textContent = CAL_MONTHS[month] + ' ' + year;
+  const firstDay = new Date(year, month, 1);
+  const lastDay = new Date(year, month + 1, 0);
+  // Monday-start: 0=Mon..6=Sun
+  let startDow = (firstDay.getDay() + 6) % 7;
+  const today = new Date();
+  today.setHours(0,0,0,0);
+  
+  let html = '<div class="cal-grid">';
+  CAL_DAYS.forEach(d => html += '<div class="cal-header-cell">'+d+'</div>');
+  
+  // Fill leading empty cells
+  for(let i = 0; i < startDow; i++) {
+    const prevDate = new Date(year, month, -startDow + i + 1);
+    html += '<div class="cal-cell other-month"><div class="cal-day-num">'+prevDate.getDate()+'</div></div>';
+  }
+  
+  for(let d = 1; d <= lastDay.getDate(); d++) {
+    const cellDate = new Date(year, month, d);
+    cellDate.setHours(0,0,0,0);
+    const isToday = cellDate.getTime() === today.getTime();
+    
+    // Find deadlines on this day
+    const dayStart = cellDate.getTime() / 1000;
+    const dayEnd = dayStart + 86400;
+    const dayDl = allDl.filter(dl => dl.due >= dayStart && dl.due < dayEnd && !dl.past);
+    
+    const hasEvents = dayDl.length > 0;
+    html += '<div class="cal-cell'+(isToday?' today':'')+(hasEvents?' has-events':'')+'">';
+    html += '<div class="cal-day-num">'+d+'</div>';
+    
+    dayDl.slice(0,3).forEach(dl => {
+      const diff = dl.due - Date.now()/1000;
+      const cls = diff < 86400*2 ? 'cal-ev-urgent' : diff < 86400*7 ? 'cal-ev-soon' : 'cal-ev-ok';
+      const onclick = dl.url && dl.url !== '#' ? 'onclick="window.open(this.dataset.url)" data-url="'+escHtml(dl.url)+'"' : '';
+      html += '<div class="cal-event '+cls+'" '+onclick+' title="'+escHtml(dl.name)+'">'+escHtml(dl.name)+'</div>';
+    });
+    if(dayDl.length > 3) html += '<div class="cal-event" style="background:var(--bg3);color:var(--text2);">+' + (dayDl.length-3) + ' ще</div>';
+    
+    html += '</div>';
+  }
+  
+  // Fill trailing cells
+  const totalCells = startDow + lastDay.getDate();
+  const remainder = totalCells % 7;
+  if(remainder > 0) {
+    for(let i = 1; i <= 7 - remainder; i++) {
+      html += '<div class="cal-cell other-month"><div class="cal-day-num">'+i+'</div></div>';
+    }
+  }
+  
+  html += '</div>';
+  document.getElementById('cal-grid').innerHTML = html;
+}
+
+function calPrev() { calDate.setMonth(calDate.getMonth() - 1); renderCalendar(); }
+function calNext() { calDate.setMonth(calDate.getMonth() + 1); renderCalendar(); }
+function calToday() { calDate = new Date(); renderCalendar(); }
+
+// ═══ GRADES ═══
+let allGrades = [], gradesByCourse = {};
+
+async function loadGrades() {
+  const el = document.getElementById('grades-list');
+  el.innerHTML = '<div class="loading"><div class="spinner"></div>Завантаження оцінок...</div>';
+  try {
+    const info = await moodleCall('core_webservice_get_site_info');
+    const data = await moodleCall('gradereport_user_get_grade_items', { userid: info.userid, courseid: 0 });
+    
+    if(!data || data.errorcode) throw new Error(data ? data.message : 'No data');
+    
+    const items = data.usergrades || [];
+    allGrades = items;
+    
+    // Group by course
+    gradesByCourse = {};
+    items.forEach(grade => {
+      const cn = grade.coursefullname || grade.courseshortname || 'Невідомий курс';
+      if(!gradesByCourse[cn]) gradesByCourse[cn] = { name: cn, items: [] };
+      (grade.gradeitems || []).forEach(gi => {
+        if(gi.gradeformatted && gi.gradeformatted !== '-' && gi.gradeformatted !== '0.00') {
+          gradesByCourse[cn].items.push(gi);
+        }
+      });
+    });
+    
+    // Populate course filter
+    const sel = document.getElementById('grades-course-filter');
+    sel.innerHTML = '<option value="all">Всі курси</option>';
+    Object.keys(gradesByCourse).forEach(cn => {
+      sel.innerHTML += '<option value="'+escHtml(cn)+'">'+escHtml(cn)+'</option>';
+    });
+    
+    renderGrades(gradesByCourse);
+  } catch(e) {
+    el.innerHTML = '<div class="empty"><div class="emo">⚠️</div><p>Помилка завантаження оцінок: ' + escHtml(e.message) + '</p></div>';
+  }
+}
+
+function filterGradesByCourse(cn) {
+  if(cn === 'all') renderGrades(gradesByCourse);
+  else {
+    const filtered = {};
+    if(gradesByCourse[cn]) filtered[cn] = gradesByCourse[cn];
+    renderGrades(filtered);
+  }
+}
+
+function renderGrades(byCourse) {
+  const el = document.getElementById('grades-list');
+  const keys = Object.keys(byCourse);
+  if(!keys.length) { el.innerHTML = '<div class="empty"><div class="emo">📊</div><p>Оцінок не знайдено</p></div>'; return; }
+  
+  el.innerHTML = keys.map(cn => {
+    const course = byCourse[cn];
+    if(!course.items.length) return '';
+    
+    // Calculate average
+    const numericGrades = course.items.map(gi => parseFloat(gi.gradeformatted)).filter(g => !isNaN(g) && g > 0);
+    const avg = numericGrades.length ? (numericGrades.reduce((a,b)=>a+b,0)/numericGrades.length) : null;
+    const avgCls = avg === null ? '' : avg >= 75 ? 'high' : avg >= 50 ? 'mid' : 'low';
+    const avgText = avg !== null ? Math.round(avg) + '%' : '—';
+    
+    let html = '<div class="grades-course">';
+    html += '<div class="grades-course-header" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none'">';
+    html += '<div class="grades-course-name">'+escHtml(cn)+'</div>';
+    html += '<div class="grades-avg '+avgCls+'">Ø '+avgText+'</div>';
+    html += '</div>';
+    html += '<div>';
+    
+    course.items.forEach(gi => {
+      const val = parseFloat(gi.gradeformatted);
+      const max = parseFloat(gi.grademax) || 100;
+      const pct = isNaN(val) ? 0 : Math.min(100, Math.round(val/max*100));
+      const barColor = pct >= 75 ? 'var(--success)' : pct >= 50 ? 'var(--warning)' : 'var(--accent2)';
+      const valCls = pct >= 75 ? 'high' : pct >= 50 ? 'mid' : 'low';
+      
+      html += '<div class="grade-item">';
+      html += '<div class="grade-item-name">'+escHtml(gi.itemname || 'Завдання')+'</div>';
+      html += '<div class="grade-bar-wrap"><div class="grade-bar" style="width:'+pct+'%;background:'+barColor+'"></div></div>';
+      html += '<div class="grade-val grades-avg '+valCls+'">'+escHtml(gi.gradeformatted||'—')+'</div>';
+      html += '</div>';
+    });
+    
+    html += '</div></div>';
+    return html;
+  }).filter(Boolean).join('') || '<div class="empty"><div class="emo">📊</div><p>Оцінок поки немає</p></div>';
+}
+
+// ═══ NOTES ═══
+let notes = [], currentNoteId = null;
+
+function loadNotes() {
+  const raw = localStorage.getItem('sh_notes_'+String(userData.userid||'local'));
+  notes = raw ? JSON.parse(raw) : [];
+  renderNotesList(notes);
+  // Populate course select
+  const sel = document.getElementById('note-course-sel');
+  sel.innerHTML = '<option value="">Без курсу</option>';
+  courses.forEach(c => sel.innerHTML += '<option value="'+escHtml(c.id)+'">'+escHtml(c.shortname||c.fullname)+'</option>');
+}
+
+function saveNotesToLS() {
+  localStorage.setItem('sh_notes_'+String(userData.userid||'local'), JSON.stringify(notes));
+}
+
+function renderNotesList(list) {
+  const el = document.getElementById('notes-container');
+  if(!list.length) { el.innerHTML = '<div class="empty" style="width:100%"><div class="emo">✍️</div><p>Нотаток ще немає. Створіть першу!</p></div>'; return; }
+  el.innerHTML = list.map(n => 
+    '<div class="note-card" onclick="openNote(''+escHtml(n.id)+'')" data-note-id="'+escHtml(n.id)+'">'+
+    '<button class="btn note-card-del" onclick="event.stopPropagation();deleteNote(''+escHtml(n.id)+'')" style="font-size:10px;padding:3px 6px;">🗑</button>'+
+    '<div class="note-card-title">'+escHtml(n.title||'Без назви')+'</div>'+
+    '<div class="note-card-preview">'+escHtml((n.content||'').slice(0,200))+'</div>'+
+    '<div class="note-card-meta"><span>'+escHtml(n.course||'')+'</span><span>'+new Date(n.updated||n.created).toLocaleDateString('uk-UA')+'</span></div>'+
+    '</div>'
+  ).join('');
+}
+
+function searchNotes(q) {
+  const lq = q.toLowerCase();
+  renderNotesList(q ? notes.filter(n => (n.title||'').toLowerCase().includes(lq)||(n.content||'').toLowerCase().includes(lq)) : notes);
+}
+
+function showNewNote() {
+  currentNoteId = null;
+  document.getElementById('note-title').value = '';
+  document.getElementById('note-md').value = '';
+  document.getElementById('note-preview').innerHTML = '<p style="color:var(--text2);font-size:12px;">Попередній перегляд...</p>';
+  document.getElementById('note-editor-overlay').classList.add('show');
+}
+
+function openNote(id) {
+  const n = notes.find(x => x.id === id);
+  if(!n) return;
+  currentNoteId = id;
+  document.getElementById('note-title').value = n.title || '';
+  document.getElementById('note-md').value = n.content || '';
+  document.getElementById('note-course-sel').value = n.courseId || '';
+  updateNotePreview();
+  document.getElementById('note-editor-overlay').classList.add('show');
+}
+
+function closeNoteEditor() { document.getElementById('note-editor-overlay').classList.remove('show'); }
+
+function saveNote() {
+  const title = document.getElementById('note-title').value.trim() || 'Без назви';
+  const content = document.getElementById('note-md').value;
+  const courseId = document.getElementById('note-course-sel').value;
+  const courseSel = document.getElementById('note-course-sel');
+  const courseText = courseSel.options[courseSel.selectedIndex]?.text || '';
+  
+  if(currentNoteId) {
+    const n = notes.find(x => x.id === currentNoteId);
+    if(n) { n.title = title; n.content = content; n.courseId = courseId; n.course = courseText; n.updated = Date.now(); }
+  } else {
+    notes.unshift({ id: Date.now().toString(36)+Math.random().toString(36).slice(2), title, content, courseId, course: courseText, created: Date.now(), updated: Date.now() });
+  }
+  saveNotesToLS();
+  renderNotesList(notes);
+  closeNoteEditor();
+}
+
+function deleteNote(id) {
+  if(!confirm('Видалити нотатку?')) return;
+  notes = notes.filter(n => n.id !== id);
+  saveNotesToLS();
+  renderNotesList(notes);
+}
+
+// Simple Markdown parser
+function parseMarkdown(md) {
+  return md
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/^### (.+)$/gm,'<h3>$1</h3>')
+    .replace(/^## (.+)$/gm,'<h2>$1</h2>')
+    .replace(/^# (.+)$/gm,'<h1>$1</h1>')
+    .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g,'<em>$1</em>')
+    .replace(/`([^`]+)`/g,'<code>$1</code>')
+    .replace(/^> (.+)$/gm,'<blockquote>$1</blockquote>')
+    .replace(/^- (.+)$/gm,'<li>$1</li>')
+    .replace(/(<li>.*<\/li>)/s,'<ul>$1</ul>')
+    .replace(/
+
+/g,'</p><p>')
+    .replace(/^(?!<[hup])(.+)$/gm,'<p>$1</p>');
+}
+
+function updateNotePreview() {
+  const md = document.getElementById('note-md').value;
+  document.getElementById('note-preview').innerHTML = md ? parseMarkdown(md) : '<p style="color:var(--text2)">Попередній перегляд...</p>';
+}
+
+// ═══ AI ASSISTANT ═══
+let aiHistory = [];
+
+function aiKey(e) { if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendAI();} }
+
+async function sendAI() {
+  const inp = document.getElementById('ai-inp');
+  const text = inp.value.trim();
+  if(!text) return;
+  inp.value = '';
+  
+  // Add user message
+  aiHistory.push({ role:'user', content: text });
+  appendAIMsg('me', text);
+  
+  // Show thinking
+  const thinkingDiv = document.createElement('div');
+  thinkingDiv.className = 'msg other';
+  thinkingDiv.innerHTML = '<div class="msg-bubble"><div class="ai-thinking"><span></span><span></span><span></span></div></div>';
+  document.getElementById('ai-msgs').appendChild(thinkingDiv);
+  document.getElementById('ai-msgs').scrollTop = 99999;
+  
+  document.getElementById('ai-send').disabled = true;
+  
+  try {
+    // Build context from current data
+    const contextParts = [];
+    if(courses.length) contextParts.push('Курси студента: ' + courses.slice(0,10).map(c=>c.fullname||c.shortname).join(', '));
+    const upcomingDl = allDl.filter(d=>!d.past).slice(0,5);
+    if(upcomingDl.length) contextParts.push('Найближчі дедлайни: ' + upcomingDl.map(d=>d.name+' ('+fmtDate(d.due)+')').join(', '));
+    
+    const systemPrompt = 'Ти навчальний асистент для студентів університету УкрДУЗТ (Українського державного університету залізничного транспорту). Відповідай українською мовою. Будь корисним, дружнім і точним. ' + (contextParts.length ? 'Контекст: ' + contextParts.join('. ') : '');
+    
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        system: systemPrompt,
+        messages: aiHistory.slice(-10)
+      })
+    });
+    
+    const data = await resp.json();
+    const reply = data.content?.[0]?.text || 'Вибачте, не вдалося отримати відповідь.';
+    aiHistory.push({ role:'assistant', content: reply });
+    thinkingDiv.remove();
+    appendAIMsg('other', reply);
+  } catch(e) {
+    thinkingDiv.remove();
+    appendAIMsg('other', '⚠️ Помилка: ' + e.message + '. Перевірте підключення.');
+  }
+  
+  document.getElementById('ai-send').disabled = false;
+}
+
+function appendAIMsg(side, text) {
+  const el = document.getElementById('ai-msgs');
+  const div = document.createElement('div');
+  div.className = 'msg ' + side;
+  // Simple link detection in AI responses
+  const safe = escHtml(text).replace(/\n/g,'<br>');
+  div.innerHTML = '<div class="msg-bubble" style="white-space:pre-wrap;max-width:85%;">'+safe+'</div>';
+  el.appendChild(div);
+  el.scrollTop = 99999;
+}
+
+// ═══ NOTIFICATIONS ═══
+let notifList = [], notifUnsub = null;
+
+function loadNotifications() {
+  // Load from localStorage
+  const raw = localStorage.getItem('sh_notifs_' + String(userData.userid||'local'));
+  notifList = raw ? JSON.parse(raw) : [];
+  renderNotifs();
+}
+
+function addNotif(type, title, body) {
+  const n = { id: Date.now().toString(36), type, title, body, ts: Date.now(), read: false };
+  notifList.unshift(n);
+  notifList = notifList.slice(0, 50); // Keep last 50
+  localStorage.setItem('sh_notifs_'+String(userData.userid||'local'), JSON.stringify(notifList));
+  updateBellCount();
+  renderNotifs();
+  // Browser push if permission granted
+  if(Notification.permission === 'granted') {
+    new Notification('Student Hub — ' + title, { body, icon: '🎓' });
+  }
+}
+
+function updateBellCount() {
+  const unread = notifList.filter(n => !n.read).length;
+  const badge = document.getElementById('bell-count');
+  if(!badge) return;
+  if(unread > 0) { badge.textContent = unread; badge.style.display = ''; }
+  else { badge.style.display = 'none'; }
+}
+
+function markAllRead() {
+  notifList.forEach(n => n.read = true);
+  localStorage.setItem('sh_notifs_'+String(userData.userid||'local'), JSON.stringify(notifList));
+  updateBellCount();
+  renderNotifs();
+}
+
+function renderNotifs() {
+  const el = document.getElementById('notif-list');
+  if(!el) return;
+  if(!notifList.length) { el.innerHTML = '<div class="empty"><div class="emo">🔔</div><p>Немає сповіщень</p></div>'; return; }
+  el.innerHTML = notifList.map(n => {
+    const ico = n.type==='deadline'?'⏰':n.type==='file'?'📁':n.type==='chat'?'💬':'🔔';
+    const t = new Date(n.ts).toLocaleTimeString('uk-UA',{hour:'2-digit',minute:'2-digit'}) + ' ' + new Date(n.ts).toLocaleDateString('uk-UA');
+    return '<div class="notif-item'+(n.read?'':' unread')+'" onclick="markNotifRead(''+escHtml(n.id)+'')">' +
+      '<div class="notif-ico">'+ico+'</div>' +
+      '<div class="notif-body"><div class="notif-title">'+escHtml(n.title)+'</div><div class="notif-time">'+escHtml(n.body)+'<br>'+t+'</div></div>' +
+      '</div>';
+  }).join('');
+}
+
+function markNotifRead(id) {
+  const n = notifList.find(x=>x.id===id);
+  if(n) { n.read=true; localStorage.setItem('sh_notifs_'+String(userData.userid||'local'),JSON.stringify(notifList)); updateBellCount(); renderNotifs(); }
+}
+
+async function requestNotifPerms() {
+  if(!('Notification' in window)) { alert('Браузер не підтримує сповіщення'); return; }
+  const p = await Notification.requestPermission();
+  if(p === 'granted') { alert('Сповіщення увімкнено! ✅'); addNotif('system','Сповіщення увімкнено','Ви будете отримувати нагадування про дедлайни та нові файли'); }
+  else { alert('Доступ до сповіщень відхилено'); }
+}
+
+// Schedule deadline notifications
+function scheduleDeadlineNotifs() {
+  const now = Date.now()/1000;
+  allDl.filter(d => !d.past).forEach(d => {
+    const diff = d.due - now;
+    // 24h warning
+    if(diff > 0 && diff <= 86400) {
+      const hours = Math.round(diff/3600);
+      const key = 'notif_sent_'+d.id;
+      if(!localStorage.getItem(key)) {
+        addNotif('deadline', 'Дедлайн через '+hours+'год!', d.name+' — '+d.course);
+        localStorage.setItem(key, '1');
+      }
+    }
+  });
+}
+
+// File notifications
+let prevFileCount = 0;
+function checkFileNotifs(files) {
+  if(prevFileCount > 0 && files.length > prevFileCount) {
+    const newFiles = files.slice(0, files.length - prevFileCount);
+    newFiles.forEach(f => addNotif('file', 'Новий файл у групі', f.name + ' — ' + (f.uploader||'?')));
+  }
+  prevFileCount = files.length;
+}
+
+// ═══ FILES SEARCH/PREVIEW ═══
+function renderFilesWithSearch(files, query = '') {
+  const filtered = query ? files.filter(f => (f.name||'').toLowerCase().includes(query.toLowerCase())) : files;
+  const el = document.getElementById('files-list');
+  if(!filtered.length) { el.innerHTML = '<div class="empty"><div class="emo">📂</div><p>'+(query?'Файлів не знайдено':'Файлів ще немає')+'</p></div>'; return; }
+  el.innerHTML = '<div class="file-list">'+filtered.map(f => {
+    const ext = (f.name||'').split('.').pop().toLowerCase();
+    const ec = ext==='pdf'?'ep':['doc','docx'].includes(ext)?'ed':['xls','xlsx'].includes(ext)?'ex':'eo';
+    const sz = f.size>1048576?(f.size/1048576).toFixed(1)+' МБ':Math.round(f.size/1024)+' КБ';
+    const isImg = ['jpg','jpeg','png','gif','webp'].includes(ext);
+    const previewBtn = isImg && f.dataUrl ? '<button class="btn" onclick="previewFile(this.dataset.id)" data-id="'+escHtml(f.id)+'">👁</button>' : '';
+    return '<div class="file-item">' +
+      (isImg && f.dataUrl ? '<img src="'+f.dataUrl+'" style="width:32px;height:32px;object-fit:cover;border-radius:7px;flex-shrink:0;cursor:pointer;" onclick="previewFile(this.dataset.id)" data-id="'+escHtml(f.id)+'">' : '<div class="file-ext '+ec+'">'+escHtml(ext.toUpperCase())+'</div>') +
+      '<div class="file-info"><div class="file-name">'+escHtml(f.name)+'</div><div class="file-meta">'+escHtml(f.uploader||'?')+' • '+new Date(f.createdAt).toLocaleDateString('uk-UA')+' • '+escHtml(sz)+'</div></div>' +
+      '<div class="file-actions">'+previewBtn+(f.dataUrl?'<button class="btn a" onclick="dlFile(this.dataset.id)" data-id="'+escHtml(f.id)+'">⬇</button>':'')+'<button class="btn d" onclick="rmFile(this.dataset.id)" data-id="'+escHtml(f.id)+'">🗑</button></div>' +
+      '</div>';
+  }).join('')+'</div>';
+}
+
+function previewFile(id) {
+  const f = cachedFiles.find(x=>x.id===id);
+  if(!f||!f.dataUrl) return;
+  document.getElementById('preview-img').src = f.dataUrl;
+  document.getElementById('preview-modal').classList.add('show');
+}
+
+let filesSearchQuery = '';
 
 // ── LOGOUT ──
 function doLogout() {
@@ -1423,5 +1952,31 @@ if(sv&&sgid) {
   setTimeout(tryAutoLogin, 500);
 }
 </script>
+
+<!-- NOTE EDITOR -->
+<div class="note-editor-overlay" id="note-editor-overlay">
+  <div class="note-editor">
+    <div class="note-editor-header">
+      <input class="note-title-inp" id="note-title" placeholder="Назва нотатки...">
+      <select class="tb-select" id="note-course-sel" style="font-size:11px;">
+        <option value="">Без курсу</option>
+      </select>
+      <button class="btn a" onclick="saveNote()">💾 Зберегти</button>
+      <button class="btn" onclick="closeNoteEditor()">✕</button>
+    </div>
+    <div class="note-editor-body">
+      <textarea class="note-md-inp" id="note-md" placeholder="# Заголовок&#10;&#10;Пишіть в **Markdown**...&#10;&#10;- Список&#10;- Елементів&#10;&#10;`код`" oninput="updateNotePreview()"></textarea>
+      <div class="note-preview" id="note-preview"><p style="color:var(--text2);font-size:12px;">Попередній перегляд...</p></div>
+    </div>
+  </div>
+</div>
+
+<!-- IMAGE PREVIEW -->
+<div class="preview-modal" id="preview-modal" onclick="this.classList.remove('show')">
+  <div class="preview-inner">
+    <button class="preview-close" onclick="document.getElementById('preview-modal').classList.remove('show')">✕</button>
+    <img id="preview-img" src="" alt="">
+  </div>
+</div>
 </body>
 </html>

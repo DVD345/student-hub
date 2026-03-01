@@ -501,11 +501,7 @@ a{text-decoration:none;color:inherit;}
 
       <!-- ASSISTANT -->
       <div class="page" id="page-assistant">
-        <div class="page-header"><h2>🤖 Асистент</h2><p>AI-помічник для навчання (потрібен Anthropic API ключ)</p></div>
-        <div style="display:flex;gap:8px;margin-bottom:12px;align-items:center;">
-          <input type="password" id="ai-key-inp" placeholder="sk-ant-... (Anthropic API Key)" style="flex:1;background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:8px 12px;color:var(--text);font-family:'Syne',sans-serif;font-size:12px;outline:none;" oninput="window.ANTHROPIC_KEY=this.value;localStorage.setItem('sh_akey',this.value)">
-          <span style="font-size:10px;color:var(--text2);">Ключ зберігається локально</span>
-        </div>
+        <div class="page-header"><h2>🤖 Асистент</h2><p>AI-помічник для навчання — безкоштовно</p></div>
         <div style="display:flex;flex-direction:column;height:calc(100vh - 200px);min-height:400px;background:var(--card);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;">
           <div id="ai-msgs" style="flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:10px;">
             <div class="msg other"><div class="msg-bubble">Привіт! Я твій навчальний асистент 🎓<br>Можу допомогти з поясненням матеріалу, підготовкою до іспитів, написанням конспектів та іншим. Що тебе цікавить?</div></div>
@@ -1520,7 +1516,7 @@ function go(name) {
   // grades removed
   if(name==='calendar') renderCalendar();
   if(name==='notes') loadNotes();
-  if(name==='assistant') { const k=document.getElementById('ai-key-inp'); if(k&&window.ANTHROPIC_KEY) k.value=window.ANTHROPIC_KEY; }
+  // assistant page
   if(name==='notifications') { markAllRead(); }
   closeSidebar();
 }
@@ -1862,34 +1858,30 @@ async function sendAI() {
     
     const systemPrompt = 'Ти навчальний асистент для студентів університету УкрДУЗТ (Українського державного університету залізничного транспорту). Відповідай українською мовою. Будь корисним, дружнім і точним. ' + (contextParts.length ? 'Контекст: ' + contextParts.join('. ') : '');
     
-    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+    const resp = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
       headers: { 
         'Content-Type': 'application/json',
-        'x-api-key': window.ANTHROPIC_KEY || '',
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true'
+        'Authorization': 'Bearer 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'
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 1000,
-        system: systemPrompt,
-        messages: aiHistory.slice(-10)
+        model: 'llama-3.3-70b-versatile',
+        max_tokens: 1024,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          ...aiHistory.slice(-10)
+        ]
       })
     });
     
     const data = await resp.json();
     if(data.error) {
       thinkingDiv.remove();
-      if(data.error.type === 'authentication_error') {
-        appendAIMsg('other', '🔑 Потрібен API ключ Anthropic. Зверніться до адміністратора.');
-      } else {
-        appendAIMsg('other', '⚠️ Помилка API: ' + (data.error.message || 'Невідома помилка'));
-      }
+      appendAIMsg('other', '⚠️ Помилка: ' + (data.error.message || 'Невідома помилка'));
       document.getElementById('ai-send').disabled = false;
       return;
     }
-    const reply = data.content?.[0]?.text || 'Вибачте, не вдалося отримати відповідь.';
+    const reply = data.choices?.[0]?.message?.content || 'Вибачте, не вдалося отримати відповідь.';
     aiHistory.push({ role:'assistant', content: reply });
     thinkingDiv.remove();
     appendAIMsg('other', reply);
@@ -2040,10 +2032,6 @@ function doLogout() {
   document.getElementById('screen-app').classList.remove('active');
   document.getElementById('screen-login').classList.add('active');
 }
-
-// Load saved AI key
-const savedAKey = localStorage.getItem('sh_akey');
-if(savedAKey) window.ANTHROPIC_KEY = savedAKey;
 
 // ── AUTO LOGIN ──
 const sv=localStorage.getItem('sh_token'), sgid=localStorage.getItem('sh_gid');

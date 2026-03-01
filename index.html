@@ -1088,8 +1088,11 @@ async function loadDeadlines() {
       const courseName = e.course ? (e.course.fullname || e.course.shortname || '—') : 
                         (e.coursename || (e.courseid ? 'Курс '+e.courseid : '—'));
       
-      // Прибираємо всі службові суфікси з назви (укр та англ варіанти)
+      // Прибираємо службові префікси і суфікси з назви (укр та англ варіанти)
       let name = e.name || e.activityname || 'Завдання';
+      // Прибираємо префікси які Moodle додає автоматично
+      name = name.replace(/^(строк\s+|термін\s+|дедлайн\s+|здача\s+)/i, '').trim();
+      // Прибираємо суфікси
       name = name.replace(/\s*(спливає|закрито|закривається|відкрито|відкривається|завершується|closes|due|open|is due|is closing|has closed|closed)\s*$/i, '').trim();
       
       return {

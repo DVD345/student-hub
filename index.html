@@ -1047,9 +1047,9 @@ async function loadDeadlines() {
     // Модулі які точно не є дедлайнами
     const IGNORE_MODULES = ['forum', 'chat', 'wiki', 'glossary'];
     // Типи подій-відкриттів які треба ігнорувати
-    const IGNORE_TYPES = ['open', 'opensubmission', 'expectcompletionon'];
+    const IGNORE_TYPES = ['open', 'opensubmission', 'expectcompletionon', 'gradingdue'];
     // Типи які є дедлайнами
-    const DEADLINE_TYPES = ['due', 'close', 'closingdate', 'gradingdue', 'duedate', 'timeclose'];
+    const DEADLINE_TYPES = ['due', 'close', 'closingdate', 'duedate', 'timeclose'];
     
     // Final global dedup by id first
     const seenIds = new Set();
@@ -1095,12 +1095,24 @@ async function loadDeadlines() {
       return {
         id: e.id,
         name,
+        // Normalize name for dedup: remove "Строк", "Завдання" prefixes
+        _normName: name.replace(/^(строк\s+|завдання\s+|тест\s+|здача\s+)/i,'').toLowerCase().trim(),
         course: courseName,
         due: due,
         past: due < now,
         url: e.url || e.activityurl || '#'
       };
     }).sort((a,b) => a.due - b.due);
+
+    // Final dedup: same normalized name + same course + same day = duplicate
+    const seenFinal = new Set();
+    allDl = allDl.filter(dl => {
+      const dayKey = Math.floor(dl.due / 86400); // group by day
+      const key = dl._normName + '|' + dl.course.toLowerCase().trim() + '|' + dayKey;
+      if(seenFinal.has(key)) return false;
+      seenFinal.add(key);
+      return true;
+    });
     
     const urgent = allDl.filter(d=>!d.past&&(d.due-now)<60*60*48).length;
     const past = allDl.filter(d=>d.past).length;

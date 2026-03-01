@@ -686,7 +686,7 @@ async function loadDeadlines() {
     renderDashDl();
   } catch(e) {
     console.warn('Deadlines error:', e);
-    document.getElementById('dl-list').innerHTML='<div class="empty"><div class="emo">⚠️</div><p>Помилка завантаження дедлайнів. Перевірте з'єднання.</p></div>';
+    document.getElementById('dl-list').innerHTML='<div class="empty"><div class="emo">⚠️</div><p>Помилка завантаження дедлайнів. Перевірте з&#39;єднання.</p></div>';
     document.getElementById('dash-dl').innerHTML='<div class="empty"><div class="emo">⚠️</div><p>Помилка завантаження</p></div>';
   }
 }

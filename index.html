@@ -679,13 +679,19 @@ async function loadDeadlines() {
     return; 
   }
   try {
-    const d=await moodleCall('core_calendar_get_action_events_by_timesort',{
+    let d = await moodleCall('core_calendar_get_action_events_by_timesort',{
       timesortfrom:now-60*60*24*30, timesortto:now+60*60*24*90, limitnum:150
     });
-    allDl=(d.events||[]).filter(e=>e.timesort).map(e=>({
+    // If empty, try upcoming events API
+    if((!d.events || !d.events.length) && !d.errorcode) {
+      const d2 = await moodleCall('core_calendar_get_upcoming_view');
+      if(d2 && d2.events && d2.events.length) d = d2;
+    }
+    console.log('Deadlines raw:', d);
+    allDl=(d.events||[]).filter(e=>e.timesort||e.timestart).map(e=>({
       id:e.id, name:e.name,
       course:e.course?e.course.fullname:'—',
-      due:e.timesort, past:e.timesort<now,
+      due:e.timesort||e.timestart, past:(e.timesort||e.timestart)<now,
       url:e.url||'#'
     })).sort((a,b)=>a.due-b.due);
     const urgent=allDl.filter(d=>!d.past&&(d.due-now)<60*60*48).length;
@@ -841,7 +847,15 @@ function renderMats(list,q='') {
     '</div></div>'
   ).join('')+'</div>';
 }
-function showModal(id) { document.getElementById('modal-'+id).classList.add('show'); }
+function showModal(id) { 
+  if(id==='add-group') {
+    document.querySelector('#modal-add-group h3').textContent = '🏫 Створити групу';
+    const btn = document.querySelector('#modal-add-group .btn.a');
+    btn.textContent = 'Створити';
+    btn.onclick = createGroup;
+  }
+  document.getElementById('modal-'+id).classList.add('show'); 
+}
 function closeModal(id) { document.getElementById('modal-'+id).classList.remove('show'); }
 async function addMat() {
   const name=document.getElementById('mn').value.trim();
@@ -966,7 +980,10 @@ function renderAdminGroups(groups) {
       '<div class="gname">'+escHtml(g.name)+'</div>'+
       '<div class="gcnt">'+escHtml(g.faculty||'—')+' • Курс '+escHtml(String(g.course||'?'))+'</div>'+
     '</div>'+
+    '<div style="display:flex;gap:3px;flex-shrink:0;">'+
+    '<button class="btn" onclick="editGroup(this.dataset.id,this.dataset.name,this.dataset.faculty,this.dataset.course)" data-id="'+escHtml(g.id)+'" data-name="'+escHtml(g.name)+'" data-faculty="'+escHtml(g.faculty||'')+'" data-course="'+escHtml(String(g.course||'1'))+'">✏️</button>'+
     '<button class="btn d" onclick="delGroup(this.dataset.id)" data-id="'+escHtml(g.id)+'">🗑</button>'+
+    '</div>'+
     '</div>'
   ).join('');
 }
@@ -999,6 +1016,30 @@ async function createGroup() {
   ['gn','gf','gc'].forEach(id=>document.getElementById(id).value='');
   if(window._loadGroupsForLogin) window._loadGroupsForLogin();
 }
+function editGroup(id, name, faculty, course) {
+  document.getElementById('gn').value = name;
+  document.getElementById('gf').value = faculty;
+  document.getElementById('gc').value = course;
+  // Change modal button to update mode
+  const btn = document.querySelector('#modal-add-group .btn.a');
+  btn.textContent = 'Зберегти';
+  btn.onclick = async () => {
+    const newName = document.getElementById('gn').value.trim();
+    const newFaculty = document.getElementById('gf').value.trim();
+    const newCourse = parseInt(document.getElementById('gc').value)||1;
+    if(!newName) return;
+    const {doc, updateDoc} = window._fb;
+    await updateDoc(doc(window._db,'groups',id), {name:newName, faculty:newFaculty, course:newCourse});
+    closeModal('add-group');
+    ['gn','gf','gc'].forEach(i=>document.getElementById(i).value='');
+    btn.textContent = 'Створити';
+    btn.onclick = createGroup;
+    if(window._loadGroupsForLogin) window._loadGroupsForLogin();
+  };
+  showModal('add-group');
+  document.querySelector('#modal-add-group h3').textContent = '✏️ Редагувати групу';
+}
+
 async function delGroup(id) {
   if(!confirm('Видалити групу? Файли та матеріали залишаться.'))return;
   const {doc,deleteDoc}=window._fb;

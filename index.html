@@ -792,16 +792,43 @@ async function loadDeadlines() {
     
     console.log('Total events found:', events.length);
     
+    // Типи подій які треба ІГНОРУВАТИ (відкриття — не дедлайн)
+    const IGNORE_TYPES = ['open', 'opensubmission', 'expectcompletionon'];
+    // Типи які є дедлайнами
+    const DEADLINE_TYPES = ['due', 'close', 'closingdate', 'gradingdue', 'duedate', 'timeclose'];
+    
     allDl = events.filter(e => {
       const t = e.timesort || e.timestart || e.timefinish || 0;
-      return t > 0;
+      if(t <= 0) return false;
+      
+      const etype = (e.eventtype || e.type || '').toLowerCase();
+      
+      // Якщо є явний тип — перевіряємо
+      if(etype) {
+        if(IGNORE_TYPES.some(x => etype.includes(x))) return false;
+        // Якщо тип явно дедлайновий — беремо
+        if(DEADLINE_TYPES.some(x => etype.includes(x))) return true;
+      }
+      
+      // Якщо тип невідомий але є timesort — скоріш за все дедлайн (action event)
+      if(e.timesort) return true;
+      
+      // Якщо тільки timestart і немає timesort — це "відкриття", ігноруємо
+      if(!e.timesort && e.timestart && !e.timefinish) return false;
+      
+      return true;
     }).map(e => {
-      const due = e.timesort || e.timestart || e.timefinish;
+      const due = e.timesort || e.timefinish || e.timestart;
       const courseName = e.course ? (e.course.fullname || e.course.shortname || '—') : 
                         (e.coursename || (e.courseid ? 'Курс '+e.courseid : '—'));
+      
+      // Прибираємо "спливає", "закривається" та інші службові суфікси з назви
+      let name = e.name || e.activityname || 'Завдання';
+      name = name.replace(/\s*(спливає|закривається|відкривається|closes|due|open|is due)\s*$/i, '').trim();
+      
       return {
         id: e.id,
-        name: e.name || e.activityname || 'Завдання',
+        name,
         course: courseName,
         due: due,
         past: due < now,
@@ -843,17 +870,23 @@ function applyDlFilter() {
 
 function renderDl(list, el) {
   if(!list.length){el.innerHTML='<div class="empty"><div class="emo">🎉</div><p>Дедлайнів не знайдено</p></div>';return;}
+  const now = Date.now()/1000;
   el.innerHTML='<div class="dl-list">'+list.map(d=>{
     const dc=dlDot(d), dtc=dlDateCls(d);
     const hasUrl=d.url&&d.url!=='#';
-    return '<div class="dl-item'+(hasUrl?' click':'')+(d.past?' opacity' :'')+'"'+
+    const diff = d.due - now;
+    let tag = '';
+    if(d.past) tag='<span class="tag r">Минув</span>';
+    else if(diff < 60*60*24) tag='<span class="tag r">Сьогодні</span>';
+    else if(diff < 60*60*48) tag='<span class="tag y">Завтра</span>';
+    return '<div class="dl-item'+(hasUrl?' click':'')+'"'+
       (hasUrl?' onclick="window.open(this.dataset.url)" data-url="'+escHtml(d.url)+'"':'')+(d.past?' style="opacity:.6"':'')+'>'+
       '<div class="dl-dot '+dc+'"></div>'+
       '<div class="dl-info"><div class="dl-name">'+escHtml(d.name)+(hasUrl?' <span style="opacity:.4;font-size:9px">↗</span>':'')+'</div>'+
       '<div class="dl-course">'+escHtml(d.course)+'</div></div>'+
       '<div class="dl-right">'+
         '<div class="dl-date '+dtc+'">'+fmtDate(d.due)+'</div>'+
-        (d.past?'<span class="tag">Минув</span>':'')+
+        tag+
       '</div></div>';
   }).join('')+'</div>';
 }

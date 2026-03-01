@@ -2,807 +2,588 @@
 <html lang="uk" data-theme="dark">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>Student Hub — УкрДУЗТ</title>
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
-  :root {
-    --bg: #0a0a0f;
-    --bg2: #111118;
-    --bg3: #1a1a24;
-    --border: #2a2a3a;
-    --accent: #f0c040;
-    --accent2: #e05050;
-    --text: #e8e8f0;
-    --text2: #8888aa;
-    --card: #13131e;
-    --success: #40d080;
-    --warning: #f0a030;
-    --radius: 12px;
-  }
-  [data-theme="light"] {
-    --bg: #f4f4f8;
-    --bg2: #ffffff;
-    --bg3: #ebebf3;
-    --border: #d0d0e0;
-    --text: #1a1a2e;
-    --text2: #6060880;
-    --card: #ffffff;
-  }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body {
-    font-family: 'Syne', sans-serif;
-    background: var(--bg);
-    color: var(--text);
-    min-height: 100vh;
-    transition: background 0.3s, color 0.3s;
-  }
-  code, .mono { font-family: 'JetBrains Mono', monospace; }
+:root {
+  --bg:#0a0a0f;--bg2:#111118;--bg3:#1a1a24;--border:#2a2a3a;
+  --accent:#f0c040;--accent2:#e05050;--text:#e8e8f0;--text2:#8888aa;
+  --card:#13131e;--success:#40d080;--warning:#f0a030;--r:12px;
+  --sidebar:240px;
+}
+[data-theme="light"]{--bg:#f4f4f8;--bg2:#fff;--bg3:#ebebf3;--border:#d0d0e0;--text:#1a1a2e;--text2:#606088;--card:#fff;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Syne',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;transition:background .3s,color .3s;-webkit-tap-highlight-color:transparent;}
+a{text-decoration:none;color:inherit;}
 
-  /* ── LOGIN ── */
-  #login-screen {
-    min-height: 100vh;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: var(--bg);
-    position: relative;
-    overflow: hidden;
-  }
-  #login-screen::before {
-    content: '';
-    position: absolute;
-    width: 600px; height: 600px;
-    background: radial-gradient(circle, rgba(240,192,64,0.08) 0%, transparent 70%);
-    top: -200px; right: -200px;
-    pointer-events: none;
-  }
-  #login-screen::after {
-    content: '';
-    position: absolute;
-    width: 400px; height: 400px;
-    background: radial-gradient(circle, rgba(224,80,80,0.06) 0%, transparent 70%);
-    bottom: -100px; left: -100px;
-    pointer-events: none;
-  }
-  .login-box {
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: 20px;
-    padding: 48px;
-    width: 420px;
-    max-width: 95vw;
-    position: relative;
-    z-index: 1;
-    animation: fadeUp 0.6s ease;
-  }
-  @keyframes fadeUp {
-    from { opacity: 0; transform: translateY(30px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-  .login-logo {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin-bottom: 32px;
-  }
-  .login-logo .icon {
-    width: 44px; height: 44px;
-    background: var(--accent);
-    border-radius: 10px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 22px;
-  }
-  .login-logo h1 { font-size: 22px; font-weight: 800; letter-spacing: -0.5px; }
-  .login-logo span { color: var(--accent); }
-  .login-box h2 { font-size: 28px; font-weight: 800; margin-bottom: 6px; }
-  .login-box p { color: var(--text2); font-size: 14px; margin-bottom: 28px; }
-  .field { margin-bottom: 16px; }
-  .field label { display: block; font-size: 12px; font-weight: 600; color: var(--text2); margin-bottom: 6px; letter-spacing: 0.5px; text-transform: uppercase; }
-  .field input {
-    width: 100%;
-    background: var(--bg3);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 12px 16px;
-    color: var(--text);
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 14px;
-    outline: none;
-    transition: border-color 0.2s;
-  }
-  .field input:focus { border-color: var(--accent); }
-  .btn-primary {
-    width: 100%;
-    background: var(--accent);
-    color: #0a0a0f;
-    border: none;
-    border-radius: var(--radius);
-    padding: 14px;
-    font-family: 'Syne', sans-serif;
-    font-size: 15px;
-    font-weight: 700;
-    cursor: pointer;
-    transition: opacity 0.2s, transform 0.1s;
-    margin-top: 8px;
-  }
-  .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
-  .btn-primary:active { transform: translateY(0); }
-  .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
-  .login-error {
-    background: rgba(224,80,80,0.1);
-    border: 1px solid rgba(224,80,80,0.3);
-    border-radius: var(--radius);
-    padding: 12px 16px;
-    font-size: 13px;
-    color: var(--accent2);
-    margin-top: 12px;
-    display: none;
-  }
-  .login-info {
-    font-size: 12px;
-    color: var(--text2);
-    text-align: center;
-    margin-top: 16px;
-  }
+/* ═══ SCREENS ═══ */
+.screen{display:none;min-height:100vh;}
+.screen.active{display:flex;}
 
-  /* ── APP ── */
-  #app { display: none; min-height: 100vh; }
+/* ═══ LOGIN / AUTH ═══ */
+#screen-login{align-items:center;justify-content:center;background:var(--bg);position:relative;overflow:hidden;}
+#screen-login::before{content:'';position:absolute;width:500px;height:500px;background:radial-gradient(circle,rgba(240,192,64,.08) 0%,transparent 70%);top:-150px;right:-150px;pointer-events:none;}
+#screen-login::after{content:'';position:absolute;width:350px;height:350px;background:radial-gradient(circle,rgba(224,80,80,.06) 0%,transparent 70%);bottom:-80px;left:-80px;pointer-events:none;}
+.auth-box{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:40px;width:420px;max-width:calc(100vw - 32px);position:relative;z-index:1;animation:fadeUp .5s ease;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
+.auth-logo{display:flex;align-items:center;gap:10px;margin-bottom:24px;}
+.auth-logo .ico{width:38px;height:38px;background:var(--accent);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:18px;}
+.auth-logo h1{font-size:18px;font-weight:800;}
+.auth-logo span{color:var(--accent);}
+.auth-box h2{font-size:22px;font-weight:800;margin-bottom:4px;}
+.auth-box>p{color:var(--text2);font-size:12px;margin-bottom:20px;}
+.sep{display:flex;align-items:center;gap:10px;margin:16px 0;font-size:10px;font-weight:700;color:var(--text2);letter-spacing:.5px;text-transform:uppercase;}
+.sep::before,.sep::after{content:'';flex:1;height:1px;background:var(--border);}
+.field{margin-bottom:11px;}
+.field label{display:block;font-size:10px;font-weight:700;color:var(--text2);margin-bottom:4px;letter-spacing:.5px;text-transform:uppercase;}
+.field input,.field select{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:11px 13px;color:var(--text);font-family:'Syne',sans-serif;font-size:13px;outline:none;transition:border-color .2s;-webkit-appearance:none;}
+.field input:focus,.field select:focus{border-color:var(--accent);}
+.btn-primary{width:100%;background:var(--accent);color:#0a0a0f;border:none;border-radius:var(--r);padding:13px;font-family:'Syne',sans-serif;font-size:14px;font-weight:700;cursor:pointer;transition:opacity .2s,transform .1s;margin-top:6px;}
+.btn-primary:hover{opacity:.9;transform:translateY(-1px);}
+.btn-primary:active{transform:translateY(0);}
+.btn-primary:disabled{opacity:.5;cursor:not-allowed;transform:none;}
+.err-box{background:rgba(224,80,80,.1);border:1px solid rgba(224,80,80,.3);border-radius:var(--r);padding:10px 13px;font-size:12px;color:var(--accent2);margin-top:10px;display:none;}
+.login-info{font-size:10px;color:var(--text2);text-align:center;margin-top:12px;line-height:1.5;}
 
-  /* Sidebar */
-  .sidebar {
-    position: fixed;
-    left: 0; top: 0; bottom: 0;
-    width: 240px;
-    background: var(--bg2);
-    border-right: 1px solid var(--border);
-    display: flex;
-    flex-direction: column;
-    z-index: 100;
-    transition: background 0.3s;
-  }
-  .sidebar-logo {
-    padding: 24px 20px;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    border-bottom: 1px solid var(--border);
-  }
-  .sidebar-logo .icon {
-    width: 36px; height: 36px;
-    background: var(--accent);
-    border-radius: 8px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 18px;
-    flex-shrink: 0;
-  }
-  .sidebar-logo h1 { font-size: 16px; font-weight: 800; }
-  .sidebar-logo span { color: var(--accent); }
-  .nav { padding: 16px 12px; flex: 1; }
-  .nav-item {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 10px 12px;
-    border-radius: 8px;
-    cursor: pointer;
-    font-size: 14px;
-    font-weight: 600;
-    color: var(--text2);
-    transition: all 0.15s;
-    margin-bottom: 2px;
-  }
-  .nav-item:hover { background: var(--bg3); color: var(--text); }
-  .nav-item.active { background: rgba(240,192,64,0.12); color: var(--accent); }
-  .nav-item .nav-icon { font-size: 16px; width: 20px; text-align: center; }
-  .sidebar-bottom {
-    padding: 16px 12px;
-    border-top: 1px solid var(--border);
-  }
-  .user-card {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 10px 12px;
-    border-radius: 8px;
-    background: var(--bg3);
-  }
-  .user-avatar {
-    width: 32px; height: 32px;
-    background: var(--accent);
-    border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 14px;
-    font-weight: 700;
-    color: #0a0a0f;
-    flex-shrink: 0;
-  }
-  .user-info { flex: 1; min-width: 0; }
-  .user-name { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .user-role { font-size: 11px; color: var(--text2); }
-  .theme-btn {
-    background: none;
-    border: none;
-    color: var(--text2);
-    cursor: pointer;
-    font-size: 16px;
-    padding: 4px;
-    border-radius: 6px;
-    transition: color 0.2s;
-  }
-  .theme-btn:hover { color: var(--text); }
+/* ═══ APP LAYOUT ═══ */
+#screen-app{flex-direction:row;}
 
-  /* Main */
-  .main {
-    margin-left: 240px;
-    min-height: 100vh;
-    padding: 32px;
-  }
-  .page { display: none; animation: fadeIn 0.3s ease; }
-  .page.active { display: block; }
-  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+/* SIDEBAR */
+.sidebar{width:var(--sidebar);min-height:100vh;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;z-index:200;transition:transform .3s ease;}
+.sidebar-header{padding:18px 16px;display:flex;align-items:center;gap:9px;border-bottom:1px solid var(--border);}
+.sidebar-header .ico{width:30px;height:30px;background:var(--accent);border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;}
+.sidebar-header h1{font-size:13px;font-weight:800;}
+.sidebar-header span{color:var(--accent);}
+.close-sidebar{display:none;margin-left:auto;background:none;border:none;color:var(--text2);font-size:18px;cursor:pointer;padding:4px;}
+.group-pill{padding:5px 16px;background:rgba(240,192,64,.07);border-bottom:1px solid var(--border);font-size:10px;color:var(--accent);font-family:'JetBrains Mono',monospace;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.nav{padding:10px 8px;flex:1;overflow-y:auto;}
+.nav-section{font-size:9px;font-weight:700;color:var(--text2);letter-spacing:1px;text-transform:uppercase;padding:8px 8px 4px;}
+.nav-item{display:flex;align-items:center;gap:9px;padding:9px 10px;border-radius:8px;cursor:pointer;font-size:12px;font-weight:600;color:var(--text2);transition:all .15s;margin-bottom:1px;user-select:none;}
+.nav-item:hover{background:var(--bg3);color:var(--text);}
+.nav-item.active{background:rgba(240,192,64,.12);color:var(--accent);}
+.nav-item .ni{font-size:14px;width:16px;text-align:center;flex-shrink:0;}
+.nav-badge{margin-left:auto;background:var(--accent2);color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:10px;min-width:16px;text-align:center;}
+.sidebar-bottom{padding:10px 8px;border-top:1px solid var(--border);}
+.user-card{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;background:var(--bg3);}
+.user-avatar{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#0a0a0f;flex-shrink:0;}
+.user-info{flex:1;min-width:0;}
+.user-name{font-size:11px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.user-role-badge{font-size:9px;color:var(--text2);}
+.icon-btn{background:none;border:none;color:var(--text2);cursor:pointer;font-size:13px;padding:3px;border-radius:5px;transition:color .2s;flex-shrink:0;}
+.icon-btn:hover{color:var(--text);}
 
-  .page-header { margin-bottom: 28px; }
-  .page-header h2 { font-size: 28px; font-weight: 800; margin-bottom: 4px; }
-  .page-header p { color: var(--text2); font-size: 14px; }
+/* MAIN */
+.main{margin-left:var(--sidebar);min-height:100vh;flex:1;display:flex;flex-direction:column;}
+.topbar{display:none;padding:12px 16px;background:var(--bg2);border-bottom:1px solid var(--border);align-items:center;gap:10px;position:sticky;top:0;z-index:100;}
+.topbar-menu{background:none;border:none;color:var(--text);font-size:20px;cursor:pointer;padding:4px;}
+.topbar h2{font-size:15px;font-weight:800;flex:1;}
+.content{padding:24px;flex:1;}
 
-  /* Cards grid */
-  .cards-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 16px;
-  }
-  .stat-card {
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 20px;
-    display: flex;
-    align-items: center;
-    gap: 16px;
-  }
-  .stat-icon {
-    width: 48px; height: 48px;
-    border-radius: 10px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 22px;
-    flex-shrink: 0;
-  }
-  .stat-icon.yellow { background: rgba(240,192,64,0.15); }
-  .stat-icon.red { background: rgba(224,80,80,0.15); }
-  .stat-icon.green { background: rgba(64,208,128,0.15); }
-  .stat-icon.blue { background: rgba(64,128,240,0.15); }
-  .stat-val { font-size: 28px; font-weight: 800; font-family: 'JetBrains Mono', monospace; }
-  .stat-label { font-size: 13px; color: var(--text2); }
+/* OVERLAY */
+.sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:199;}
+.sidebar-overlay.show{display:block;}
 
-  /* Deadlines */
-  .deadline-list { display: flex; flex-direction: column; gap: 10px; margin-top: 8px; }
-  .deadline-item {
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 16px 20px;
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    transition: border-color 0.2s;
-  }
-  .deadline-item:hover { border-color: var(--accent); }
-  .deadline-dot {
-    width: 10px; height: 10px;
-    border-radius: 50%;
-    flex-shrink: 0;
-  }
-  .deadline-dot.urgent { background: var(--accent2); box-shadow: 0 0 8px rgba(224,80,80,0.5); }
-  .deadline-dot.soon { background: var(--warning); }
-  .deadline-dot.ok { background: var(--success); }
-  .deadline-info { flex: 1; }
-  .deadline-name { font-size: 14px; font-weight: 600; margin-bottom: 2px; }
-  .deadline-course { font-size: 12px; color: var(--text2); }
-  .deadline-date {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 12px;
-    color: var(--text2);
-    text-align: right;
-  }
-  .deadline-date.urgent { color: var(--accent2); }
-  .deadline-date.soon { color: var(--warning); }
+/* ═══ PAGES ═══ */
+.page{display:none;animation:fadeIn .25s ease;}
+.page.active{display:block;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+.page-header{margin-bottom:20px;}
+.page-header h2{font-size:22px;font-weight:800;margin-bottom:3px;}
+.page-header p{color:var(--text2);font-size:12px;}
 
-  /* Files / Materials */
-  .section-title {
-    font-size: 13px;
-    font-weight: 700;
-    color: var(--text2);
-    letter-spacing: 1px;
-    text-transform: uppercase;
-    margin: 24px 0 12px;
-  }
-  .file-list { display: flex; flex-direction: column; gap: 8px; }
-  .file-item {
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 14px 18px;
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    cursor: pointer;
-    transition: border-color 0.2s, background 0.2s;
-  }
-  .file-item:hover { border-color: var(--accent); background: var(--bg3); }
-  .file-ext {
-    width: 38px; height: 38px;
-    border-radius: 8px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 10px;
-    font-weight: 700;
-    font-family: 'JetBrains Mono', monospace;
-    flex-shrink: 0;
-  }
-  .file-ext.pdf { background: rgba(224,80,80,0.15); color: var(--accent2); }
-  .file-ext.docx { background: rgba(64,128,240,0.15); color: #4080f0; }
-  .file-ext.pptx { background: rgba(240,128,64,0.15); color: #f08040; }
-  .file-ext.other { background: var(--bg3); color: var(--text2); }
-  .file-info { flex: 1; }
-  .file-name { font-size: 14px; font-weight: 600; }
-  .file-meta { font-size: 12px; color: var(--text2); margin-top: 2px; }
-  .file-actions { display: flex; gap: 8px; }
-  .btn-sm {
-    background: var(--bg3);
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    padding: 6px 12px;
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--text2);
-    cursor: pointer;
-    transition: all 0.15s;
-    font-family: 'Syne', sans-serif;
-  }
-  .btn-sm:hover { border-color: var(--accent); color: var(--accent); }
-  .btn-sm.accent { background: var(--accent); border-color: var(--accent); color: #0a0a0f; }
-  .btn-sm.accent:hover { opacity: 0.85; color: #0a0a0f; }
+/* STATS */
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;margin-bottom:20px;}
+.stat-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:14px;display:flex;align-items:center;gap:10px;}
+.stat-ico{width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;}
+.si-y{background:rgba(240,192,64,.15);}
+.si-r{background:rgba(224,80,80,.15);}
+.si-g{background:rgba(64,208,128,.15);}
+.si-b{background:rgba(64,128,240,.15);}
+.stat-val{font-size:22px;font-weight:800;font-family:'JetBrains Mono',monospace;line-height:1;}
+.stat-lbl{font-size:10px;color:var(--text2);margin-top:2px;}
 
-  /* Upload zone */
-  .upload-zone {
-    border: 2px dashed var(--border);
-    border-radius: var(--radius);
-    padding: 32px;
-    text-align: center;
-    cursor: pointer;
-    transition: border-color 0.2s, background 0.2s;
-    margin-bottom: 20px;
-  }
-  .upload-zone:hover, .upload-zone.drag { border-color: var(--accent); background: rgba(240,192,64,0.04); }
-  .upload-zone .up-icon { font-size: 32px; margin-bottom: 8px; }
-  .upload-zone p { font-size: 14px; color: var(--text2); }
-  .upload-zone strong { color: var(--accent); }
-  #file-input { display: none; }
+/* DEADLINE */
+.dl-list{display:flex;flex-direction:column;gap:6px;}
+.dl-item{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:11px 14px;display:flex;align-items:center;gap:10px;transition:border-color .2s,background .2s;}
+.dl-item.click{cursor:pointer;}
+.dl-item.click:hover{border-color:var(--accent);background:var(--bg3);}
+.dl-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+.dot-u{background:var(--accent2);box-shadow:0 0 5px rgba(224,80,80,.5);}
+.dot-s{background:var(--warning);}
+.dot-o{background:var(--success);}
+.dl-info{flex:1;min-width:0;}
+.dl-name{font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.dl-course{font-size:10px;color:var(--text2);}
+.dl-right{display:flex;align-items:center;gap:6px;flex-shrink:0;}
+.dl-date{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text2);}
+.dl-date.u{color:var(--accent2);}
+.dl-date.s{color:var(--warning);}
 
-  /* Courses */
-  .course-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; }
-  .course-list.list-view { grid-template-columns: 1fr; }
-  .course-card {
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 20px;
-    cursor: pointer;
-    transition: border-color 0.2s, transform 0.15s;
-    text-decoration: none;
-    color: var(--text);
-    display: block;
-  }
-  .course-card:hover { border-color: var(--accent); transform: translateY(-2px); }
-  .list-view .course-card { display: flex; align-items: center; gap: 16px; padding: 12px 18px; }
-  .list-view .course-card:hover { transform: none; }
-  .course-num {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 11px;
-    color: var(--accent);
-    font-weight: 500;
-    margin-bottom: 8px;
-    flex-shrink: 0;
-  }
-  .list-view .course-num { margin-bottom: 0; }
-  .course-name { font-size: 15px; font-weight: 700; margin-bottom: 6px; line-height: 1.3; flex: 1; }
-  .list-view .course-name { margin-bottom: 0; }
-  .course-meta { font-size: 12px; color: var(--text2); }
-  .filter-tab {
-    padding: 6px 14px;
-    border-radius: 20px;
-    font-size: 12px;
-    font-weight: 600;
-    border: 1px solid var(--border);
-    background: var(--card);
-    color: var(--text2);
-    cursor: pointer;
-    transition: all 0.15s;
-    font-family: 'Syne', sans-serif;
-  }
-  .filter-tab:hover { border-color: var(--accent); color: var(--accent); }
-  .filter-tab.active { background: var(--accent); border-color: var(--accent); color: #0a0a0f; }
-  .view-btn {
-    width: 32px; height: 32px;
-    border-radius: 6px;
-    border: 1px solid var(--border);
-    background: var(--card);
-    color: var(--text2);
-    cursor: pointer;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 14px;
-    transition: all 0.15s;
-  }
-  .view-btn.active { background: var(--accent); border-color: var(--accent); color: #0a0a0f; }
+/* TOOLBAR */
+.toolbar{display:flex;align-items:center;gap:7px;margin-bottom:14px;flex-wrap:wrap;}
+.tb-input{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:8px 12px;color:var(--text);font-family:'Syne',sans-serif;font-size:12px;outline:none;flex:1;min-width:140px;max-width:220px;transition:border-color .2s;}
+.tb-input:focus{border-color:var(--accent);}
+.tb-select{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:7px 10px;color:var(--text);font-family:'Syne',sans-serif;font-size:11px;outline:none;-webkit-appearance:none;}
+.tb-right{margin-left:auto;display:flex;gap:5px;align-items:center;}
+.section-title{font-size:9px;font-weight:700;color:var(--text2);letter-spacing:1px;text-transform:uppercase;margin:18px 0 8px;}
 
-  /* Loading */
-  .loading {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    color: var(--text2);
-    font-size: 14px;
-    padding: 20px 0;
-  }
-  .spinner {
-    width: 18px; height: 18px;
-    border: 2px solid var(--border);
-    border-top-color: var(--accent);
-    border-radius: 50%;
-    animation: spin 0.7s linear infinite;
-  }
-  @keyframes spin { to { transform: rotate(360deg); } }
+/* FILES */
+.upload-zone{border:2px dashed var(--border);border-radius:var(--r);padding:22px;text-align:center;cursor:pointer;transition:border-color .2s,background .2s;margin-bottom:14px;}
+.upload-zone:hover,.upload-zone.drag{border-color:var(--accent);background:rgba(240,192,64,.03);}
+.upload-zone .ui{font-size:24px;margin-bottom:6px;}
+.upload-zone p{font-size:12px;color:var(--text2);}
+.upload-zone strong{color:var(--accent);}
+#file-input{display:none;}
+.file-list{display:flex;flex-direction:column;gap:6px;}
+.file-item{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:10px 13px;display:flex;align-items:center;gap:10px;}
+.file-ext{width:32px;height:32px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:700;font-family:'JetBrains Mono',monospace;flex-shrink:0;}
+.ep{background:rgba(224,80,80,.15);color:var(--accent2);}
+.ed{background:rgba(64,128,240,.15);color:#4080f0;}
+.ex{background:rgba(64,192,80,.15);color:#40c050;}
+.eo{background:var(--bg3);color:var(--text2);}
+.file-info{flex:1;min-width:0;}
+.file-name{font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.file-meta{font-size:10px;color:var(--text2);margin-top:1px;}
+.file-actions{display:flex;gap:4px;flex-shrink:0;}
 
-  .empty-state {
-    text-align: center;
-    padding: 48px 20px;
-    color: var(--text2);
-  }
-  .empty-state .emoji { font-size: 40px; margin-bottom: 12px; }
-  .empty-state p { font-size: 14px; }
+/* BUTTONS */
+.btn{background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:5px 10px;font-size:11px;font-weight:600;color:var(--text2);cursor:pointer;transition:all .15s;font-family:'Syne',sans-serif;white-space:nowrap;}
+.btn:hover{border-color:var(--accent);color:var(--accent);}
+.btn.a{background:var(--accent);border-color:var(--accent);color:#0a0a0f;}
+.btn.a:hover{opacity:.85;color:#0a0a0f;}
+.btn.d:hover{border-color:var(--accent2);color:var(--accent2);}
+.btn.r{background:rgba(224,80,80,.1);border-color:rgba(224,80,80,.3);color:var(--accent2);}
 
-  /* Tags */
-  .tag {
-    display: inline-block;
-    padding: 3px 10px;
-    border-radius: 20px;
-    font-size: 11px;
-    font-weight: 600;
-    background: var(--bg3);
-    color: var(--text2);
-    border: 1px solid var(--border);
-  }
-  .tag.yellow { background: rgba(240,192,64,0.12); color: var(--accent); border-color: rgba(240,192,64,0.2); }
-  .tag.green { background: rgba(64,208,128,0.12); color: var(--success); border-color: rgba(64,208,128,0.2); }
-  .tag.red { background: rgba(224,80,80,0.12); color: var(--accent2); border-color: rgba(224,80,80,0.2); }
+/* COURSES */
+.course-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px;}
+.course-grid.lv{grid-template-columns:1fr;}
+.course-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:15px;cursor:pointer;transition:border-color .2s,transform .15s;display:block;color:var(--text);}
+.course-card:hover{border-color:var(--accent);transform:translateY(-2px);}
+.lv .course-card{display:flex;align-items:center;gap:11px;padding:10px 13px;}
+.lv .course-card:hover{transform:none;}
+.c-num{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--accent);font-weight:500;margin-bottom:4px;flex-shrink:0;}
+.lv .c-num{margin-bottom:0;}
+.c-name{font-size:12px;font-weight:700;line-height:1.3;flex:1;}
+.c-meta{font-size:10px;color:var(--text2);margin-top:2px;}
+.lv .c-meta{display:none;}
+.ftab{padding:4px 10px;border-radius:20px;font-size:10px;font-weight:600;border:1px solid var(--border);background:var(--card);color:var(--text2);cursor:pointer;transition:all .15s;font-family:'Syne',sans-serif;}
+.ftab:hover{border-color:var(--accent);color:var(--accent);}
+.ftab.on{background:var(--accent);border-color:var(--accent);color:#0a0a0f;}
+.vbtn{width:26px;height:26px;border-radius:5px;border:1px solid var(--border);background:var(--card);color:var(--text2);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:11px;transition:all .15s;}
+.vbtn.on{background:var(--accent);border-color:var(--accent);color:#0a0a0f;}
 
-  /* Toolbar */
-  .toolbar {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-bottom: 20px;
-    flex-wrap: wrap;
-  }
-  .toolbar input[type="text"] {
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 10px 14px;
-    color: var(--text);
-    font-family: 'Syne', sans-serif;
-    font-size: 13px;
-    outline: none;
-    width: 240px;
-    transition: border-color 0.2s;
-  }
-  .toolbar input[type="text"]:focus { border-color: var(--accent); }
-  .toolbar-right { margin-left: auto; display: flex; gap: 8px; }
+/* CHAT */
+.chat-wrap{display:flex;gap:14px;height:calc(100vh - 180px);min-height:300px;}
+.chat-sidebar{width:200px;flex-shrink:0;display:flex;flex-direction:column;gap:6px;overflow-y:auto;}
+.chat-room{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:10px 12px;cursor:pointer;transition:border-color .2s;font-size:12px;font-weight:600;}
+.chat-room:hover{border-color:var(--accent);}
+.chat-room.active{border-color:var(--accent);background:rgba(240,192,64,.07);}
+.chat-room-sub{font-size:10px;color:var(--text2);font-weight:400;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.chat-main{flex:1;display:flex;flex-direction:column;background:var(--card);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;}
+.chat-header{padding:12px 14px;border-bottom:1px solid var(--border);font-size:13px;font-weight:700;}
+.chat-messages{flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:8px;}
+.msg{max-width:75%;display:flex;flex-direction:column;gap:2px;}
+.msg.me{align-self:flex-end;align-items:flex-end;}
+.msg.other{align-self:flex-start;}
+.msg-author{font-size:9px;color:var(--text2);font-weight:600;margin-bottom:1px;}
+.msg-bubble{background:var(--bg3);border-radius:10px;padding:8px 11px;font-size:12px;line-height:1.4;word-break:break-word;}
+.msg.me .msg-bubble{background:rgba(240,192,64,.15);border-radius:10px 10px 2px 10px;}
+.msg.other .msg-bubble{border-radius:10px 10px 10px 2px;}
+.msg-time{font-size:9px;color:var(--text2);font-family:'JetBrains Mono',monospace;}
+.chat-input-wrap{padding:10px;border-top:1px solid var(--border);display:flex;gap:7px;}
+.chat-input{flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:9px 12px;color:var(--text);font-family:'Syne',sans-serif;font-size:12px;outline:none;resize:none;}
+.chat-input:focus{border-color:var(--accent);}
 
-  /* Logout */
-  .logout-btn {
-    background: none;
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    padding: 6px 10px;
-    color: var(--text2);
-    cursor: pointer;
-    font-size: 14px;
-    transition: all 0.15s;
-  }
-  .logout-btn:hover { border-color: var(--accent2); color: var(--accent2); }
+/* ADMIN */
+.admin-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px;}
+.admin-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:18px;}
+.admin-card h3{font-size:14px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:8px;}
+.group-item{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border);font-size:12px;}
+.group-item:last-child{border-bottom:none;}
+.group-item .gname{flex:1;font-weight:600;}
+.group-item .gcnt{font-size:10px;color:var(--text2);}
+.user-row{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border);font-size:12px;}
+.user-row:last-child{border-bottom:none;}
+.user-row .uav{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#0a0a0f;flex-shrink:0;}
+.user-row .uname{flex:1;font-weight:600;}
+.role-sel{background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:3px 7px;color:var(--text);font-family:'Syne',sans-serif;font-size:10px;outline:none;}
 
-  /* Responsive */
-  @media (max-width: 768px) {
-    .sidebar { transform: translateX(-100%); }
-    .main { margin-left: 0; padding: 20px; }
-  }
+/* TAGS */
+.tag{display:inline-block;padding:2px 6px;border-radius:20px;font-size:9px;font-weight:600;background:var(--bg3);color:var(--text2);border:1px solid var(--border);}
+.tag.g{background:rgba(64,208,128,.12);color:var(--success);border-color:rgba(64,208,128,.2);}
+.tag.y{background:rgba(240,192,64,.12);color:var(--accent);border-color:rgba(240,192,64,.2);}
+.tag.r{background:rgba(224,80,80,.12);color:var(--accent2);border-color:rgba(224,80,80,.2);}
 
-  /* Sync badge */
-  .sync-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    background: rgba(64,208,128,0.1);
-    border: 1px solid rgba(64,208,128,0.2);
-    border-radius: 20px;
-    padding: 4px 12px;
-    font-size: 11px;
-    color: var(--success);
-    font-weight: 600;
-  }
-  .sync-dot { width: 6px; height: 6px; background: var(--success); border-radius: 50%; animation: pulse 2s infinite; }
-  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+/* SYNC BADGE */
+.sync-badge{display:inline-flex;align-items:center;gap:5px;background:rgba(64,208,128,.1);border:1px solid rgba(64,208,128,.2);border-radius:20px;padding:3px 9px;font-size:10px;color:var(--success);font-weight:600;}
+.sync-dot{width:5px;height:5px;background:var(--success);border-radius:50%;animation:pulse 2s infinite;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
 
-  /* Modal */
-  .modal-overlay {
-    position: fixed; inset: 0;
-    background: rgba(0,0,0,0.7);
-    display: flex; align-items: center; justify-content: center;
-    z-index: 999;
-    display: none;
-  }
-  .modal-overlay.show { display: flex; }
-  .modal {
-    background: var(--bg2);
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    padding: 32px;
-    width: 480px;
-    max-width: 95vw;
-    animation: fadeUp 0.3s ease;
-  }
-  .modal h3 { font-size: 20px; font-weight: 800; margin-bottom: 20px; }
-  .modal .field { margin-bottom: 14px; }
-  .modal select {
-    width: 100%;
-    background: var(--bg3);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 12px 16px;
-    color: var(--text);
-    font-family: 'Syne', sans-serif;
-    font-size: 14px;
-    outline: none;
-  }
-  .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
+/* STATES */
+.loading{display:flex;align-items:center;gap:8px;color:var(--text2);font-size:12px;padding:16px 0;}
+.spinner{width:14px;height:14px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg)}}
+.empty{text-align:center;padding:32px 16px;color:var(--text2);}
+.empty .emo{font-size:28px;margin-bottom:8px;}
+.empty p{font-size:12px;}
+
+/* MODAL */
+.modal-ov{position:fixed;inset:0;background:rgba(0,0,0,.7);display:none;align-items:center;justify-content:center;z-index:999;padding:16px;}
+.modal-ov.show{display:flex;}
+.modal{background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:24px;width:420px;max-width:100%;animation:fadeUp .25s ease;}
+.modal h3{font-size:16px;font-weight:800;margin-bottom:16px;}
+.modal-actions{display:flex;gap:7px;justify-content:flex-end;margin-top:16px;}
+
+/* ═══ MOBILE ═══ */
+@media(max-width:768px){
+  :root{--sidebar:0px;}
+  .sidebar{transform:translateX(-240px);width:240px;}
+  .sidebar.open{transform:translateX(0);}
+  .main{margin-left:0;}
+  .topbar{display:flex;}
+  .close-sidebar{display:block;}
+  .content{padding:14px;}
+  .stats-grid{grid-template-columns:repeat(2,1fr);gap:8px;}
+  .stat-card{padding:11px;}
+  .stat-val{font-size:18px;}
+  .chat-wrap{flex-direction:column;height:auto;}
+  .chat-sidebar{width:100%;flex-direction:row;overflow-x:auto;overflow-y:visible;padding-bottom:2px;}
+  .chat-room{min-width:120px;flex-shrink:0;}
+  .chat-main{height:400px;}
+  .admin-grid{grid-template-columns:1fr;}
+  .auth-box{padding:28px 22px;}
+  .toolbar{gap:5px;}
+  .tb-input{min-width:120px;}
+}
+@media(max-width:480px){
+  .stats-grid{grid-template-columns:1fr 1fr;}
+  .dl-date{display:none;}
+  .course-grid{grid-template-columns:1fr;}
+  .page-header h2{font-size:18px;}
+}
 </style>
 </head>
 <body>
 
-<!-- LOGIN -->
-<div id="login-screen">
-  <div class="login-box">
-    <div class="login-logo">
-      <div class="icon">🎓</div>
+<!-- ═══ LOGIN ═══ -->
+<div id="screen-login" class="screen active">
+  <div class="auth-box">
+    <div class="auth-logo">
+      <div class="ico">🎓</div>
       <h1>Student<span>Hub</span></h1>
     </div>
     <h2>Вхід</h2>
-    <p>Використовуйте логін та пароль від Moodle УкрДУЗТ</p>
+    <p>Портал студентів УкрДУЗТ</p>
+    <div class="field"><label>Логін від Moodle</label><input type="text" id="li" placeholder="••••••••••" autocomplete="username"></div>
+    <div class="field"><label>Пароль від Moodle</label><input type="password" id="lp" placeholder="••••••••" autocomplete="current-password"></div>
+    <div class="sep">Ваша група</div>
     <div class="field">
-      <label>Логін (email або username)</label>
-      <input type="text" id="login-input" placeholder="••••••••••••••••" autocomplete="username">
+      <label>Оберіть групу</label>
+      <select id="lg"><option value="">— Завантаження груп... —</option></select>
     </div>
-    <div class="field">
-      <label>Пароль</label>
-      <input type="password" id="pass-input" placeholder="••••••••" autocomplete="current-password">
-    </div>
-    <button class="btn-primary" id="login-btn" onclick="doLogin()">Увійти через Moodle</button>
-    <div class="login-error" id="login-error"></div>
-    <p class="login-info">Ваші дані передаються напряму на сервер УкрДУЗТ і ніде не зберігаються</p>
+    <button class="btn-primary" id="login-btn" onclick="doLogin()">Увійти</button>
+    <div class="err-box" id="lerr"></div>
+    <p class="login-info">Логін/пароль передаються напряму на сервер УкрДУЗТ</p>
   </div>
 </div>
 
-<!-- APP -->
-<div id="app">
-  <nav class="sidebar">
-    <div class="sidebar-logo">
-      <div class="icon">🎓</div>
+<!-- ═══ APP ═══ -->
+<div id="screen-app" class="screen">
+  <div class="sidebar-overlay" id="sov" onclick="closeSidebar()"></div>
+
+  <!-- SIDEBAR -->
+  <nav class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <div class="ico">🎓</div>
       <h1>Student<span>Hub</span></h1>
+      <button class="close-sidebar" onclick="closeSidebar()">✕</button>
     </div>
-    <div class="nav">
-      <div class="nav-item active" onclick="showPage('dashboard')">
-        <span class="nav-icon">🏠</span> Головна
-      </div>
-      <div class="nav-item" onclick="showPage('deadlines')">
-        <span class="nav-icon">⏰</span> Дедлайни
-      </div>
-      <div class="nav-item" onclick="showPage('courses')">
-        <span class="nav-icon">📚</span> Курси
-      </div>
-      <div class="nav-item" onclick="showPage('files')">
-        <span class="nav-icon">📁</span> Файли групи
-      </div>
-      <div class="nav-item" onclick="showPage('materials')">
-        <span class="nav-icon">📝</span> Матеріали
-      </div>
+    <div class="group-pill" id="gpill">Група: —</div>
+    <div class="nav" id="nav">
+      <div class="nav-section">Навчання</div>
+      <div class="nav-item active" onclick="go('dashboard')"><span class="ni">🏠</span>Головна</div>
+      <div class="nav-item" onclick="go('deadlines')"><span class="ni">⏰</span>Дедлайни</div>
+      <div class="nav-item" onclick="go('courses')"><span class="ni">📚</span>Курси</div>
+      <div class="nav-section">Група</div>
+      <div class="nav-item" onclick="go('files')"><span class="ni">📁</span>Файли</div>
+      <div class="nav-item" onclick="go('materials')"><span class="ni">📝</span>Матеріали</div>
+      <div class="nav-item" onclick="go('chat')"><span class="ni">💬</span>Чати<span class="nav-badge" id="chat-badge" style="display:none">0</span></div>
+      <div class="nav-section" id="admin-section" style="display:none">Адміністрування</div>
+      <div class="nav-item" id="nav-admin" onclick="go('admin')" style="display:none"><span class="ni">⚙️</span>Адмін-панель</div>
     </div>
     <div class="sidebar-bottom">
       <div class="user-card">
-        <div class="user-avatar" id="user-avatar">?</div>
+        <div class="user-avatar" id="uav" style="background:var(--accent)">?</div>
         <div class="user-info">
-          <div class="user-name" id="user-name">...</div>
-          <div class="user-role">Студент</div>
+          <div class="user-name" id="uname">...</div>
+          <div class="user-role-badge" id="urole">Студент</div>
         </div>
-        <button class="theme-btn" onclick="toggleTheme()" title="Змінити тему">🌓</button>
-        <button class="logout-btn" onclick="doLogout()" title="Вийти">↩</button>
+        <button class="icon-btn" onclick="toggleTheme()">🌓</button>
+        <button class="icon-btn" onclick="doLogout()">↩</button>
       </div>
     </div>
   </nav>
 
-  <main class="main">
-    <!-- DASHBOARD -->
-    <div class="page active" id="page-dashboard">
-      <div class="page-header">
-        <h2>Добрий день! 👋</h2>
-        <p id="dash-subtitle">Завантаження даних з Moodle...</p>
-      </div>
-      <div style="display:flex;align-items:center;gap:12px;margin-bottom:24px;">
-        <div class="sync-badge"><div class="sync-dot"></div> Синхронізовано з Moodle</div>
-        <button class="btn-sm" onclick="syncMoodle()">🔄 Оновити</button>
-      </div>
-      <div class="cards-grid" id="stat-cards">
-        <div class="stat-card">
-          <div class="stat-icon yellow">📚</div>
-          <div><div class="stat-val" id="stat-courses">—</div><div class="stat-label">Активних курсів</div></div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-icon red">⏰</div>
-          <div><div class="stat-val" id="stat-urgent">—</div><div class="stat-label">Терміново здати</div></div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-icon green">✅</div>
-          <div><div class="stat-val" id="stat-done">—</div><div class="stat-label">Здано завдань</div></div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-icon blue">📁</div>
-          <div><div class="stat-val" id="stat-files">—</div><div class="stat-label">Файлів у групі</div></div>
-        </div>
-      </div>
-      <div class="section-title">Найближчі дедлайни</div>
-      <div id="dash-deadlines"><div class="loading"><div class="spinner"></div>Завантаження...</div></div>
+  <!-- MAIN -->
+  <div class="main">
+    <!-- TOPBAR (mobile) -->
+    <div class="topbar" id="topbar">
+      <button class="topbar-menu" onclick="openSidebar()">☰</button>
+      <h2 id="topbar-title">Головна</h2>
+      <button class="icon-btn" onclick="toggleTheme()">🌓</button>
     </div>
 
-    <!-- DEADLINES -->
-    <div class="page" id="page-deadlines">
-      <div class="page-header">
-        <h2>⏰ Дедлайни</h2>
-        <p>Завдання з Moodle — оновлюються автоматично</p>
+    <div class="content">
+      <!-- DASHBOARD -->
+      <div class="page active" id="page-dashboard">
+        <div class="page-header">
+          <h2>Добрий день! 👋</h2>
+          <p id="dash-sub">Завантаження...</p>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;flex-wrap:wrap;">
+          <div class="sync-badge"><div class="sync-dot"></div>Moodle</div>
+          <button class="btn" onclick="syncMoodle()">🔄 Оновити</button>
+        </div>
+        <div class="stats-grid">
+          <div class="stat-card"><div class="stat-ico si-y">📚</div><div><div class="stat-val" id="s-courses">—</div><div class="stat-lbl">Курсів</div></div></div>
+          <div class="stat-card"><div class="stat-ico si-r">⏰</div><div><div class="stat-val" id="s-urgent">—</div><div class="stat-lbl">Терміново</div></div></div>
+          <div class="stat-card"><div class="stat-ico si-g">✅</div><div><div class="stat-val" id="s-done">—</div><div class="stat-lbl">Минуло</div></div></div>
+          <div class="stat-card"><div class="stat-ico si-b">📁</div><div><div class="stat-val" id="s-files">—</div><div class="stat-lbl">Файлів</div></div></div>
+        </div>
+        <div class="section-title">Найближчі дедлайни</div>
+        <div id="dash-dl"><div class="loading"><div class="spinner"></div>Завантаження...</div></div>
       </div>
-      <div class="toolbar">
-        <input type="text" placeholder="🔍 Пошук завдання..." oninput="filterDeadlines(this.value)">
-        <div class="toolbar-right">
-          <button class="btn-sm accent" onclick="syncMoodle()">🔄 Синхронізувати</button>
+
+      <!-- DEADLINES -->
+      <div class="page" id="page-deadlines">
+        <div class="page-header"><h2>⏰ Дедлайни</h2><p>З Moodle — натисніть щоб відкрити завдання</p></div>
+        <div class="toolbar">
+          <input class="tb-input" id="dl-q" placeholder="🔍 Пошук..." oninput="applyDlFilter()">
+          <select class="tb-select" id="dl-f" onchange="applyDlFilter()">
+            <option value="all">Всі</option>
+            <option value="active">Активні</option>
+            <option value="urgent">Термінові</option>
+            <option value="past">Минулі</option>
+          </select>
+          <div class="tb-right"><button class="btn a" onclick="syncMoodle()">🔄</button></div>
+        </div>
+        <div id="dl-list"><div class="loading"><div class="spinner"></div>Завантаження...</div></div>
+      </div>
+
+      <!-- COURSES -->
+      <div class="page" id="page-courses">
+        <div class="page-header"><h2>📚 Курси</h2><p>З Moodle — натисніть щоб відкрити</p></div>
+        <div class="toolbar">
+          <input class="tb-input" id="c-q" placeholder="🔍 Пошук курсу..." oninput="filterCourses()">
+          <button class="ftab on" id="cs-n" onclick="setCS('name')">А-Я</button>
+          <button class="ftab" id="cs-num" onclick="setCS('num')">#</button>
+          <div class="tb-right" style="display:flex;gap:4px;">
+            <button class="vbtn on" id="vg" onclick="setCV('grid')" title="Картки">⊞</button>
+            <button class="vbtn" id="vl" onclick="setCV('list')" title="Список">☰</button>
+          </div>
+        </div>
+        <div id="courses-list"><div class="loading"><div class="spinner"></div>Завантаження...</div></div>
+      </div>
+
+      <!-- FILES -->
+      <div class="page" id="page-files">
+        <div class="page-header"><h2>📁 Файли групи</h2><p id="files-lbl">Спільні файли вашої групи</p></div>
+        <div class="upload-zone" id="uz" onclick="document.getElementById('file-input').click()" ondragover="event.preventDefault();this.classList.add('drag')" ondragleave="this.classList.remove('drag')" ondrop="handleDrop(event)">
+          <div class="ui">📤</div>
+          <p><strong>Натисніть або перетягніть</strong></p>
+          <p style="font-size:10px;margin-top:2px;">PDF, DOCX, PPTX та ін. (до 5МБ)</p>
+        </div>
+        <input type="file" id="file-input" multiple onchange="handleFileSelect(this)">
+        <div class="section-title">Файли</div>
+        <div id="files-list"><div class="loading"><div class="spinner"></div>Завантаження...</div></div>
+      </div>
+
+      <!-- MATERIALS -->
+      <div class="page" id="page-materials">
+        <div class="page-header"><h2>📝 Матеріали</h2><p id="mats-lbl">Конспекти та посилання групи</p></div>
+        <div class="toolbar">
+          <input class="tb-input" placeholder="🔍 Пошук..." oninput="filterMats(this.value)">
+          <div class="tb-right"><button class="btn a" onclick="showModal('add-mat')">+ Додати</button></div>
+        </div>
+        <div id="mats-list"><div class="loading"><div class="spinner"></div>Завантаження...</div></div>
+      </div>
+
+      <!-- CHAT -->
+      <div class="page" id="page-chat">
+        <div class="page-header"><h2>💬 Чати</h2><p>Спілкуйтесь з групою та університетом</p></div>
+        <div class="chat-wrap">
+          <div class="chat-sidebar" id="chat-rooms"></div>
+          <div class="chat-main">
+            <div class="chat-header" id="chat-room-title">Оберіть кімнату</div>
+            <div class="chat-messages" id="chat-msgs"><div class="empty"><div class="emo">💬</div><p>Оберіть чат зліва</p></div></div>
+            <div class="chat-input-wrap">
+              <textarea class="chat-input" id="chat-inp" placeholder="Напишіть повідомлення..." rows="1" onkeydown="chatKey(event)"></textarea>
+              <button class="btn a" onclick="sendMsg()">→</button>
+            </div>
+          </div>
         </div>
       </div>
-      <div id="deadlines-list"><div class="loading"><div class="spinner"></div>Завантаження з Moodle...</div></div>
-    </div>
 
-    <!-- COURSES -->
-    <div class="page" id="page-courses">
-      <div class="page-header">
-        <h2>📚 Мої курси</h2>
-        <p>Список курсів з Moodle</p>
-      </div>
-      <div class="toolbar" style="margin-bottom:16px;flex-wrap:wrap;">
-        <input type="text" id="course-search" placeholder="🔍 Пошук курсу..." oninput="filterCourses()" style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:10px 14px;color:var(--text);font-family:'Syne',sans-serif;font-size:13px;outline:none;width:200px;">
-        <button class="filter-tab active" id="sort-name" onclick="setCourseSort('name')">За назвою</button>
-        <button class="filter-tab" id="sort-num" onclick="setCourseSort('num')">За номером</button>
-        <div style="margin-left:auto;display:flex;gap:4px;">
-          <button class="view-btn active" id="view-grid" onclick="setCourseView('grid')" title="Картки">⊞</button>
-          <button class="view-btn" id="view-list" onclick="setCourseView('list')" title="Список">☰</button>
+      <!-- ADMIN -->
+      <div class="page" id="page-admin">
+        <div class="page-header"><h2>⚙️ Адмін-панель</h2><p>Управління групами та користувачами</p></div>
+        <div class="admin-grid">
+          <!-- Groups -->
+          <div class="admin-card">
+            <h3>🏫 Групи</h3>
+            <div id="admin-groups-list"><div class="loading"><div class="spinner"></div></div></div>
+            <button class="btn a" style="width:100%;margin-top:10px;" onclick="showModal('add-group')">+ Створити групу</button>
+          </div>
+          <!-- Users -->
+          <div class="admin-card">
+            <h3>👥 Користувачі</h3>
+            <div id="admin-users-list"><div class="loading"><div class="spinner"></div></div></div>
+          </div>
+          <!-- Stats -->
+          <div class="admin-card">
+            <h3>📊 Статистика</h3>
+            <div id="admin-stats"><div class="loading"><div class="spinner"></div></div></div>
+          </div>
         </div>
       </div>
-      <div id="courses-list"><div class="loading"><div class="spinner"></div>Завантаження...</div></div>
-    </div>
-
-    <!-- FILES -->
-    <div class="page" id="page-files">
-      <div class="page-header">
-        <h2>📁 Файли групи</h2>
-        <p>Діліться файлами з одногрупниками</p>
-      </div>
-      <div class="upload-zone" id="upload-zone" onclick="document.getElementById('file-input').click()"
-           ondragover="event.preventDefault();this.classList.add('drag')"
-           ondragleave="this.classList.remove('drag')"
-           ondrop="handleDrop(event)">
-        <div class="up-icon">📤</div>
-        <p><strong>Натисніть або перетягніть файл</strong></p>
-        <p style="margin-top:4px;font-size:12px;">PDF, DOCX, PPTX, XLSX, ZIP та інші</p>
-      </div>
-      <input type="file" id="file-input" multiple onchange="handleFileSelect(this)">
-      <div class="section-title">Завантажені файли</div>
-      <div id="group-files-list"></div>
-    </div>
-
-    <!-- MATERIALS -->
-    <div class="page" id="page-materials">
-      <div class="page-header">
-        <h2>📝 Матеріали</h2>
-        <p>Конспекти, лекції, шпаргалки</p>
-      </div>
-      <div class="toolbar">
-        <input type="text" placeholder="🔍 Пошук матеріалу..." oninput="filterMaterials(this.value)">
-        <div class="toolbar-right">
-          <button class="btn-sm accent" onclick="showAddMaterial()">+ Додати</button>
-        </div>
-      </div>
-      <div id="materials-list"></div>
-    </div>
-  </main>
-</div>
-
-<!-- Modal: Add Material -->
-<div class="modal-overlay" id="add-material-modal">
-  <div class="modal">
-    <h3>📝 Додати матеріал</h3>
-    <div class="field">
-      <label>Назва</label>
-      <input type="text" id="mat-name" placeholder="Конспект по вищій математиці" style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:12px 16px;color:var(--text);font-family:'Syne',sans-serif;font-size:14px;outline:none;">
-    </div>
-    <div class="field">
-      <label>Предмет / курс</label>
-      <input type="text" id="mat-subject" placeholder="Вища математика" style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:12px 16px;color:var(--text);font-family:'Syne',sans-serif;font-size:14px;outline:none;">
-    </div>
-    <div class="field">
-      <label>Опис або посилання</label>
-      <input type="text" id="mat-desc" placeholder="https://drive.google.com/... або короткий опис" style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:12px 16px;color:var(--text);font-family:'Syne',sans-serif;font-size:14px;outline:none;">
-    </div>
-    <div class="modal-actions">
-      <button class="btn-sm" onclick="closeModal()">Скасувати</button>
-      <button class="btn-sm accent" onclick="addMaterial()">Додати</button>
     </div>
   </div>
 </div>
 
+<!-- MODALS -->
+<div class="modal-ov" id="modal-add-mat">
+  <div class="modal">
+    <h3>📝 Додати матеріал</h3>
+    <div class="field"><label>Назва</label><input type="text" id="mn" placeholder="Конспект по математиці"></div>
+    <div class="field"><label>Предмет</label><input type="text" id="ms" placeholder="Вища математика"></div>
+    <div class="field"><label>Посилання або опис</label><input type="text" id="md" placeholder="https://drive.google.com/..."></div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal('add-mat')">Скасувати</button>
+      <button class="btn a" onclick="addMat()">Додати</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-ov" id="modal-add-group">
+  <div class="modal">
+    <h3>🏫 Створити групу</h3>
+    <div class="field"><label>Назва групи</label><input type="text" id="gn" placeholder="103-ОПУТ-Д24"></div>
+    <div class="field"><label>Факультет</label><input type="text" id="gf" placeholder="Інформаційні технології"></div>
+    <div class="field"><label>Курс (1-6)</label><input type="number" id="gc" placeholder="1" min="1" max="6"></div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal('add-group')">Скасувати</button>
+      <button class="btn a" onclick="createGroup()">Створити</button>
+    </div>
+  </div>
+</div>
+
+<!-- Firebase -->
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+import { getFirestore, collection, addDoc, deleteDoc, doc, query, where, orderBy, onSnapshot, getDocs, setDoc, getDoc, updateDoc, serverTimestamp, limit } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+
+const cfg = {
+  apiKey:"AIzaSyAXscEMkW51sejM_yBkMcL_QyvgfAWT7sE",
+  authDomain:"student-hub-ukrdust.firebaseapp.com",
+  projectId:"student-hub-ukrdust",
+  storageBucket:"student-hub-ukrdust.firebasestorage.app",
+  messagingSenderId:"181184327168",
+  appId:"1:181184327168:web:3ceca4b24980f900eff2e5"
+};
+const app = initializeApp(cfg);
+const db = getFirestore(app);
+window._db = db;
+window._fb = { collection, addDoc, deleteDoc, doc, query, where, orderBy, onSnapshot, getDocs, setDoc, getDoc, updateDoc, serverTimestamp, limit };
+
+// Load groups into login select
+async function loadGroupsForLogin() {
+  const sel = document.getElementById('lg');
+  try {
+    const snap = await getDocs(collection(db, 'groups'));
+    const groups = snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a,b) => (a.name||'').localeCompare(b.name||''));
+    if (!groups.length) {
+      sel.innerHTML = '<option value="">— Груп ще немає (зверніться до адміна) —</option>';
+      return;
+    }
+    // Group by faculty
+    const faculties = {};
+    groups.forEach(g => {
+      const f = g.faculty || 'Інші';
+      if (!faculties[f]) faculties[f] = [];
+      faculties[f].push(g);
+    });
+    let html = '<option value="">— Оберіть групу —</option>';
+    Object.keys(faculties).sort().forEach(f => {
+      html += '<optgroup label="' + f + '">';
+      faculties[f].forEach(g => { html += '<option value="' + g.id + '">' + g.name + '</option>'; });
+      html += '</optgroup>';
+    });
+    sel.innerHTML = html;
+  } catch(e) {
+    sel.innerHTML = '<option value="">— Помилка завантаження —</option>';
+  }
+}
+loadGroupsForLogin();
+
+window._loadGroupsForLogin = loadGroupsForLogin;
+</script>
+
 <script>
 const MOODLE = 'https://do.kart.edu.ua';
-let token = '';
-let userData = {};
-let allDeadlines = [];
-let allMaterials = JSON.parse(localStorage.getItem('sh_materials') || '[]');
-let groupFiles = JSON.parse(localStorage.getItem('sh_files') || '[]');
+let token='', userData={}, allDl=[], courses=[], group={}, userRole='student';
+let unsubs=[], cachedFiles=[], cachedMats=[], currentChatRoom=null, chatUnsub=null;
+let cvMode='grid', csMode='name';
+
+// ── ROLES ──
+const ROLES = { superadmin:'🔴 Супер-адмін', admin:'🟠 Адмін', moderator:'🟡 Модератор', student:'🟢 Студент' };
+const ROLE_COLORS = { superadmin:'#e05050', admin:'#f0a030', moderator:'#f0c040', student:'#40d080' };
+function canAdmin() { return ['superadmin','admin'].includes(userRole); }
+function canMod() { return ['superadmin','admin','moderator'].includes(userRole); }
 
 // ── AUTH ──
 async function doLogin() {
-  const username = document.getElementById('login-input').value.trim();
-  const password = document.getElementById('pass-input').value;
+  const username = document.getElementById('li').value.trim();
+  const password = document.getElementById('lp').value;
+  const groupId = document.getElementById('lg').value;
   const btn = document.getElementById('login-btn');
-  const err = document.getElementById('login-error');
-  err.style.display = 'none';
-  if (!username || !password) { showErr('Введіть логін та пароль'); return; }
-  btn.disabled = true; btn.textContent = 'Входимо...';
+  const err = document.getElementById('lerr');
+  err.style.display='none';
+  if (!username||!password) { showErr('Введіть логін та пароль'); return; }
+  if (!groupId) { showErr('Оберіть групу'); return; }
+  btn.disabled=true; btn.textContent='Входимо...';
   try {
-    const r = await fetch(`${MOODLE}/login/token.php?username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}&service=moodle_mobile_app`);
+    const r = await fetch(MOODLE+'/login/token.php?username='+encodeURIComponent(username)+'&password='+encodeURIComponent(password)+'&service=moodle_mobile_app');
     const d = await r.json();
     if (d.token) {
       token = d.token;
+      // Load group info
+      const { doc, getDoc } = window._fb;
+      const gSnap = await getDoc(doc(window._db, 'groups', groupId));
+      if (!gSnap.exists()) { showErr('Групу не знайдено'); btn.disabled=false; btn.textContent='Увійти'; return; }
+      group = { id: groupId, ...gSnap.data() };
       localStorage.setItem('sh_token', token);
+      localStorage.setItem('sh_gid', groupId);
       await initApp();
-    } else {
-      showErr(d.error || 'Невірний логін або пароль');
-    }
-  } catch(e) {
-    showErr('Помилка підключення до Moodle. Перевірте інтернет.');
-  }
-  btn.disabled = false; btn.textContent = 'Увійти через Moodle';
+    } else { showErr(d.error || 'Невірний логін або пароль'); }
+  } catch(e) { showErr('Помилка підключення'); }
+  btn.disabled=false; btn.textContent='Увійти';
 }
-
-function showErr(msg) {
-  const err = document.getElementById('login-error');
-  err.textContent = msg; err.style.display = 'block';
-}
-
-document.getElementById('pass-input').addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
-document.getElementById('login-input').addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
+function showErr(msg) { const e=document.getElementById('lerr'); e.textContent=msg; e.style.display='block'; }
+document.getElementById('lp').addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
 
 async function initApp() {
-  document.getElementById('login-screen').style.display = 'none';
-  document.getElementById('app').style.display = 'block';
+  document.getElementById('screen-login').classList.remove('active');
+  document.getElementById('screen-app').classList.add('active');
+  document.getElementById('gpill').textContent = '📌 ' + group.name;
+  document.getElementById('files-lbl').textContent = 'Файли групи ' + group.name;
+  document.getElementById('mats-lbl').textContent = 'Матеріали групи ' + group.name;
   await loadUserInfo();
+  await loadUserRole();
+  setupNav();
   await syncMoodle();
-  renderGroupFiles();
-  renderMaterials();
+  listenFiles(); listenMats(); setupChatRooms();
+  if (canAdmin()) listenAdminData();
 }
 
 async function loadUserInfo() {
@@ -810,290 +591,406 @@ async function loadUserInfo() {
     const d = await moodleCall('core_webservice_get_site_info');
     userData = d;
     const name = d.fullname || 'Студент';
-    document.getElementById('user-name').textContent = name;
-    document.getElementById('user-avatar').textContent = name[0].toUpperCase();
-    const today = new Date().toLocaleDateString('uk-UA', {weekday:'long', day:'numeric', month:'long'});
-    document.getElementById('dash-subtitle').textContent = today + ' • ' + name;
+    document.getElementById('uname').textContent = name;
+    document.getElementById('uav').textContent = name[0].toUpperCase();
+    const today = new Date().toLocaleDateString('uk-UA',{weekday:'long',day:'numeric',month:'long'});
+    document.getElementById('dash-sub').textContent = today + ' • ' + name;
+    // Save/update user in Firestore
+    if (window._db && userData.userid) {
+      const { doc, setDoc } = window._fb;
+      await setDoc(doc(window._db,'users',String(userData.userid)), {
+        name, groupId: group.id, groupName: group.name,
+        moodleId: userData.userid, lastSeen: Date.now()
+      }, { merge: true });
+    }
   } catch(e) {}
 }
 
-async function syncMoodle() {
-  await Promise.all([loadCourses(), loadDeadlines()]);
-}
-
-// ── MOODLE API ──
-async function moodleCall(fn, params = {}) {
-  const p = new URLSearchParams({ wstoken: token, wsfunction: fn, moodlewsrestformat: 'json', ...params });
-  const r = await fetch(`${MOODLE}/webservice/rest/server.php?${p}`);
-  return r.json();
-}
-
-let courses = [];
-async function loadCourses() {
+async function loadUserRole() {
+  if (!window._db || !userData.userid) return;
+  const { doc, getDoc } = window._fb;
   try {
-    const info = await moodleCall('core_webservice_get_site_info');
-    const userId = info.userid;
-    const d = await moodleCall('core_enrol_get_users_courses', { userid: userId });
-    courses = Array.isArray(d) ? d : [];
-    document.getElementById('stat-courses').textContent = courses.length;
-    renderCourses();
-  } catch(e) { courses = []; }
+    const snap = await getDoc(doc(window._db,'users',String(userData.userid)));
+    if (snap.exists() && snap.data().role) {
+      userRole = snap.data().role;
+    } else { userRole = 'student'; }
+  } catch(e) { userRole = 'student'; }
+  document.getElementById('urole').textContent = ROLES[userRole] || 'Студент';
+  document.getElementById('uav').style.background = ROLE_COLORS[userRole] || '#f0c040';
 }
 
-let courseView = 'grid';
-let courseSort = 'name';
-
-function setCourseView(v) {
-  courseView = v;
-  document.getElementById('view-grid').classList.toggle('active', v==='grid');
-  document.getElementById('view-list').classList.toggle('active', v==='list');
-  filterCourses();
-}
-function setCourseSort(s) {
-  courseSort = s;
-  document.getElementById('sort-name').classList.toggle('active', s==='name');
-  document.getElementById('sort-num').classList.toggle('active', s==='num');
-  filterCourses();
-}
-function filterCourses() {
-  const el = document.getElementById('course-search');
-  const q = el ? el.value.toLowerCase() : '';
-  let list = courses.filter(c => !q || (c.fullname||c.shortname||'').toLowerCase().includes(q));
-  if (courseSort==='name') list = list.slice().sort((a,b)=>(a.fullname||a.shortname).localeCompare(b.fullname||b.shortname));
-  renderCourses(list);
-}
-function renderCourses(list) {
-  list = list || courses;
-  const el = document.getElementById('courses-list');
-  if (!list.length) { el.innerHTML = '<div class="empty-state"><div class="emoji">📚</div><p>Курси не знайдено</p></div>'; return; }
-  const cls = courseView === 'list' ? 'course-list list-view' : 'course-list';
-  el.innerHTML = '<div class="' + cls + '">' + list.map((c,i) => {
-    const url = c.id ? 'https://do.kart.edu.ua/course/view.php?id=' + c.id : '#';
-    return '<a class="course-card" href="' + url + '" target="_blank">' +
-      '<div class="course-num">Курс #' + (i+1) + '</div>' +
-      '<div class="course-name">' + (c.fullname || c.shortname) + '</div>' +
-      '<div class="course-meta">' + (c.shortname || '') + '</div>' +
-      '</a>';
-  }).join('') + '</div>';
-}
-
-async function loadDeadlines() {
-  try {
-    const now = Math.floor(Date.now()/1000);
-    const future = now + 60*60*24*60;
-    const d = await moodleCall('core_calendar_get_action_events_by_timesort', {
-      timesortfrom: now, timesortto: future, limitnum: 50
-    });
-    const events = d.events || [];
-    allDeadlines = events.map(e => ({
-      id: e.id,
-      name: e.name,
-      course: e.course ? e.course.fullname : 'Невідомий курс',
-      due: e.timesort || e.timeusermidnight,
-      submitted: e.action ? e.action.actionable === false : false,
-      url: e.url || '#'
-    }));
-    updateDeadlineStats();
-    renderDeadlines(allDeadlines);
-    renderDashDeadlines();
-  } catch(e) {
-    document.getElementById('deadlines-list').innerHTML = '<div class="empty-state"><div class="emoji">⚠️</div><p>Не вдалось завантажити дедлайни</p></div>';
+function setupNav() {
+  if (canAdmin()) {
+    document.getElementById('admin-section').style.display='';
+    document.getElementById('nav-admin').style.display='';
   }
 }
 
-function getDotClass(ts) {
-  const diff = ts - Date.now()/1000;
-  if (diff < 60*60*48) return 'urgent';
-  if (diff < 60*60*24*7) return 'soon';
-  return 'ok';
+async function moodleCall(fn, params={}) {
+  const p = new URLSearchParams({ wstoken:token, wsfunction:fn, moodlewsrestformat:'json', ...params });
+  const r = await fetch(MOODLE+'/webservice/rest/server.php?'+p);
+  return r.json();
 }
 
-function formatDate(ts) {
-  return new Date(ts*1000).toLocaleDateString('uk-UA', {day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'});
+// ── SYNC ──
+async function syncMoodle() { await Promise.all([loadCourses(), loadDeadlines()]); }
+
+// ── COURSES ──
+async function loadCourses() {
+  try {
+    const info = await moodleCall('core_webservice_get_site_info');
+    const d = await moodleCall('core_enrol_get_users_courses',{userid:info.userid});
+    courses = Array.isArray(d) ? d : [];
+    document.getElementById('s-courses').textContent = courses.length;
+    filterCourses();
+  } catch(e) { courses=[]; }
+}
+function setCV(v) { cvMode=v; document.getElementById('vg').classList.toggle('on',v==='grid'); document.getElementById('vl').classList.toggle('on',v==='list'); filterCourses(); }
+function setCS(s) { csMode=s; document.getElementById('cs-n').classList.toggle('on',s==='name'); document.getElementById('cs-num').classList.toggle('on',s==='num'); filterCourses(); }
+function filterCourses() {
+  const q=(document.getElementById('c-q')||{value:''}).value.toLowerCase();
+  let list=courses.filter(c=>!q||(c.fullname||c.shortname||'').toLowerCase().includes(q));
+  if(csMode==='name') list=list.slice().sort((a,b)=>(a.fullname||a.shortname).localeCompare(b.fullname||b.shortname));
+  const el=document.getElementById('courses-list');
+  if(!list.length){el.innerHTML='<div class="empty"><div class="emo">📚</div><p>Курси не знайдено</p></div>';return;}
+  const cls=cvMode==='list'?'course-grid lv':'course-grid';
+  el.innerHTML='<div class="'+cls+'">'+list.map((c,i)=>
+    '<a class="course-card" href="https://do.kart.edu.ua/course/view.php?id='+c.id+'" target="_blank">'+
+    '<div class="c-num">№'+(i+1)+'</div>'+
+    '<div class="c-name">'+(c.fullname||c.shortname)+'</div>'+
+    '<div class="c-meta">'+(c.shortname||'')+'</div></a>'
+  ).join('')+'</div>';
 }
 
-function updateDeadlineStats() {
-  const now = Date.now()/1000;
-  const urgent = allDeadlines.filter(d => !d.submitted && (d.due - now) < 60*60*48).length;
-  const done = allDeadlines.filter(d => d.submitted).length;
-  document.getElementById('stat-urgent').textContent = urgent;
-  document.getElementById('stat-done').textContent = done;
+// ── DEADLINES ──
+async function loadDeadlines() {
+  const now=Math.floor(Date.now()/1000);
+  try {
+    const d=await moodleCall('core_calendar_get_action_events_by_timesort',{
+      timesortfrom:now-60*60*24*30, timesortto:now+60*60*24*90, limitnum:150
+    });
+    allDl=(d.events||[]).filter(e=>e.timesort).map(e=>({
+      id:e.id, name:e.name,
+      course:e.course?e.course.fullname:'—',
+      due:e.timesort, past:e.timesort<now,
+      url:e.url||'#'
+    })).sort((a,b)=>a.due-b.due);
+    const urgent=allDl.filter(d=>!d.past&&(d.due-now)<60*60*48).length;
+    const past=allDl.filter(d=>d.past).length;
+    document.getElementById('s-urgent').textContent=urgent;
+    document.getElementById('s-done').textContent=past;
+    applyDlFilter();
+    renderDashDl();
+  } catch(e) {
+    document.getElementById('dl-list').innerHTML='<div class="empty"><div class="emo">⚠️</div><p>Помилка завантаження</p></div>';
+  }
 }
 
-function renderDeadlines(list) {
-  const el = document.getElementById('deadlines-list');
-  if (!list.length) { el.innerHTML = '<div class="empty-state"><div class="emoji">🎉</div><p>Немає активних дедлайнів!</p></div>'; return; }
-  el.innerHTML = '<div class="deadline-list">' + list.map(d => {
-    const cls = getDotClass(d.due);
-    const click = d.url && d.url !== '#' ? 'onclick="window.open(\'' + d.url + '\',\'_blank\')" style="cursor:pointer"' : '';
-    const arrow = d.url && d.url !== '#' ? ' <span style="font-size:11px;opacity:0.6">↗</span>' : '';
-    return '<div class="deadline-item" ' + click + '>' +
-      '<div class="deadline-dot ' + cls + '"></div>' +
-      '<div class="deadline-info">' +
-        '<div class="deadline-name">' + d.name + arrow + '</div>' +
-        '<div class="deadline-course">' + d.course + '</div>' +
-      '</div>' +
-      '<div class="deadline-date ' + cls + '">' + formatDate(d.due) + '</div>' +
-      (d.submitted ? '<span class="tag green">Здано</span>' : '') +
-      '</div>';
-  }).join('') + '</div>';
+function dlDot(d) { if(d.past)return'dot-u'; const diff=d.due-Date.now()/1000; if(diff<60*60*48)return'dot-u'; if(diff<60*60*24*7)return'dot-s'; return'dot-o'; }
+function dlDateCls(d) { if(d.past)return'u'; const diff=d.due-Date.now()/1000; if(diff<60*60*48)return'u'; if(diff<60*60*24*7)return's'; return''; }
+function fmtDate(ts) { return new Date(ts*1000).toLocaleDateString('uk-UA',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}); }
+
+function applyDlFilter() {
+  const q=(document.getElementById('dl-q')||{value:''}).value.toLowerCase();
+  const f=(document.getElementById('dl-f')||{value:'all'}).value;
+  const now=Date.now()/1000;
+  let list=allDl.filter(d=>!q||d.name.toLowerCase().includes(q)||d.course.toLowerCase().includes(q));
+  if(f==='active') list=list.filter(d=>!d.past);
+  else if(f==='urgent') list=list.filter(d=>!d.past&&(d.due-now)<60*60*48);
+  else if(f==='past') list=list.filter(d=>d.past);
+  renderDl(list, document.getElementById('dl-list'));
 }
 
-function renderDashDeadlines() {
-  const el = document.getElementById('dash-deadlines');
-  const top = allDeadlines.filter(d => !d.submitted).slice(0,5);
-  if (!top.length) { el.innerHTML = '<div class="empty-state"><div class="emoji">🎉</div><p>Немає активних дедлайнів!</p></div>'; return; }
-  el.innerHTML = '<div class="deadline-list">' + top.map(d => {
-    const cls = getDotClass(d.due);
-    const click = d.url && d.url !== '#' ? 'onclick="window.open(\'' + d.url + '\',\'_blank\')" style="cursor:pointer"' : '';
-    const arrow = d.url && d.url !== '#' ? ' <span style="font-size:11px;opacity:0.6">↗</span>' : '';
-    return '<div class="deadline-item" ' + click + '>' +
-      '<div class="deadline-dot ' + cls + '"></div>' +
-      '<div class="deadline-info">' +
-        '<div class="deadline-name">' + d.name + arrow + '</div>' +
-        '<div class="deadline-course">' + d.course + '</div>' +
-      '</div>' +
-      '<div class="deadline-date ' + cls + '">' + formatDate(d.due) + '</div>' +
-      '</div>';
-  }).join('') + '</div>';
+function renderDl(list, el) {
+  if(!list.length){el.innerHTML='<div class="empty"><div class="emo">🎉</div><p>Немає дедлайнів</p></div>';return;}
+  el.innerHTML='<div class="dl-list">'+list.map(d=>{
+    const dc=dlDot(d), dtc=dlDateCls(d);
+    const hasUrl=d.url&&d.url!=='#';
+    return '<div class="dl-item'+(hasUrl?' click':'')+(d.past?' opacity' :'')+'"'+
+      (hasUrl?' onclick="window.open(\''+d.url.replace(/'/g,"\\'")+'\')"':'')+(d.past?' style="opacity:.6"':'')+'>'+
+      '<div class="dl-dot '+dc+'"></div>'+
+      '<div class="dl-info"><div class="dl-name">'+d.name+(hasUrl?' <span style="opacity:.4;font-size:9px">↗</span>':'')+'</div>'+
+      '<div class="dl-course">'+d.course+'</div></div>'+
+      '<div class="dl-right">'+
+        '<div class="dl-date '+dtc+'">'+fmtDate(d.due)+'</div>'+
+        (d.past?'<span class="tag">Минув</span>':'')+
+      '</div></div>';
+  }).join('')+'</div>';
 }
 
-function filterDeadlines(q) {
-  const filtered = allDeadlines.filter(d => d.name.toLowerCase().includes(q.toLowerCase()) || d.course.toLowerCase().includes(q.toLowerCase()));
-  renderDeadlines(filtered);
+function renderDashDl() {
+  const el=document.getElementById('dash-dl');
+  const top=allDl.filter(d=>!d.past).slice(0,5);
+  if(!top.length){el.innerHTML='<div class="empty"><div class="emo">🎉</div><p>Немає активних дедлайнів!</p></div>';return;}
+  renderDl(top,el);
 }
 
 // ── FILES ──
-function handleFileSelect(input) {
-  Array.from(input.files).forEach(addFile);
+function listenFiles() {
+  if(!window._db||!group.id) return;
+  const {collection,query,where,orderBy,onSnapshot}=window._fb;
+  const q=query(collection(window._db,'files'),where('groupId','==',group.id),orderBy('createdAt','desc'));
+  const unsub=onSnapshot(q,snap=>{
+    cachedFiles=snap.docs.map(d=>({id:d.id,...d.data()}));
+    renderFiles(cachedFiles);
+    document.getElementById('s-files').textContent=cachedFiles.length;
+  },()=>{ document.getElementById('files-list').innerHTML='<div class="empty"><div class="emo">⚠️</div><p>Помилка завантаження</p></div>'; });
+  unsubs.push(unsub);
 }
-function handleDrop(e) {
-  e.preventDefault();
-  document.getElementById('upload-zone').classList.remove('drag');
-  Array.from(e.dataTransfer.files).forEach(addFile);
-}
-function addFile(file) {
-  const entry = {
-    id: Date.now() + Math.random(),
-    name: file.name,
-    size: file.size,
-    type: file.type,
-    uploader: userData.fullname || 'Ви',
-    date: new Date().toLocaleDateString('uk-UA'),
-    dataUrl: null
-  };
-  const reader = new FileReader();
-  reader.onload = e => {
-    entry.dataUrl = e.target.result;
-    groupFiles.unshift(entry);
-    saveFiles();
-    renderGroupFiles();
+function handleFileSelect(inp) { Array.from(inp.files).forEach(uploadFile); inp.value=''; }
+function handleDrop(e) { e.preventDefault(); document.getElementById('uz').classList.remove('drag'); Array.from(e.dataTransfer.files).forEach(uploadFile); }
+async function uploadFile(file) {
+  if(file.size>5*1024*1024){alert('Файл більше 5МБ');return;}
+  if(!window._db){alert('Firebase не готовий');return;}
+  const uz=document.getElementById('uz');
+  uz.innerHTML='<div class="ui">⏳</div><p>Завантаження '+file.name+'...</p>';
+  const {collection,addDoc}=window._fb;
+  const reader=new FileReader();
+  reader.onload=async e=>{
+    try {
+      await addDoc(collection(window._db,'files'),{
+        groupId:group.id, groupName:group.name,
+        name:file.name, size:file.size,
+        uploader:userData.fullname||'Студент',
+        createdAt:Date.now(), dataUrl:e.target.result
+      });
+    } catch(err){alert('Помилка: '+err.message);}
+    uz.innerHTML='<div class="ui">📤</div><p><strong>Натисніть або перетягніть</strong></p><p style="font-size:10px;margin-top:2px;">PDF, DOCX, PPTX та ін. (до 5МБ)</p>';
   };
   reader.readAsDataURL(file);
 }
-function saveFiles() {
-  // Store only metadata (not dataUrl for large files) to avoid quota issues
-  const meta = groupFiles.map(f => ({...f, dataUrl: f.dataUrl && f.dataUrl.length < 500000 ? f.dataUrl : null}));
-  try { localStorage.setItem('sh_files', JSON.stringify(meta)); } catch(e) {}
-  document.getElementById('stat-files').textContent = groupFiles.length;
+function renderFiles(files) {
+  const el=document.getElementById('files-list');
+  if(!files.length){el.innerHTML='<div class="empty"><div class="emo">📂</div><p>Файлів ще немає</p></div>';return;}
+  el.innerHTML='<div class="file-list">'+files.map(f=>{
+    const ext=(f.name||'').split('.').pop().toLowerCase();
+    const ec=ext==='pdf'?'ep':['doc','docx'].includes(ext)?'ed':['xls','xlsx'].includes(ext)?'ex':'eo';
+    const sz=f.size>1048576?(f.size/1048576).toFixed(1)+' МБ':Math.round(f.size/1024)+' КБ';
+    return '<div class="file-item">'+
+      '<div class="file-ext '+ec+'">'+ext.toUpperCase()+'</div>'+
+      '<div class="file-info"><div class="file-name">'+f.name+'</div>'+
+      '<div class="file-meta">'+(f.uploader||'?')+' • '+new Date(f.createdAt).toLocaleDateString('uk-UA')+' • '+sz+'</div></div>'+
+      '<div class="file-actions">'+
+        (f.dataUrl?'<button class="btn a" onclick="dlFile(\''+f.id+'\')">⬇</button>':'')+
+        (canMod()||f.uploader===userData.fullname?'<button class="btn d" onclick="rmFile(\''+f.id+'\')">🗑</button>':'')+
+      '</div></div>';
+  }).join('')+'</div>';
 }
-function renderGroupFiles() {
-  const el = document.getElementById('group-files-list');
-  document.getElementById('stat-files').textContent = groupFiles.length;
-  if (!groupFiles.length) { el.innerHTML = '<div class="empty-state"><div class="emoji">📂</div><p>Файлів ще немає. Завантажте перший!</p></div>'; return; }
-  el.innerHTML = '<div class="file-list">' + groupFiles.map((f,i) => {
-    const ext = f.name.split('.').pop().toLowerCase();
-    const extClass = ['pdf'].includes(ext) ? 'pdf' : ['doc','docx'].includes(ext) ? 'docx' : ['ppt','pptx'].includes(ext) ? 'pptx' : 'other';
-    const size = f.size > 1048576 ? (f.size/1048576).toFixed(1)+' МБ' : (f.size/1024).toFixed(0)+' КБ';
-    return `<div class="file-item">
-      <div class="file-ext ${extClass}">${ext.toUpperCase()}</div>
-      <div class="file-info">
-        <div class="file-name">${f.name}</div>
-        <div class="file-meta">${f.uploader} • ${f.date} • ${size}</div>
-      </div>
-      <div class="file-actions">
-        ${f.dataUrl ? `<button class="btn-sm accent" onclick="downloadFile(${i})">⬇ Завантажити</button>` : ''}
-        <button class="btn-sm" onclick="deleteFile(${i})" style="color:var(--accent2)">🗑</button>
-      </div>
-    </div>`;
-  }).join('') + '</div>';
-}
-function downloadFile(i) {
-  const f = groupFiles[i];
-  if (!f.dataUrl) return;
-  const a = document.createElement('a');
-  a.href = f.dataUrl; a.download = f.name; a.click();
-}
-function deleteFile(i) {
-  groupFiles.splice(i, 1);
-  saveFiles(); renderGroupFiles();
-}
+async function dlFile(id) { const f=cachedFiles.find(x=>x.id===id); if(!f||!f.dataUrl)return; const a=document.createElement('a');a.href=f.dataUrl;a.download=f.name;a.click(); }
+async function rmFile(id) { if(!confirm('Видалити?'))return; const {doc,deleteDoc}=window._fb; await deleteDoc(doc(window._db,'files',id)); }
 
 // ── MATERIALS ──
-function renderMaterials(filter = '') {
-  const el = document.getElementById('materials-list');
-  const list = filter ? allMaterials.filter(m => m.name.toLowerCase().includes(filter) || m.subject.toLowerCase().includes(filter)) : allMaterials;
-  if (!list.length) { el.innerHTML = '<div class="empty-state"><div class="emoji">📝</div><p>Матеріалів ще немає. Додайте перший!</p></div>'; return; }
-  el.innerHTML = '<div class="file-list">' + list.map((m,i) =>
-    `<div class="file-item">
-      <div class="file-ext other">📝</div>
-      <div class="file-info">
-        <div class="file-name">${m.name}</div>
-        <div class="file-meta">${m.subject} • ${m.desc || ''}</div>
-      </div>
-      <div class="file-actions">
-        ${m.desc && m.desc.startsWith('http') ? `<a href="${m.desc}" target="_blank"><button class="btn-sm accent">🔗 Відкрити</button></a>` : ''}
-        <button class="btn-sm" onclick="deleteMaterial(${i})" style="color:var(--accent2)">🗑</button>
-      </div>
-    </div>`
-  ).join('') + '</div>';
+function listenMats() {
+  if(!window._db||!group.id) return;
+  const {collection,query,where,orderBy,onSnapshot}=window._fb;
+  const q=query(collection(window._db,'materials'),where('groupId','==',group.id),orderBy('createdAt','desc'));
+  const unsub=onSnapshot(q,snap=>{ cachedMats=snap.docs.map(d=>({id:d.id,...d.data()})); renderMats(cachedMats); });
+  unsubs.push(unsub);
 }
-function filterMaterials(q) { renderMaterials(q.toLowerCase()); }
-function showAddMaterial() { document.getElementById('add-material-modal').classList.add('show'); }
-function closeModal() { document.getElementById('add-material-modal').classList.remove('show'); }
-function addMaterial() {
-  const name = document.getElementById('mat-name').value.trim();
-  const subject = document.getElementById('mat-subject').value.trim();
-  const desc = document.getElementById('mat-desc').value.trim();
-  if (!name) return;
-  allMaterials.unshift({ name, subject, desc, date: new Date().toLocaleDateString('uk-UA') });
-  localStorage.setItem('sh_materials', JSON.stringify(allMaterials));
-  closeModal();
-  renderMaterials();
-  document.getElementById('mat-name').value = '';
-  document.getElementById('mat-subject').value = '';
-  document.getElementById('mat-desc').value = '';
+function filterMats(q) { renderMats(cachedMats,q.toLowerCase()); }
+function renderMats(list,q='') {
+  const el=document.getElementById('mats-list');
+  const items=q?list.filter(m=>(m.name||'').toLowerCase().includes(q)||(m.subject||'').toLowerCase().includes(q)):list;
+  if(!items.length){el.innerHTML='<div class="empty"><div class="emo">📝</div><p>Матеріалів ще немає</p></div>';return;}
+  el.innerHTML='<div class="file-list">'+items.map(m=>
+    '<div class="file-item">'+
+    '<div class="file-ext eo">📝</div>'+
+    '<div class="file-info"><div class="file-name">'+(m.name||'')+'</div>'+
+    '<div class="file-meta">'+(m.subject||'')+(m.desc?' • '+m.desc:'')+'</div></div>'+
+    '<div class="file-actions">'+
+      (m.desc&&m.desc.startsWith('http')?'<a href="'+m.desc+'" target="_blank"><button class="btn a">🔗</button></a>':'')+
+      (canMod()||m.uploader===userData.fullname?'<button class="btn d" onclick="rmMat(\''+m.id+'\')">🗑</button>':'')+
+    '</div></div>'
+  ).join('')+'</div>';
 }
-function deleteMaterial(i) { allMaterials.splice(i,1); localStorage.setItem('sh_materials', JSON.stringify(allMaterials)); renderMaterials(); }
+function showModal(id) { document.getElementById('modal-'+id).classList.add('show'); }
+function closeModal(id) { document.getElementById('modal-'+id).classList.remove('show'); }
+async function addMat() {
+  const name=document.getElementById('mn').value.trim();
+  const subject=document.getElementById('ms').value.trim();
+  const desc=document.getElementById('md').value.trim();
+  if(!name)return;
+  const {collection,addDoc}=window._fb;
+  await addDoc(collection(window._db,'materials'),{groupId:group.id,groupName:group.name,name,subject,desc,uploader:userData.fullname||'?',createdAt:Date.now()});
+  closeModal('add-mat');
+  ['mn','ms','md'].forEach(id=>document.getElementById(id).value='');
+}
+async function rmMat(id) { if(!confirm('Видалити?'))return; const {doc,deleteDoc}=window._fb; await deleteDoc(doc(window._db,'materials',id)); }
+
+// ── CHAT ──
+function setupChatRooms() {
+  const rooms=[
+    {id:'group-'+group.id, label:'👥 '+group.name, sub:'Ваша група'},
+    {id:'faculty-'+(group.faculty||'general'), label:'🏛 Факультет', sub:group.faculty||'Загальний'},
+    {id:'university', label:'🎓 Університет', sub:'Всі студенти'},
+  ];
+  const el=document.getElementById('chat-rooms');
+  el.innerHTML=rooms.map(r=>
+    '<div class="chat-room" onclick="openChatRoom(\''+r.id+'\',\''+r.label+'\')">'+
+    r.label+'<div class="chat-room-sub">'+r.sub+'</div></div>'
+  ).join('');
+}
+function openChatRoom(roomId, label) {
+  currentChatRoom=roomId;
+  document.getElementById('chat-room-title').textContent=label;
+  document.querySelectorAll('.chat-room').forEach(r=>r.classList.remove('active'));
+  event.currentTarget.classList.add('active');
+  if(chatUnsub) chatUnsub();
+  const {collection,query,orderBy,onSnapshot,where,limit}=window._fb;
+  const q=query(collection(window._db,'messages'),where('room','==',roomId),orderBy('ts','desc'),limit(50));
+  chatUnsub=onSnapshot(q,snap=>{
+    const msgs=snap.docs.map(d=>d.data()).reverse();
+    renderMessages(msgs);
+  });
+}
+function renderMessages(msgs) {
+  const el=document.getElementById('chat-msgs');
+  if(!msgs.length){el.innerHTML='<div class="empty"><div class="emo">💬</div><p>Повідомлень ще немає</p></div>';return;}
+  el.innerHTML=msgs.map(m=>{
+    const isMe=m.uid===String(userData.userid);
+    const t=m.ts?new Date(m.ts).toLocaleTimeString('uk-UA',{hour:'2-digit',minute:'2-digit'}):'';
+    return '<div class="msg '+(isMe?'me':'other')+'">'+
+      (!isMe?'<div class="msg-author">'+m.author+'</div>':'')+
+      '<div class="msg-bubble">'+escHtml(m.text)+'</div>'+
+      '<div class="msg-time">'+t+'</div></div>';
+  }).join('');
+  el.scrollTop=el.scrollHeight;
+}
+function escHtml(t) { return (t||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function chatKey(e) { if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMsg();} }
+async function sendMsg() {
+  if(!currentChatRoom)return;
+  const inp=document.getElementById('chat-inp');
+  const text=inp.value.trim();
+  if(!text)return;
+  inp.value='';
+  const {collection,addDoc}=window._fb;
+  await addDoc(collection(window._db,'messages'),{
+    room:currentChatRoom, text,
+    author:userData.fullname||'?',
+    uid:String(userData.userid),
+    groupId:group.id,
+    ts:Date.now()
+  });
+}
+
+// ── ADMIN ──
+function listenAdminData() {
+  if(!window._db)return;
+  const {collection,query,onSnapshot,orderBy}=window._fb;
+  // Groups
+  onSnapshot(query(collection(window._db,'groups'),orderBy('name')),snap=>{
+    const groups=snap.docs.map(d=>({id:d.id,...d.data()}));
+    renderAdminGroups(groups);
+  });
+  // Users
+  onSnapshot(collection(window._db,'users'),snap=>{
+    const users=snap.docs.map(d=>({id:d.id,...d.data()}));
+    renderAdminUsers(users);
+    document.getElementById('admin-stats').innerHTML=
+      '<div style="font-size:13px;line-height:2;">'+
+      '👥 Користувачів: <b>'+users.length+'</b><br>'+
+      '🏫 Груп: <b>—</b><br>'+
+      '📁 Файлів: <b>—</b>'+
+      '</div>';
+  });
+}
+function renderAdminGroups(groups) {
+  const el=document.getElementById('admin-groups-list');
+  if(!groups.length){el.innerHTML='<div class="empty"><p>Груп ще немає</p></div>';return;}
+  el.innerHTML=groups.map(g=>
+    '<div class="group-item">'+
+    '<div>'+
+      '<div class="gname">'+g.name+'</div>'+
+      '<div class="gcnt">'+(g.faculty||'—')+' • Курс '+(g.course||'?')+'</div>'+
+    '</div>'+
+    '<button class="btn d" onclick="delGroup(\''+g.id+'\')">🗑</button>'+
+    '</div>'
+  ).join('');
+}
+function renderAdminUsers(users) {
+  const el=document.getElementById('admin-users-list');
+  if(!users.length){el.innerHTML='<div class="empty"><p>Користувачів ще немає</p></div>';return;}
+  el.innerHTML=users.map(u=>
+    '<div class="user-row">'+
+    '<div class="uav" style="background:'+(ROLE_COLORS[u.role]||'#8888aa')+'">'+((u.name||'?')[0].toUpperCase())+'</div>'+
+    '<div style="flex:1;min-width:0;"><div class="uname" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+(u.name||'?')+'</div>'+
+    '<div style="font-size:9px;color:var(--text2);">'+(u.groupName||'')+'</div></div>'+
+    (canAdmin()?'<select class="role-sel" onchange="setRole(\''+u.id+'\',this.value)">'+
+      Object.keys(ROLES).map(r=>'<option value="'+r+'"'+(u.role===r?' selected':'')+'>'+ROLES[r]+'</option>').join('')+
+    '</select>':'')+
+    '</div>'
+  ).join('');
+}
+async function setRole(uid, role) {
+  const {doc,updateDoc}=window._fb;
+  await updateDoc(doc(window._db,'users',uid),{role});
+}
+async function createGroup() {
+  const name=document.getElementById('gn').value.trim();
+  const faculty=document.getElementById('gf').value.trim();
+  const course=parseInt(document.getElementById('gc').value)||1;
+  if(!name)return;
+  const {collection,addDoc}=window._fb;
+  await addDoc(collection(window._db,'groups'),{name,faculty,course,createdAt:Date.now()});
+  closeModal('add-group');
+  ['gn','gf','gc'].forEach(id=>document.getElementById(id).value='');
+  if(window._loadGroupsForLogin) window._loadGroupsForLogin();
+}
+async function delGroup(id) {
+  if(!confirm('Видалити групу? Файли та матеріали залишаться.'))return;
+  const {doc,deleteDoc}=window._fb;
+  await deleteDoc(doc(window._db,'groups',id));
+}
 
 // ── NAV ──
-function showPage(name) {
-  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+const PAGE_TITLES={dashboard:'Головна',deadlines:'Дедлайни',courses:'Курси',files:'Файли',materials:'Матеріали',chat:'Чати',admin:'Адмін-панель'};
+function go(name) {
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.getElementById('page-'+name).classList.add('active');
-  document.querySelectorAll('.nav-item').forEach(n => { if(n.textContent.trim().toLowerCase().includes(name === 'dashboard' ? 'голов' : name === 'deadlines' ? 'дедл' : name === 'courses' ? 'курс' : name === 'files' ? 'файл' : 'матер')) n.classList.add('active'); });
+  const labels={dashboard:'Голов',deadlines:'Дедл',courses:'Курс',files:'Файл',materials:'Матер',chat:'Чат',admin:'Адмін'};
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.toggle('active',n.textContent.trim().startsWith(labels[name]||'_')));
+  document.getElementById('topbar-title').textContent=PAGE_TITLES[name]||name;
+  closeSidebar();
 }
+
+// ── MOBILE SIDEBAR ──
+function openSidebar() { document.getElementById('sidebar').classList.add('open'); document.getElementById('sov').classList.add('show'); }
+function closeSidebar() { document.getElementById('sidebar').classList.remove('open'); document.getElementById('sov').classList.remove('show'); }
 
 // ── THEME ──
 function toggleTheme() {
-  const t = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
-  document.documentElement.setAttribute('data-theme', t);
-  localStorage.setItem('sh_theme', t);
+  const t=document.documentElement.getAttribute('data-theme')==='dark'?'light':'dark';
+  document.documentElement.setAttribute('data-theme',t);
+  localStorage.setItem('sh_theme',t);
 }
-const savedTheme = localStorage.getItem('sh_theme');
-if (savedTheme) document.documentElement.setAttribute('data-theme', savedTheme);
+const st=localStorage.getItem('sh_theme');
+if(st) document.documentElement.setAttribute('data-theme',st);
 
 // ── LOGOUT ──
 function doLogout() {
-  token = ''; userData = {}; allDeadlines = []; courses = [];
-  localStorage.removeItem('sh_token');
-  document.getElementById('app').style.display = 'none';
-  document.getElementById('login-screen').style.display = 'flex';
+  unsubs.forEach(u=>u());
+  if(chatUnsub) chatUnsub();
+  unsubs=[]; token=''; userData={}; allDl=[]; courses=[]; group={}; userRole='student'; cachedFiles=[]; cachedMats=[];
+  localStorage.removeItem('sh_token'); localStorage.removeItem('sh_gid');
+  document.getElementById('screen-app').classList.remove('active');
+  document.getElementById('screen-login').classList.add('active');
 }
 
 // ── AUTO LOGIN ──
-const savedToken = localStorage.getItem('sh_token');
-if (savedToken) { token = savedToken; initApp(); }
+const sv=localStorage.getItem('sh_token'), sgid=localStorage.getItem('sh_gid');
+if(sv&&sgid) {
+  token=sv;
+  setTimeout(async()=>{
+    if(!window._fb)return;
+    const {doc,getDoc}=window._fb;
+    try {
+      const snap=await getDoc(doc(window._db,'groups',sgid));
+      if(snap.exists()){group={id:sgid,...snap.data()};await initApp();}
+      else {localStorage.removeItem('sh_token');localStorage.removeItem('sh_gid');}
+    } catch(e){}
+  },800);
+}
 </script>
 </body>
 </html>

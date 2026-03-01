@@ -196,6 +196,8 @@ a{text-decoration:none;color:inherit;}
 .ai-bubble p{margin:5px 0;}
 .ai-bubble p:first-child{margin-top:0;}
 .ai-bubble p:last-child{margin-bottom:0;}
+.katex{color:var(--text);font-size:1.05em;}
+.katex-display{overflow-x:auto;overflow-y:hidden;padding:4px 0;}
 .msg-time{font-size:9px;color:var(--text2);font-family:'JetBrains Mono',monospace;}
 .chat-input-wrap{padding:10px;border-top:1px solid var(--border);display:flex;gap:7px;}
 .chat-input{flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:9px 12px;color:var(--text);font-family:'Syne',sans-serif;font-size:12px;outline:none;resize:none;}
@@ -318,6 +320,9 @@ a{text-decoration:none;color:inherit;}
 .note-preview blockquote{border-left:3px solid var(--accent);padding-left:10px;color:var(--text2);}
 .note-preview li{margin-left:16px;}
 </style>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"></script>
 </head>
 <body>
 
@@ -1916,7 +1921,21 @@ ${contextParts.length ? '\nКонтекст студента: ' + contextParts.j
 }
 
 function renderMarkdown(text) {
-  let t = text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  // 1. Спочатку витягуємо LaTeX блоки щоб не зіпсувати їх escape-ом
+  const mathBlocks = [];
+  let t = text;
+
+  // Display math: \[...\] або $$...$$
+  t = t.replace(/\\\[([\s\S]*?)\\\]/g, (_, m) => { mathBlocks.push({type:'block',tex:m}); return `%%MATH_BLOCK_${mathBlocks.length-1}%%`; });
+  t = t.replace(/\$\$([\s\S]*?)\$\$/g, (_, m) => { mathBlocks.push({type:'block',tex:m}); return `%%MATH_BLOCK_${mathBlocks.length-1}%%`; });
+  // Inline math: \(...\) або $...$
+  t = t.replace(/\\\(([\s\S]*?)\\\)/g, (_, m) => { mathBlocks.push({type:'inline',tex:m}); return `%%MATH_INLINE_${mathBlocks.length-1}%%`; });
+  t = t.replace(/\$([^\$\n]+)\$/g, (_, m) => { mathBlocks.push({type:'inline',tex:m}); return `%%MATH_INLINE_${mathBlocks.length-1}%%`; });
+
+  // 2. Тепер безпечно escapeємо HTML
+  t = t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
+  // 3. Markdown форматування
   // Блоки коду
   t = t.replace(/```(\w*)\n?([\s\S]*?)```/g, (_,lang,code) =>
     '<pre style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px;overflow-x:auto;margin:8px 0;font-family:\'JetBrains Mono\',monospace;font-size:12px;line-height:1.5;">'+(lang?'<div style="font-size:9px;color:var(--accent);margin-bottom:6px;text-transform:uppercase;letter-spacing:1px;">'+lang+'</div>':'')+code+'</pre>');
@@ -1927,18 +1946,33 @@ function renderMarkdown(text) {
   t = t.replace(/^## (.+)$/gm,'<div style="font-size:16px;font-weight:800;margin:12px 0 5px;border-bottom:1px solid var(--border);padding-bottom:4px;">$1</div>');
   t = t.replace(/^# (.+)$/gm,'<div style="font-size:18px;font-weight:800;margin:14px 0 6px;">$1</div>');
   // Жирний та курсив
-  t = t.replace(/\*\*(.+?)\*\*/g,'<strong style="color:var(--text);font-weight:700;">$1</strong>');
-  t = t.replace(/\*([^*\n]+)\*/g,'<em style="color:var(--text2);">$1</em>');
+  t = t.replace(/\*\*(.+?)\*\*/g,'<strong style="font-weight:700;">$1</strong>');
+  t = t.replace(/\*([^*\n]+)\*/g,'<em>$1</em>');
   // Горизонтальна лінія
   t = t.replace(/^---+$/gm,'<hr style="border:none;border-top:1px solid var(--border);margin:10px 0;">');
   // Списки
-  t = t.replace(/^[\-\*] (.+)$/gm,'<li style="margin:3px 0;">$1</li>');
-  t = t.replace(/^\d+\. (.+)$/gm,'<li style="margin:3px 0;">$1</li>');
-  t = t.replace(/(<li[^>]*>[\s\S]*?<\/li>\n?)+/g, m => '<ul style="margin:6px 0;padding-left:22px;">'+m+'</ul>');
+  t = t.replace(/^[\-\*] (.+)$/gm,'<li style="margin:4px 0;">$1</li>');
+  t = t.replace(/^\d+\. (.+)$/gm,'<li style="margin:4px 0;">$1</li>');
+  t = t.replace(/(<li[^>]*>[\s\S]*?<\/li>\n?)+/g, m => '<ul style="margin:8px 0;padding-left:22px;">'+m+'</ul>');
   // Параграфи
-  t = t.replace(/\n\n+/g,'</p><p style="margin:7px 0;">');
+  t = t.replace(/\n\n+/g,'</p><p style="margin:8px 0;">');
   t = t.replace(/\n/g,'<br>');
-  return '<p style="margin:0;">'+t+'</p>';
+  t = '<p style="margin:0;">'+t+'</p>';
+
+  // 4. Повертаємо LaTeX назад — рендеримо через KaTeX
+  t = t.replace(/%%MATH_BLOCK_(\d+)%%/g, (_, i) => {
+    try {
+      return '<div style="overflow-x:auto;margin:10px 0;padding:8px 0;text-align:center;">'+
+        window.katex.renderToString(mathBlocks[i].tex, {displayMode:true, throwOnError:false})+'</div>';
+    } catch(e) { return '<code>'+mathBlocks[i].tex+'</code>'; }
+  });
+  t = t.replace(/%%MATH_INLINE_(\d+)%%/g, (_, i) => {
+    try {
+      return window.katex.renderToString(mathBlocks[i].tex, {displayMode:false, throwOnError:false});
+    } catch(e) { return '<code>'+mathBlocks[i].tex+'</code>'; }
+  });
+
+  return t;
 }
 
 function appendAIMsg(side, text, imgSrc) {

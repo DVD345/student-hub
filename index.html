@@ -874,7 +874,7 @@ function openChatRoom(roomId, label) {
   const {collection,query,orderBy,onSnapshot,where,limit}=window._fb;
   const q=query(collection(window._db,'messages'),where('room','==',roomId),limit(50));
   chatUnsub=onSnapshot(q,snap=>{
-    const msgs=snap.docs.map(d=>d.data()).sort((a,b)=>(a.ts||0)-(b.ts||0));
+    const msgs=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(a.ts||0)-(b.ts||0));
     renderMessages(msgs);
   }, err=>{
     console.warn('Chat listener error:', err);
@@ -887,9 +887,15 @@ function renderMessages(msgs) {
   el.innerHTML=msgs.map(m=>{
     const isMe=m.uid===String(userData.userid);
     const t=m.ts?new Date(m.ts).toLocaleTimeString('uk-UA',{hour:'2-digit',minute:'2-digit'}):'';
-    return '<div class="msg '+(isMe?'me':'other')+'">'+
+    const canDel = canMod() || m.uid===String(userData.userid);
+    return '<div class="msg '+(isMe?'me':'other')+'" style="position:relative" '+
+      'onmouseenter="this.querySelector(\'.msg-del\')&&(this.querySelector(\'.msg-del\').style.opacity=1)" '+
+      'onmouseleave="this.querySelector(\'.msg-del\')&&(this.querySelector(\'.msg-del\').style.opacity=0)">'+
       (!isMe?'<div class="msg-author">'+escHtml(m.author)+'</div>':'')+
-      '<div class="msg-bubble">'+escHtml(m.text)+'</div>'+
+      '<div style="display:flex;align-items:flex-end;gap:4px;'+(isMe?'flex-direction:row-reverse':'')+'">'+
+        '<div class="msg-bubble">'+escHtml(m.text)+'</div>'+
+        (canDel&&m.id?'<button class="msg-del" data-id="'+escHtml(m.id)+'" onclick="delMsg(this.dataset.id)" style="background:rgba(224,80,80,.15);border:1px solid rgba(224,80,80,.3);color:var(--accent2);border-radius:5px;padding:2px 5px;font-size:9px;cursor:pointer;opacity:0;transition:opacity .2s;flex-shrink:0">🗑</button>':'')+
+      '</div>'+
       '<div class="msg-time">'+t+'</div></div>';
   }).join('');
   el.scrollTop=el.scrollHeight;
@@ -910,6 +916,14 @@ async function sendMsg() {
     groupId:group.id,
     ts:Date.now()
   });
+}
+
+async function delMsg(id) {
+  if(!canMod()&&!confirm('Видалити своє повідомлення?'))return;
+  try {
+    const {doc,deleteDoc}=window._fb;
+    await deleteDoc(doc(window._db,'messages',id));
+  } catch(e){ alert('Помилка: '+e.message); }
 }
 
 // ── ADMIN ──

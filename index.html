@@ -1142,6 +1142,7 @@ let _dlWarnD   = 7;
 let _dlDeleted = [];
 let _calNotes  = {}; // { 'YYYY-MM-DD': 'текст нотатки' }
 let _userSettingsUnsub = null;
+let _settingsLoaded = false;
 
 function _userSettingsDoc() {
   const { doc } = window._fb;
@@ -1149,45 +1150,65 @@ function _userSettingsDoc() {
 }
 
 // Завантажити і підписатись на realtime оновлення (між пристроями!)
-async function startUserSettingsSync() {
-  if(!window._db || !userData.userid) return;
-  const { onSnapshot } = window._fb;
-  if(_userSettingsUnsub) _userSettingsUnsub();
-  _userSettingsUnsub = onSnapshot(_userSettingsDoc(), snap => {
-    const data = snap.exists() ? snap.data() : {};
-    _dlUrgentH = data.dlUrgentH ?? 48;
-    _dlWarnD   = data.dlWarnD   ?? 7;
-    _dlDeleted = data.dlDeleted ?? [];
-    _calNotes  = data.calNotes  ?? {};
-    // Оновити UI
-    const uh = document.getElementById('dl-urgent-hours');
-    const wd = document.getElementById('dl-warn-days');
-    if(uh) uh.value = _dlUrgentH;
-    if(wd) wd.value = _dlWarnD;
-    applyDlFilter();
-    renderDashDl();
-    renderCalendar();
-    // Оновити список дедлайнів з нотатками
-    _renderCalNotesInDeadlines();
-  }, err => console.warn('userSettings sync error:', err));
+function startUserSettingsSync() {
+  return new Promise(resolve => {
+    if(!window._db || !userData.userid) { resolve(); return; }
+    const { onSnapshot } = window._fb;
+    if(_userSettingsUnsub) _userSettingsUnsub();
+    let firstLoad = true;
+    _userSettingsUnsub = onSnapshot(_userSettingsDoc(), snap => {
+      const data = snap.exists() ? snap.data() : {};
+      _dlUrgentH = data.dlUrgentH ?? 48;
+      _dlWarnD   = data.dlWarnD   ?? 7;
+      _dlDeleted = Array.isArray(data.dlDeleted) ? data.dlDeleted : [];
+      _calNotes  = (data.calNotes && typeof data.calNotes==='object') ? data.calNotes : {};
+      _settingsLoaded = true;
+      // Оновити поля налаштувань якщо відкриті
+      const uh = document.getElementById('dl-urgent-hours');
+      const wd = document.getElementById('dl-warn-days');
+      if(uh) uh.value = _dlUrgentH;
+      if(wd) wd.value = _dlWarnD;
+      // Оновити UI (тільки якщо вже завантажені дедлайни)
+      if(allDl.length > 0) {
+        applyDlFilter();
+        renderDashDl();
+        renderCalendar();
+        _renderCalNotesInDeadlines();
+      }
+      if(firstLoad) { firstLoad = false; resolve(); }
+    }, err => {
+      console.warn('userSettings sync error:', err.code, err.message);
+      // Якщо доступ заборонений — просто продовжуємо без синхронізації
+      resolve();
+    });
+  });
 }
 
-async function _saveUserSettings(patch) {
-  if(!window._db || !userData.userid) {
-    // fallback to localStorage if not logged in yet
-    Object.assign({_dlUrgentH, _dlWarnD, _dlDeleted, _calNotes}, patch);
-    return;
-  }
-  const { setDoc } = window._fb;
-  try {
-    await setDoc(_userSettingsDoc(), {
-      dlUrgentH: _dlUrgentH,
-      dlWarnD:   _dlWarnD,
-      dlDeleted: _dlDeleted,
-      calNotes:  _calNotes,
-      updatedAt: Date.now()
-    }, { merge: true });
-  } catch(e) { console.warn('saveUserSettings error:', e); }
+let _saveSettingsTimer = null;
+async function _saveUserSettings() {
+  if(!window._db || !userData.userid) return;
+  // Debounce — не зберігати частіше ніж раз на 800мс
+  clearTimeout(_saveSettingsTimer);
+  _saveSettingsTimer = setTimeout(async () => {
+    const { setDoc } = window._fb;
+    try {
+      await setDoc(_userSettingsDoc(), {
+        dlUrgentH: _dlUrgentH,
+        dlWarnD:   _dlWarnD,
+        dlDeleted: _dlDeleted,
+        calNotes:  _calNotes,
+        updatedAt: Date.now(),
+        userId: String(userData.userid)
+      });
+      console.log('✅ Settings saved to Firestore');
+    } catch(e) {
+      console.warn('❌ saveUserSettings error:', e.code, e.message);
+      // Fallback: localStorage
+      localStorage.setItem('ush_'+userData.userid, JSON.stringify({
+        dlUrgentH:_dlUrgentH, dlWarnD:_dlWarnD, dlDeleted:_dlDeleted, calNotes:_calNotes
+      }));
+    }
+  }, 800);
 }
 
 function loadDlSettings() {
@@ -1197,11 +1218,11 @@ function loadDlSettings() {
   if(wd) wd.value = _dlWarnD;
 }
 
-async function saveDlSettings() {
+function saveDlSettings() {
   _dlUrgentH = parseInt(document.getElementById('dl-urgent-hours').value)||48;
-  _dlWarnD   = parseInt(document.getElementById('dl-warn-days').value)||7;
+  _dlWarnD   = parseInt(document.getElementById('dl-warm-days') ? document.getElementById('dl-warn-days').value : _dlWarnD)||7;
   applyDlFilter(); renderDashDl(); renderCalendar();
-  await _saveUserSettings({});
+  _saveUserSettings();
 }
 
 function toggleDlSettings() {
@@ -1210,18 +1231,19 @@ function toggleDlSettings() {
   if(el.style.display!=='none') loadDlSettings();
 }
 
-async function deleteDl(id, e) {
+function deleteDl(id, e) {
   if(e) e.stopPropagation();
   if(!confirm('Приховати цей дедлайн?')) return;
-  if(!_dlDeleted.includes(String(id))) _dlDeleted.push(String(id));
+  const sid = String(id);
+  if(!_dlDeleted.includes(sid)) _dlDeleted.push(sid);
   applyDlFilter(); renderDashDl(); renderCalendar();
-  await _saveUserSettings({});
+  _saveUserSettings();
 }
 
 // ── CALENDAR NOTES — Firestore sync ──
 function getCalNote(ds) { return _calNotes[ds] || ''; }
 
-async function saveCalNote() {
+function saveCalNote() {
   const txt = document.getElementById('cal-note-inp').value.trim();
   const ds  = window._calNoteDate;
   if(txt) _calNotes[ds] = txt;
@@ -1229,21 +1251,21 @@ async function saveCalNote() {
   closeCalNoteModal();
   renderCalendar();
   _renderCalNotesInDeadlines();
-  await _saveUserSettings({});
+  _saveUserSettings();
 }
 
-async function deleteCalNote() {
+function deleteCalNote() {
   delete _calNotes[window._calNoteDate];
   closeCalNoteModal();
   renderCalendar();
   _renderCalNotesInDeadlines();
-  await _saveUserSettings({});
+  _saveUserSettings();
 }
 
 function openCalNoteModal(ds, e) {
   if(e) e.stopPropagation();
   window._calNoteDate = ds;
-  const d = new Date(ds);
+  const d = new Date(ds+'T12:00:00');
   document.getElementById('cal-note-date-lbl').textContent = d.toLocaleDateString('uk-UA',{weekday:'long',day:'numeric',month:'long'});
   document.getElementById('cal-note-inp').value = getCalNote(ds);
   const modal = document.getElementById('cal-note-modal');
@@ -1258,46 +1280,64 @@ document.addEventListener('keydown', e=>{
   if(e.key==='Enter'&&e.ctrlKey&&document.getElementById('cal-note-modal').style.display!=='none') saveCalNote();
 });
 
-// ── ПОКАЗАТИ НОТАТКИ КАЛЕНДАРЯ В ДЕДЛАЙНАХ ──
+// ── ПОКАЗАТИ НОТАТКИ В ДЕДЛАЙНАХ (і на головній) ──
 function _renderCalNotesInDeadlines() {
-  // Знайти або створити блок нотаток в dl-list
-  const dlList = document.getElementById('dl-list');
-  if(!dlList) return;
-  const notes = Object.entries(_calNotes).filter(([,v])=>v).sort(([a],[b])=>a.localeCompare(b));
-  let noteBlock = document.getElementById('cal-notes-in-dl');
-  if(!noteBlock) {
-    noteBlock = document.createElement('div');
-    noteBlock.id = 'cal-notes-in-dl';
-    noteBlock.style.cssText = 'margin-bottom:12px;';
-    dlList.parentNode.insertBefore(noteBlock, dlList);
-  }
-  if(!notes.length) { noteBlock.innerHTML=''; return; }
   const today = new Date(); today.setHours(0,0,0,0);
+  const notes = Object.entries(_calNotes)
+    .filter(([,v])=>v)
+    .sort(([a],[b])=>a.localeCompare(b));
+
+  // Рендер для сторінки дедлайнів
+  const dlList = document.getElementById('dl-list');
+  if(dlList) {
+    let noteBlock = document.getElementById('cal-notes-in-dl');
+    if(!noteBlock) {
+      noteBlock = document.createElement('div');
+      noteBlock.id = 'cal-notes-in-dl';
+      dlList.parentNode.insertBefore(noteBlock, dlList);
+    }
+    noteBlock.innerHTML = notes.length ? _buildNoteRows(notes, today, true) : '';
+  }
+
+  // Рендер для головної (dash-dl — ПЕРЕД дедлайнами)
+  const dashDl = document.getElementById('dash-dl');
+  if(dashDl) {
+    let dashNotes = document.getElementById('cal-notes-in-dash');
+    if(!dashNotes) {
+      dashNotes = document.createElement('div');
+      dashNotes.id = 'cal-notes-in-dash';
+      dashDl.parentNode.insertBefore(dashNotes, dashDl);
+    }
+    // На головній — тільки майбутні нотатки (не минулі)
+    const futureNotes = notes.filter(([ds]) => new Date(ds+'T12:00:00') >= today);
+    dashNotes.innerHTML = futureNotes.length ? _buildNoteRows(futureNotes, today, false) : '';
+  }
+}
+
+function _buildNoteRows(notes, today, showPast) {
   const rows = notes.map(([ds, txt]) => {
-    const d = new Date(ds);
+    const d = new Date(ds+'T12:00:00');
     const isPast = d < today;
-    const isToday = d.getTime()===today.getTime();
-    const isTomorrow = d.getTime()===today.getTime()+86400000;
+    if(isPast && !showPast) return '';
+    const isToday = d.toDateString()===today.toDateString();
+    const isTomorrow = d.toDateString()===new Date(today.getTime()+86400000).toDateString();
     const label = isToday ? '<span class="tag r">Сьогодні</span>' :
                   isTomorrow ? '<span class="tag y">Завтра</span>' :
                   isPast ? '<span class="tag" style="background:var(--bg3);color:var(--text2);">Минуло</span>' : '';
     const dateStr = d.toLocaleDateString('uk-UA',{day:'numeric',month:'short'});
-    return `<div class="dl-item" onclick="openCalNoteModal('${escHtml(ds)}',event)" style="${isPast?'opacity:.55':''}">
+    return `<div class="dl-item" onclick="openCalNoteModal('${escHtml(ds)}',event)" style="${isPast?'opacity:.5':''}">
       <div class="dl-dot" style="background:var(--accent);box-shadow:0 0 5px rgba(240,192,64,.4);"></div>
       <div class="dl-info">
-        <div class="dl-name">✏️ ${escHtml(txt.length>60?txt.slice(0,60)+'…':txt)}</div>
+        <div class="dl-name">✏️ ${escHtml(txt.length>70?txt.slice(0,70)+'…':txt)}</div>
         <div class="dl-course">Нотатка в календарі</div>
       </div>
       <div class="dl-right">
-        <div class="dl-date" style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text2);">${dateStr}</div>
-        ${label}
+        <div class="dl-date">${dateStr}</div>${label}
       </div>
     </div>`;
   }).join('');
-  noteBlock.innerHTML = `
-    <div style="font-size:10px;font-weight:700;color:var(--text2);letter-spacing:.5px;text-transform:uppercase;margin-bottom:6px;padding:0 2px;">
-      📅 Нотатки з календаря
-    </div>
+  if(!rows.trim()) return '';
+  return `<div style="font-size:10px;font-weight:700;color:var(--text2);letter-spacing:.5px;text-transform:uppercase;margin-bottom:6px;">📅 Нотатки з календаря</div>
     <div class="dl-list" style="margin-bottom:8px;">${rows}</div>
     <div style="height:1px;background:var(--border);margin-bottom:12px;"></div>`;
 }

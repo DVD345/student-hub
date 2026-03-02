@@ -252,7 +252,7 @@ a{text-decoration:none;color:inherit;}
   .main{margin-left:0;}
   .topbar{display:flex;}
   .close-sidebar{display:block;}
-  .content{padding:16px;}
+  .content{padding:14px;}
   .stats-grid{grid-template-columns:repeat(2,1fr);gap:8px;}
   .stat-card{padding:11px;}
   .stat-val{font-size:18px;}
@@ -262,8 +262,22 @@ a{text-decoration:none;color:inherit;}
   .chat-main{height:400px;}
   .admin-grid{grid-template-columns:1fr;}
   .auth-box{padding:28px 22px;}
-  .toolbar{gap:5px;}
-  .tb-input{min-width:120px;}
+  .toolbar{gap:5px;flex-wrap:wrap;}
+  .tb-input{min-width:100px;flex:1;}
+  /* Deadline settings on mobile */
+  #dl-settings > div:nth-child(2){flex-direction:column;gap:10px;}
+  #dl-settings label{width:100%;justify-content:space-between;}
+  #dl-urgent-hours, #dl-warn-days{width:80px !important;}
+  /* Note cards */
+  .note-card{width:100%;}
+  #notes-container{flex-direction:column;}
+  /* Note editor mobile */
+  .note-editor-body{grid-template-columns:1fr;grid-template-rows:1fr 1fr;}
+  .note-md-inp{border-right:none;border-bottom:1px solid var(--border);}
+  /* Calendar mobile */
+  .cal-cell{height:60px;padding:3px;}
+  .cal-event{font-size:8px;padding:1px 3px;}
+  .cal-header-cell{font-size:9px;padding:5px 2px;}
 }
 @media(max-width:480px){
   .stats-grid{grid-template-columns:1fr 1fr;}
@@ -501,9 +515,17 @@ a{text-decoration:none;color:inherit;}
           <div class="chat-main">
             <div class="chat-header" id="chat-room-title">Оберіть кімнату</div>
             <div class="chat-messages" id="chat-msgs"><div class="empty"><div class="emo">💬</div><p>Оберіть чат зліва</p></div></div>
-            <div class="chat-input-wrap">
-              <textarea class="chat-input" id="chat-inp" placeholder="Напишіть повідомлення..." rows="1" onkeydown="chatKey(event)"></textarea>
-              <button class="btn a" onclick="sendMsg()">→</button>
+            <div class="chat-input-wrap" style="flex-direction:column;gap:6px;padding:10px;">
+              <div id="chat-file-preview" style="display:none;align-items:center;gap:8px;padding:6px 10px;background:var(--bg3);border-radius:8px;font-size:12px;">
+                <span id="chat-file-name" style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></span>
+                <button onclick="clearChatFile()" style="background:none;border:none;color:var(--accent2);cursor:pointer;font-size:14px;flex-shrink:0;">✕</button>
+              </div>
+              <div style="display:flex;gap:6px;align-items:flex-end;">
+                <button onclick="document.getElementById('chat-file-input').click()" title="Додати файл" style="width:38px;height:38px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);font-size:18px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;">📎</button>
+                <textarea class="chat-input" id="chat-inp" placeholder="Напишіть повідомлення..." rows="1" onkeydown="chatKey(event)" style="flex:1;"></textarea>
+                <button class="btn a" onclick="sendMsg()" style="height:38px;padding:0 14px;flex-shrink:0;">→</button>
+              </div>
+              <input type="file" id="chat-file-input" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip" style="display:none" onchange="handleChatFile(this)">
             </div>
           </div>
         </div>
@@ -562,7 +584,7 @@ a{text-decoration:none;color:inherit;}
               <button onclick="document.getElementById('ai-img-input').click()" title="Додати фото" style="width:46px;height:46px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);font-size:20px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:border-color .2s;">📎</button>
               <button onclick="sendAI()" id="ai-send" style="width:46px;height:46px;background:var(--accent);border:none;border-radius:var(--r);color:#0a0a0f;font-size:22px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:opacity .2s;font-weight:700;">➤</button>
             </div>
-            <input type="file" id="ai-img-input" accept="image/*" style="display:none" onchange="handleAIImg(this)">
+            <input type="file" id="ai-img-input" accept="image/*,.pdf,.doc,.docx,.txt" style="display:none" onchange="handleAIImg(this)">
           </div>
         </div>
       </div>
@@ -1594,12 +1616,20 @@ function renderMessages(msgs) {
     const isMe=m.uid===String(userData.userid);
     const t=m.ts?new Date(m.ts).toLocaleTimeString('uk-UA',{hour:'2-digit',minute:'2-digit'}):'';
     const canDel = canMod() || m.uid===String(userData.userid);
+    let fileHtml = '';
+    if(m.file) {
+      if(m.file.type && m.file.type.startsWith('image/')) {
+        fileHtml = '<br><img src="'+m.file.data+'" style="max-width:200px;max-height:200px;border-radius:8px;display:block;margin-top:4px;cursor:pointer;" onclick="window.open(this.src)">';
+      } else {
+        fileHtml = '<br><a href="'+m.file.data+'" download="'+escHtml(m.file.name||'file')+'" style="display:inline-flex;align-items:center;gap:6px;padding:6px 10px;background:rgba(255,255,255,.07);border-radius:8px;font-size:12px;color:var(--text);text-decoration:none;margin-top:4px;">📄 '+escHtml(m.file.name||'Файл')+'</a>';
+      }
+    }
     return '<div class="msg '+(isMe?'me':'other')+'" style="position:relative" '+
       'onmouseenter="this.querySelector(\'.msg-del\')&&(this.querySelector(\'.msg-del\').style.opacity=1)" '+
       'onmouseleave="this.querySelector(\'.msg-del\')&&(this.querySelector(\'.msg-del\').style.opacity=0)">'+
       (!isMe?'<div class="msg-author">'+escHtml(m.author)+'</div>':'')+
       '<div style="display:flex;align-items:flex-end;gap:4px;'+(isMe?'flex-direction:row-reverse':'')+'">'+
-        '<div class="msg-bubble">'+escHtml(m.text)+'</div>'+
+        '<div class="msg-bubble">'+(m.text?escHtml(m.text):'')+fileHtml+'</div>'+
         (canDel&&m.id?'<button class="msg-del" data-id="'+escHtml(m.id)+'" onclick="delMsg(this.dataset.id)" style="background:rgba(224,80,80,.15);border:1px solid rgba(224,80,80,.3);color:var(--accent2);border-radius:5px;padding:2px 5px;font-size:9px;cursor:pointer;opacity:0;transition:opacity .2s;flex-shrink:0">🗑</button>':'')+
       '</div>'+
       '<div class="msg-time">'+t+'</div></div>';
@@ -1608,19 +1638,49 @@ function renderMessages(msgs) {
 }
 // escHtml defined at top of script
 function chatKey(e) { if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMsg();} }
+
+let _chatFile = null;
+function handleChatFile(inp) {
+  const file = inp.files[0];
+  if(!file) return;
+  if(file.size > 700*1024) { alert('Файл завеликий. Максимум 700КБ.'); inp.value=''; return; }
+  _chatFile = file;
+  document.getElementById('chat-file-name').textContent = '📎 ' + file.name;
+  document.getElementById('chat-file-preview').style.display = 'flex';
+  inp.value = '';
+}
+function clearChatFile() {
+  _chatFile = null;
+  document.getElementById('chat-file-preview').style.display = 'none';
+}
+
 async function sendMsg() {
   if(!currentChatRoom)return;
   const inp=document.getElementById('chat-inp');
   const text=inp.value.trim();
-  if(!text)return;
+  if(!text && !_chatFile)return;
   inp.value='';
   const {collection,addDoc}=window._fb;
+  
+  let fileData = null;
+  if(_chatFile) {
+    fileData = await new Promise((res,rej)=>{
+      const r = new FileReader();
+      r.onload = e => res({ name: _chatFile.name, type: _chatFile.type, data: e.target.result });
+      r.onerror = rej;
+      r.readAsDataURL(_chatFile);
+    });
+    clearChatFile();
+  }
+  
   await addDoc(collection(window._db,'messages'),{
-    room:currentChatRoom, text,
+    room:currentChatRoom,
+    text: text || '',
     author:userData.fullname||'?',
     uid:String(userData.userid),
     groupId:group.id,
-    ts:Date.now()
+    ts:Date.now(),
+    ...(fileData ? { file: fileData } : {})
   });
 }
 
@@ -2053,20 +2113,35 @@ let aiHistory = [];
 let aiImageBase64 = null;
 let aiImageMime = 'image/jpeg';
 
-function setAIImage(base64, mime) {
+function setAIImage(base64, mime, filename) {
   aiImageBase64 = base64;
   aiImageMime = mime || 'image/jpeg';
-  document.getElementById('ai-img-thumb').src = 'data:'+aiImageMime+';base64,'+base64;
+  if(mime && mime.startsWith('image/')) {
+    document.getElementById('ai-img-thumb').src = 'data:'+mime+';base64,'+base64;
+    document.getElementById('ai-img-thumb').style.display = 'block';
+  } else {
+    document.getElementById('ai-img-thumb').style.display = 'none';
+  }
+  // Show filename
+  let lbl = document.getElementById('ai-file-lbl');
+  if(!lbl) {
+    lbl = document.createElement('div');
+    lbl.id = 'ai-file-lbl';
+    lbl.style.cssText = 'font-size:11px;color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:150px;';
+    document.getElementById('ai-img-preview').appendChild(lbl);
+  }
+  lbl.textContent = filename ? '📎 '+filename : '';
   document.getElementById('ai-img-preview').style.display = 'block';
 }
 
 function handleAIImg(inp) {
   const file = inp.files[0];
   if(!file) return;
+  if(file.size > 10*1024*1024) { alert('Файл завеликий. Максимум 10МБ.'); inp.value=''; return; }
   const reader = new FileReader();
   reader.onload = e => {
     const result = e.target.result;
-    setAIImage(result.split(',')[1], file.type);
+    setAIImage(result.split(',')[1], file.type, file.name);
   };
   reader.readAsDataURL(file);
   inp.value = '';
@@ -2101,19 +2176,15 @@ async function sendAI() {
   inp.value = '';
 
   // Показати повідомлення користувача
-  appendAIMsg('me', text || '📷 Фото', hasImage ? ('data:'+aiImageMime+';base64,'+aiImageBase64) : null);
+  appendAIMsg('me', text || '📎 Файл', hasImage ? ('data:'+aiImageMime+';base64,'+aiImageBase64) : null);
 
-  // Будуємо вміст для API
-  let userContent;
-  if(hasImage) {
-    userContent = [
-      { type:'text', text: text || 'Що зображено? Поясни детально.' },
-      { type:'image_url', image_url:{ url:'data:'+aiImageMime+';base64,'+aiImageBase64 } }
-    ];
-  } else {
-    userContent = text;
-  }
-  aiHistory.push({ role:'user', content: userContent });
+  // Будуємо вміст для Gemini API
+  let userParts = [];
+  if(text) userParts.push({ text });
+  if(hasImage) userParts.push({ inline_data: { mime_type: aiImageMime, data: aiImageBase64 } });
+  if(!userParts.length) userParts = [{ text: 'Привіт' }];
+  
+  aiHistory.push({ role:'user', content: userParts.map(p => p.text || '[файл]').join(' '), _parts: userParts });
   clearAIImg();
 
   // Анімація "думає"
@@ -2143,22 +2214,22 @@ async function sendAI() {
 - В кінці ЗАВЖДИ давай чітку фінальну відповідь
 ${contextParts.length ? '\nКонтекст студента: ' + contextParts.join('. ') : ''}`;
 
-    // Для зображень — Llama 4 Maverick (краще розпізнає математику/текст на фото)
-    const model = hasImage ? 'meta-llama/llama-4-maverick-17b-128e-instruct' : 'llama-3.3-70b-versatile';
-
-    // В history прибираємо старі base64 зображення (занадто великі)
-    const historyForAPI = aiHistory.slice(-12).map((m, i, arr) => {
-      if(i < arr.length - 1 && Array.isArray(m.content)) {
-        const textOnly = m.content.filter(p=>p.type==='text').map(p=>p.text).join(' ');
-        return { role: m.role, content: textOnly || '[зображення]' };
-      }
-      return m;
+    // Для зображень і файлів — Gemini 2.0 Flash (підтримує PDF, docx, зображення)
+    // Convert history to Gemini format
+    const geminiContents = aiHistory.slice(-12).map(m => {
+      const role = m.role === 'assistant' ? 'model' : 'user';
+      if(m._parts) return { role, parts: m._parts };
+      return { role, parts: [{ text: m.content || '' }] };
     });
 
-    const resp = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    const resp = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=AIzaSyClsvwwc5RcxFA9sr8dem8L-PNUTwe1x1w', {
       method: 'POST',
-      headers: { 'Content-Type':'application/json', 'Authorization':'Bearer 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' },
-      body: JSON.stringify({ model, max_tokens:4096, messages:[{role:'system',content:systemPrompt},...historyForAPI] })
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        system_instruction: { parts: [{ text: systemPrompt }] },
+        contents: geminiContents,
+        generationConfig: { maxOutputTokens: 4096, temperature: 0.7 }
+      })
     });
 
     const data = await resp.json();
@@ -2168,7 +2239,7 @@ ${contextParts.length ? '\nКонтекст студента: ' + contextParts.j
       document.getElementById('ai-send').disabled = false;
       return;
     }
-    const reply = data.choices?.[0]?.message?.content || 'Вибачте, не вдалося отримати відповідь.';
+    const reply = data.candidates?.[0]?.content?.parts?.[0]?.text || 'Вибачте, не вдалося отримати відповідь.';
     aiHistory.push({ role:'assistant', content: reply });
     thinkingDiv.remove();
     appendAIMsg('other', reply);

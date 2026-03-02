@@ -282,7 +282,9 @@ a{text-decoration:none;color:inherit;}
 .cal-cell.has-events{background:var(--bg3);}
 .cal-day-num{font-size:11px;font-weight:700;color:var(--text2);margin-bottom:2px;font-family:'JetBrains Mono',monospace;}
 .cal-cell.today .cal-day-num{color:var(--accent);font-size:13px;}
-.cal-event{font-size:9px;padding:2px 5px;border-radius:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;line-height:1.3;}
+.cal-event{font-size:9px;padding:2px 5px;border-radius:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;line-height:1.3;position:relative;}
+.cal-event:hover::after{content:attr(data-full);position:absolute;left:0;top:100%;margin-top:2px;background:#1a1a2e;color:#e8e8f0;border:1px solid var(--border);border-radius:6px;padding:5px 8px;font-size:11px;white-space:normal;max-width:220px;width:max-content;z-index:100;box-shadow:0 4px 16px rgba(0,0,0,.5);line-height:1.4;pointer-events:none;}
+[data-theme="light"] .cal-event:hover::after{background:#fff;color:#1a1a2e;}
 .cal-ev-urgent{background:#c0392b;color:#fff;}
 .cal-ev-soon{background:#e67e22;color:#fff;}
 .cal-ev-ok{background:#27ae60;color:#fff;}
@@ -872,6 +874,7 @@ async function initApp() {
   await loadUserInfo();
   await loadUserRole();
   setupNav();
+  await startUserSettingsSync(); // ← Firestore sync для налаштувань і нотаток
   await syncMoodle();
   listenFiles(); listenMats(); setupChatRooms();
   if (canAdmin()) listenAdminData();
@@ -1118,7 +1121,7 @@ async function loadDeadlines() {
     renderDashDl();
     renderCalendar();
     scheduleDeadlineNotifs();
-    
+    _renderCalNotesInDeadlines();
   } catch(e) {
     console.error('Deadlines error:', e);
     const msg = e && e.message ? e.message : String(e);
@@ -1129,37 +1132,174 @@ async function loadDeadlines() {
   }
 }
 
-// ── DEADLINE SETTINGS ──
-let _dlUrgentH = parseInt(localStorage.getItem('dl_urgent_h')||'48');
-let _dlWarnD   = parseInt(localStorage.getItem('dl_warn_d')||'7');
-let _dlDeleted = JSON.parse(localStorage.getItem('dl_deleted')||'[]');
+// ══════════════════════════════════════════════
+// ── USER SETTINGS — Firestore sync ──
+// Зберігає: налаштування кольорів, видалені дедлайни
+// Колекція: userSettings/{userId}
+// ══════════════════════════════════════════════
+let _dlUrgentH = 48;
+let _dlWarnD   = 7;
+let _dlDeleted = [];
+let _calNotes  = {}; // { 'YYYY-MM-DD': 'текст нотатки' }
+let _userSettingsUnsub = null;
+
+function _userSettingsDoc() {
+  const { doc } = window._fb;
+  return doc(window._db, 'userSettings', String(userData.userid));
+}
+
+// Завантажити і підписатись на realtime оновлення (між пристроями!)
+async function startUserSettingsSync() {
+  if(!window._db || !userData.userid) return;
+  const { onSnapshot } = window._fb;
+  if(_userSettingsUnsub) _userSettingsUnsub();
+  _userSettingsUnsub = onSnapshot(_userSettingsDoc(), snap => {
+    const data = snap.exists() ? snap.data() : {};
+    _dlUrgentH = data.dlUrgentH ?? 48;
+    _dlWarnD   = data.dlWarnD   ?? 7;
+    _dlDeleted = data.dlDeleted ?? [];
+    _calNotes  = data.calNotes  ?? {};
+    // Оновити UI
+    const uh = document.getElementById('dl-urgent-hours');
+    const wd = document.getElementById('dl-warn-days');
+    if(uh) uh.value = _dlUrgentH;
+    if(wd) wd.value = _dlWarnD;
+    applyDlFilter();
+    renderDashDl();
+    renderCalendar();
+    // Оновити список дедлайнів з нотатками
+    _renderCalNotesInDeadlines();
+  }, err => console.warn('userSettings sync error:', err));
+}
+
+async function _saveUserSettings(patch) {
+  if(!window._db || !userData.userid) {
+    // fallback to localStorage if not logged in yet
+    Object.assign({_dlUrgentH, _dlWarnD, _dlDeleted, _calNotes}, patch);
+    return;
+  }
+  const { setDoc } = window._fb;
+  try {
+    await setDoc(_userSettingsDoc(), {
+      dlUrgentH: _dlUrgentH,
+      dlWarnD:   _dlWarnD,
+      dlDeleted: _dlDeleted,
+      calNotes:  _calNotes,
+      updatedAt: Date.now()
+    }, { merge: true });
+  } catch(e) { console.warn('saveUserSettings error:', e); }
+}
 
 function loadDlSettings() {
-  _dlUrgentH = parseInt(localStorage.getItem('dl_urgent_h')||'48');
-  _dlWarnD   = parseInt(localStorage.getItem('dl_warn_d')||'7');
   const uh = document.getElementById('dl-urgent-hours');
   const wd = document.getElementById('dl-warn-days');
   if(uh) uh.value = _dlUrgentH;
   if(wd) wd.value = _dlWarnD;
 }
-function saveDlSettings() {
+
+async function saveDlSettings() {
   _dlUrgentH = parseInt(document.getElementById('dl-urgent-hours').value)||48;
   _dlWarnD   = parseInt(document.getElementById('dl-warn-days').value)||7;
-  localStorage.setItem('dl_urgent_h', _dlUrgentH);
-  localStorage.setItem('dl_warn_d', _dlWarnD);
   applyDlFilter(); renderDashDl(); renderCalendar();
+  await _saveUserSettings({});
 }
+
 function toggleDlSettings() {
   const el = document.getElementById('dl-settings');
   el.style.display = el.style.display==='none' ? 'block' : 'none';
   if(el.style.display!=='none') loadDlSettings();
 }
-function deleteDl(id, e) {
+
+async function deleteDl(id, e) {
   if(e) e.stopPropagation();
   if(!confirm('Приховати цей дедлайн?')) return;
-  _dlDeleted.push(String(id));
-  localStorage.setItem('dl_deleted', JSON.stringify(_dlDeleted));
+  if(!_dlDeleted.includes(String(id))) _dlDeleted.push(String(id));
   applyDlFilter(); renderDashDl(); renderCalendar();
+  await _saveUserSettings({});
+}
+
+// ── CALENDAR NOTES — Firestore sync ──
+function getCalNote(ds) { return _calNotes[ds] || ''; }
+
+async function saveCalNote() {
+  const txt = document.getElementById('cal-note-inp').value.trim();
+  const ds  = window._calNoteDate;
+  if(txt) _calNotes[ds] = txt;
+  else    delete _calNotes[ds];
+  closeCalNoteModal();
+  renderCalendar();
+  _renderCalNotesInDeadlines();
+  await _saveUserSettings({});
+}
+
+async function deleteCalNote() {
+  delete _calNotes[window._calNoteDate];
+  closeCalNoteModal();
+  renderCalendar();
+  _renderCalNotesInDeadlines();
+  await _saveUserSettings({});
+}
+
+function openCalNoteModal(ds, e) {
+  if(e) e.stopPropagation();
+  window._calNoteDate = ds;
+  const d = new Date(ds);
+  document.getElementById('cal-note-date-lbl').textContent = d.toLocaleDateString('uk-UA',{weekday:'long',day:'numeric',month:'long'});
+  document.getElementById('cal-note-inp').value = getCalNote(ds);
+  const modal = document.getElementById('cal-note-modal');
+  modal.style.display = 'flex';
+  setTimeout(()=>document.getElementById('cal-note-inp').focus(),50);
+  const del = document.getElementById('cal-note-del');
+  if(del) del.style.display = getCalNote(ds)?'':'none';
+}
+function closeCalNoteModal() { document.getElementById('cal-note-modal').style.display='none'; }
+document.addEventListener('keydown', e=>{
+  if(e.key==='Escape') closeCalNoteModal();
+  if(e.key==='Enter'&&e.ctrlKey&&document.getElementById('cal-note-modal').style.display!=='none') saveCalNote();
+});
+
+// ── ПОКАЗАТИ НОТАТКИ КАЛЕНДАРЯ В ДЕДЛАЙНАХ ──
+function _renderCalNotesInDeadlines() {
+  // Знайти або створити блок нотаток в dl-list
+  const dlList = document.getElementById('dl-list');
+  if(!dlList) return;
+  const notes = Object.entries(_calNotes).filter(([,v])=>v).sort(([a],[b])=>a.localeCompare(b));
+  let noteBlock = document.getElementById('cal-notes-in-dl');
+  if(!noteBlock) {
+    noteBlock = document.createElement('div');
+    noteBlock.id = 'cal-notes-in-dl';
+    noteBlock.style.cssText = 'margin-bottom:12px;';
+    dlList.parentNode.insertBefore(noteBlock, dlList);
+  }
+  if(!notes.length) { noteBlock.innerHTML=''; return; }
+  const today = new Date(); today.setHours(0,0,0,0);
+  const rows = notes.map(([ds, txt]) => {
+    const d = new Date(ds);
+    const isPast = d < today;
+    const isToday = d.getTime()===today.getTime();
+    const isTomorrow = d.getTime()===today.getTime()+86400000;
+    const label = isToday ? '<span class="tag r">Сьогодні</span>' :
+                  isTomorrow ? '<span class="tag y">Завтра</span>' :
+                  isPast ? '<span class="tag" style="background:var(--bg3);color:var(--text2);">Минуло</span>' : '';
+    const dateStr = d.toLocaleDateString('uk-UA',{day:'numeric',month:'short'});
+    return `<div class="dl-item" onclick="openCalNoteModal('${escHtml(ds)}',event)" style="${isPast?'opacity:.55':''}">
+      <div class="dl-dot" style="background:var(--accent);box-shadow:0 0 5px rgba(240,192,64,.4);"></div>
+      <div class="dl-info">
+        <div class="dl-name">✏️ ${escHtml(txt.length>60?txt.slice(0,60)+'…':txt)}</div>
+        <div class="dl-course">Нотатка в календарі</div>
+      </div>
+      <div class="dl-right">
+        <div class="dl-date" style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text2);">${dateStr}</div>
+        ${label}
+      </div>
+    </div>`;
+  }).join('');
+  noteBlock.innerHTML = `
+    <div style="font-size:10px;font-weight:700;color:var(--text2);letter-spacing:.5px;text-transform:uppercase;margin-bottom:6px;padding:0 2px;">
+      📅 Нотатки з календаря
+    </div>
+    <div class="dl-list" style="margin-bottom:8px;">${rows}</div>
+    <div style="height:1px;background:var(--border);margin-bottom:12px;"></div>`;
 }
 
 function dlDot(d) {
@@ -1593,36 +1733,7 @@ let calDate = new Date();
 const CAL_DAYS = ['Пн','Вт','Ср','Чт','Пт','Сб','Нд'];
 const CAL_MONTHS = ['Січень','Лютий','Березень','Квітень','Травень','Червень','Липень','Серпень','Вересень','Жовтень','Листопад','Грудень'];
 
-// ── CALENDAR USER NOTES ──
-function getCalNoteKey(ds) { return 'cal_note_'+(typeof userData!=='undefined'&&userData.userid||'local')+'_'+ds; }
-function getCalNote(ds) { return localStorage.getItem(getCalNoteKey(ds))||''; }
-function saveCalNote() {
-  const txt = document.getElementById('cal-note-inp').value.trim();
-  const key = getCalNoteKey(window._calNoteDate);
-  if(txt) localStorage.setItem(key, txt); else localStorage.removeItem(key);
-  closeCalNoteModal(); renderCalendar();
-}
-function deleteCalNote() {
-  localStorage.removeItem(getCalNoteKey(window._calNoteDate));
-  closeCalNoteModal(); renderCalendar();
-}
-function openCalNoteModal(ds, e) {
-  if(e) e.stopPropagation();
-  window._calNoteDate = ds;
-  const d = new Date(ds);
-  document.getElementById('cal-note-date-lbl').textContent = d.toLocaleDateString('uk-UA',{weekday:'long',day:'numeric',month:'long'});
-  document.getElementById('cal-note-inp').value = getCalNote(ds);
-  const modal = document.getElementById('cal-note-modal');
-  modal.style.display = 'flex';
-  setTimeout(()=>document.getElementById('cal-note-inp').focus(),50);
-  const del = document.getElementById('cal-note-del');
-  if(del) del.style.display = getCalNote(ds)?'':'none';
-}
-function closeCalNoteModal() { document.getElementById('cal-note-modal').style.display='none'; }
-document.addEventListener('keydown', e=>{
-  if(e.key==='Escape') closeCalNoteModal();
-  if(e.key==='Enter'&&e.ctrlKey&&document.getElementById('cal-note-modal').style.display!=='none') saveCalNote();
-});
+// ── CALENDAR USER NOTES functions moved above (Firestore sync) ──
 
 function renderCalendar() {
   const year = calDate.getFullYear(), month = calDate.getMonth();
@@ -1662,14 +1773,14 @@ function renderCalendar() {
 
     if(userNote) {
       const prev = userNote.length>28?userNote.slice(0,28)+'…':userNote;
-      html += '<div class="cal-event" data-date="'+dateStr+'" onclick="openCalNoteModal(this.dataset.date,event)" style="background:rgba(240,192,64,.15);color:var(--accent);border:1px solid rgba(240,192,64,.25);cursor:pointer;" title="'+escHtml(userNote)+'">✏️ '+escHtml(prev)+'</div>';
+      html += '<div class="cal-event" data-date="'+dateStr+'" onclick="openCalNoteModal(this.dataset.date,event)" style="background:rgba(240,192,64,.15);color:var(--accent);border:1px solid rgba(240,192,64,.25);cursor:pointer;" title="'+escHtml(userNote)+'" data-full="'+escHtml(userNote)+'">✏️ '+escHtml(prev)+'</div>';
     }
 
     dayDl.slice(0,2).forEach(dl=>{
       const diff=dl.due-nowTs, isPast=dl.due<nowTs;
       const cls=isPast?'cal-ev-past':diff<urgH*3600?'cal-ev-urgent':diff<warnD*86400?'cal-ev-soon':'cal-ev-ok';
       const onclk=dl.url&&dl.url!=='#'?'onclick="window.open(this.dataset.url)" data-url="'+escHtml(dl.url)+'"':'';
-      html+='<div class="cal-event '+cls+'" '+onclk+' title="'+escHtml(dl.name)+'">'+escHtml(dl.name)+'</div>';
+      html+='<div class="cal-event '+cls+'" '+onclk+' title="'+escHtml(dl.name)+'" data-full="'+escHtml(dl.name+(dl.course?'\n'+dl.course:''))+'">'+escHtml(dl.name)+'</div>';
     });
     if(dayDl.length>2){
       html+='<div class="cal-more" onclick="expandCalCell(this,event)" data-count="'+(dayDl.length-2)+'">+'+(dayDl.length-2)+' ще</div>';
@@ -1677,7 +1788,7 @@ function renderCalendar() {
         const diff2=dl.due-nowTs,isPast2=dl.due<nowTs;
         const cls2=isPast2?'cal-ev-past':diff2<urgH*3600?'cal-ev-urgent':diff2<warnD*86400?'cal-ev-soon':'cal-ev-ok';
         const onclk2=dl.url&&dl.url!=='#'?'onclick="window.open(this.dataset.url)" data-url="'+escHtml(dl.url)+'"':'';
-        html+='<div class="cal-event '+cls2+' cal-hidden" '+onclk2+' title="'+escHtml(dl.name)+'">'+escHtml(dl.name)+'</div>';
+        html+='<div class="cal-event '+cls2+' cal-hidden" '+onclk2+' title="'+escHtml(dl.name)+'" data-full="'+escHtml(dl.name+(dl.course?'\n'+dl.course:''))+'">'+escHtml(dl.name)+'</div>';
       });
     }
     html+='</div>';

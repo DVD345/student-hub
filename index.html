@@ -501,9 +501,17 @@ a{text-decoration:none;color:inherit;}
           <div class="chat-main">
             <div class="chat-header" id="chat-room-title">Оберіть кімнату</div>
             <div class="chat-messages" id="chat-msgs"><div class="empty"><div class="emo">💬</div><p>Оберіть чат зліва</p></div></div>
-            <div class="chat-input-wrap">
-              <textarea class="chat-input" id="chat-inp" placeholder="Напишіть повідомлення..." rows="1" onkeydown="chatKey(event)"></textarea>
-              <button class="btn a" onclick="sendMsg()">→</button>
+            <div class="chat-input-wrap" style="flex-direction:column;gap:6px;padding:10px;">
+              <div id="chat-file-preview" style="display:none;align-items:center;gap:8px;padding:6px 10px;background:var(--bg3);border-radius:8px;font-size:12px;">
+                <span id="chat-file-name" style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text2);"></span>
+                <button onclick="clearChatFile()" style="background:none;border:none;color:var(--accent2);cursor:pointer;font-size:16px;line-height:1;flex-shrink:0;">✕</button>
+              </div>
+              <div style="display:flex;gap:6px;align-items:flex-end;">
+                <button onclick="document.getElementById('chat-file-input').click()" title="Додати файл/фото" style="width:38px;height:38px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);font-size:18px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;">📎</button>
+                <textarea class="chat-input" id="chat-inp" placeholder="Напишіть або вставте фото (Ctrl+V)..." rows="1" onkeydown="chatKey(event)" onpaste="handleChatPaste(event)" style="flex:1;"></textarea>
+                <button class="btn a" onclick="sendMsg()" style="height:38px;padding:0 14px;flex-shrink:0;">→</button>
+              </div>
+              <input type="file" id="chat-file-input" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip" style="display:none" onchange="handleChatFile(this)">
             </div>
           </div>
         </div>
@@ -1220,7 +1228,7 @@ function loadDlSettings() {
 
 function saveDlSettings() {
   _dlUrgentH = parseInt(document.getElementById('dl-urgent-hours').value)||48;
-  _dlWarnD   = parseInt(document.getElementById('dl-warm-days') ? document.getElementById('dl-warn-days').value : _dlWarnD)||7;
+  _dlWarnD   = parseInt(document.getElementById('dl-warn-days').value)||1;
   applyDlFilter(); renderDashDl(); renderCalendar();
   _saveUserSettings();
 }
@@ -1599,7 +1607,7 @@ function renderMessages(msgs) {
       'onmouseleave="this.querySelector(\'.msg-del\')&&(this.querySelector(\'.msg-del\').style.opacity=0)">'+
       (!isMe?'<div class="msg-author">'+escHtml(m.author)+'</div>':'')+
       '<div style="display:flex;align-items:flex-end;gap:4px;'+(isMe?'flex-direction:row-reverse':'')+'">'+
-        '<div class="msg-bubble">'+escHtml(m.text)+'</div>'+
+        '<div class="msg-bubble">'+(m.text?escHtml(m.text):'')+(m.file?(m.file.type&&m.file.type.startsWith('image/')?'<br><img src="'+m.file.data+'" style="max-width:200px;max-height:200px;border-radius:8px;display:block;margin-top:4px;cursor:pointer;" onclick="window.open(this.src)">':'<br><a href="'+m.file.data+'" download="'+escHtml(m.file.name||'file')+'" style="display:inline-flex;align-items:center;gap:5px;padding:5px 9px;background:rgba(255,255,255,.07);border-radius:7px;font-size:11px;color:var(--text);text-decoration:none;margin-top:4px;">\u{1F4C4} '+escHtml(m.file.name||'Файл')+'</a>'):'')+'</div>'+
         (canDel&&m.id?'<button class="msg-del" data-id="'+escHtml(m.id)+'" onclick="delMsg(this.dataset.id)" style="background:rgba(224,80,80,.15);border:1px solid rgba(224,80,80,.3);color:var(--accent2);border-radius:5px;padding:2px 5px;font-size:9px;cursor:pointer;opacity:0;transition:opacity .2s;flex-shrink:0">🗑</button>':'')+
       '</div>'+
       '<div class="msg-time">'+t+'</div></div>';
@@ -1608,19 +1616,63 @@ function renderMessages(msgs) {
 }
 // escHtml defined at top of script
 function chatKey(e) { if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMsg();} }
+
+let _chatFile = null;
+
+function handleChatFile(inp) {
+  const file = inp.files[0];
+  if(!file) return;
+  if(file.size > 700*1024) { alert('Файл завеликий. Максимум 700КБ.'); inp.value=''; return; }
+  _chatFile = file;
+  document.getElementById('chat-file-name').textContent = '\u{1F4CE} ' + file.name;
+  document.getElementById('chat-file-preview').style.display = 'flex';
+  inp.value = '';
+}
+
+function handleChatPaste(e) {
+  const items = ((e.clipboardData || e.originalEvent && e.originalEvent.clipboardData) || {}).items || [];
+  for(const item of items) {
+    if(item.type.startsWith('image/')) {
+      e.preventDefault();
+      const file = item.getAsFile();
+      if(!file) break;
+      _chatFile = file;
+      document.getElementById('chat-file-name').textContent = '\u{1F4F7} Зображення';
+      document.getElementById('chat-file-preview').style.display = 'flex';
+      break;
+    }
+  }
+}
+
+function clearChatFile() {
+  _chatFile = null;
+  document.getElementById('chat-file-preview').style.display = 'none';
+}
+
 async function sendMsg() {
   if(!currentChatRoom)return;
   const inp=document.getElementById('chat-inp');
   const text=inp.value.trim();
-  if(!text)return;
+  if(!text && !_chatFile)return;
   inp.value='';
   const {collection,addDoc}=window._fb;
+  let fileData = null;
+  if(_chatFile) {
+    fileData = await new Promise((res,rej)=>{
+      const r = new FileReader();
+      r.onload = ev => res({ name: _chatFile.name||'file', type: _chatFile.type||'', data: ev.target.result });
+      r.onerror = rej;
+      r.readAsDataURL(_chatFile);
+    });
+    clearChatFile();
+  }
   await addDoc(collection(window._db,'messages'),{
-    room:currentChatRoom, text,
+    room:currentChatRoom, text:text||'',
     author:userData.fullname||'?',
     uid:String(userData.userid),
     groupId:group.id,
-    ts:Date.now()
+    ts:Date.now(),
+    ...(fileData?{file:fileData}:{})
   });
 }
 

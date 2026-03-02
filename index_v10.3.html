@@ -1,0 +1,2444 @@
+<!DOCTYPE html>
+<html lang="uk" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Student Hub — УкрДУЗТ</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#0a0a0f;--bg2:#111118;--bg3:#1a1a24;--border:#2a2a3a;
+  --accent:#f0c040;--accent2:#e05050;--text:#e8e8f0;--text2:#8888aa;
+  --card:#13131e;--success:#40d080;--warning:#f0a030;--r:12px;
+  --sidebar:250px;
+}
+html { font-size: 16px; }
+[data-theme="light"]{--bg:#f4f4f8;--bg2:#fff;--bg3:#ebebf3;--border:#d0d0e0;--text:#1a1a2e;--text2:#606088;--card:#fff;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;transition:background .3s,color .3s;-webkit-tap-highlight-color:transparent;font-size:15px;}
+a{text-decoration:none;color:inherit;}
+
+/* ═══ SCREENS ═══ */
+.screen{display:none;min-height:100vh;}
+.screen.active{display:flex;}
+
+/* ═══ LOGIN / AUTH ═══ */
+#screen-login{align-items:center;justify-content:center;background:var(--bg);position:relative;overflow:hidden;}
+#screen-login::before{content:'';position:absolute;width:500px;height:500px;background:radial-gradient(circle,rgba(240,192,64,.08) 0%,transparent 70%);top:-150px;right:-150px;pointer-events:none;}
+#screen-login::after{content:'';position:absolute;width:350px;height:350px;background:radial-gradient(circle,rgba(224,80,80,.06) 0%,transparent 70%);bottom:-80px;left:-80px;pointer-events:none;}
+.auth-box{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:40px;width:420px;max-width:calc(100vw - 32px);position:relative;z-index:1;animation:fadeUp .5s ease;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
+.auth-logo{display:flex;align-items:center;gap:10px;margin-bottom:24px;}
+.auth-logo .ico{width:38px;height:38px;background:var(--accent);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:18px;}
+.auth-logo h1{font-size:18px;font-weight:800;}
+.auth-logo span{color:var(--accent);}
+.auth-box h2{font-size:22px;font-weight:800;margin-bottom:4px;}
+.auth-box>p{color:var(--text2);font-size:12px;margin-bottom:20px;}
+.sep{display:flex;align-items:center;gap:10px;margin:16px 0;font-size:10px;font-weight:700;color:var(--text2);letter-spacing:.5px;text-transform:uppercase;}
+.sep::before,.sep::after{content:'';flex:1;height:1px;background:var(--border);}
+.field{margin-bottom:11px;}
+.field label{display:block;font-size:10px;font-weight:700;color:var(--text2);margin-bottom:4px;letter-spacing:.5px;text-transform:uppercase;}
+.field input,.field select{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:11px 13px;color:var(--text);font-family:'Inter',sans-serif;font-size:13px;outline:none;transition:border-color .2s;-webkit-appearance:none;}
+.field input:focus,.field select:focus{border-color:var(--accent);}
+.btn-primary{width:100%;background:var(--accent);color:#0a0a0f;border:none;border-radius:var(--r);padding:13px;font-family:'Inter',sans-serif;font-size:14px;font-weight:700;cursor:pointer;transition:opacity .2s,transform .1s;margin-top:6px;}
+.btn-primary:hover{opacity:.9;transform:translateY(-1px);}
+.btn-primary:active{transform:translateY(0);}
+.btn-primary:disabled{opacity:.5;cursor:not-allowed;transform:none;}
+.err-box{background:rgba(224,80,80,.1);border:1px solid rgba(224,80,80,.3);border-radius:var(--r);padding:10px 13px;font-size:12px;color:var(--accent2);margin-top:10px;display:none;}
+.login-info{font-size:10px;color:var(--text2);text-align:center;margin-top:12px;line-height:1.5;}
+
+/* ═══ APP LAYOUT ═══ */
+#screen-app{flex-direction:row;}
+
+/* SIDEBAR */
+.sidebar{width:var(--sidebar);min-height:100vh;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;z-index:200;transition:transform .3s ease;}
+.sidebar-header{padding:18px 16px;display:flex;align-items:center;gap:9px;border-bottom:1px solid var(--border);}
+.sidebar-header .ico{width:30px;height:30px;background:var(--accent);border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;}
+.sidebar-header h1{font-size:13px;font-weight:800;}
+.sidebar-header span{color:var(--accent);}
+.close-sidebar{display:none;margin-left:auto;background:none;border:none;color:var(--text2);font-size:18px;cursor:pointer;padding:4px;}
+.group-pill{padding:4px 12px;background:rgba(240,192,64,.07);border-bottom:1px solid var(--border);font-size:10px;color:var(--accent);font-family:'JetBrains Mono',monospace;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.4;}
+.nav{padding:10px 8px;flex:1;overflow-y:auto;}
+.nav-section{font-size:9px;font-weight:700;color:var(--text2);letter-spacing:1px;text-transform:uppercase;padding:8px 8px 4px;}
+.nav-item{display:flex;align-items:center;gap:9px;padding:10px 10px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;color:var(--text2);transition:all .15s;margin-bottom:1px;user-select:none;}
+.nav-item:hover{background:var(--bg3);color:var(--text);}
+.nav-item.active{background:rgba(240,192,64,.12);color:var(--accent);}
+.nav-item .ni{font-size:14px;width:16px;text-align:center;flex-shrink:0;}
+.nav-badge{margin-left:auto;background:var(--accent2);color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:10px;min-width:16px;text-align:center;}
+.sidebar-bottom{padding:10px 8px;border-top:1px solid var(--border);}
+.user-card{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;background:var(--bg3);}
+.user-avatar{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#0a0a0f;flex-shrink:0;line-height:1;text-align:center;}
+.user-info{flex:1;min-width:0;}
+.user-name{font-size:11px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.user-role-badge{font-size:9px;color:var(--text2);}
+.icon-btn{background:none;border:none;color:var(--text2);cursor:pointer;font-size:13px;padding:3px;border-radius:5px;transition:color .2s;flex-shrink:0;}
+.icon-btn:hover{color:var(--text);}
+
+/* MAIN */
+.main{margin-left:var(--sidebar);min-height:100vh;flex:1;display:flex;flex-direction:column;}
+.topbar{display:none;padding:12px 16px;background:var(--bg2);border-bottom:1px solid var(--border);align-items:center;gap:10px;position:sticky;top:0;z-index:100;}
+.topbar-menu{background:none;border:none;color:var(--text);font-size:20px;cursor:pointer;padding:4px;}
+.topbar h2{font-size:15px;font-weight:800;flex:1;}
+.content{padding:28px;flex:1;}
+
+/* OVERLAY */
+.sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:199;}
+.sidebar-overlay.show{display:block;}
+
+/* ═══ PAGES ═══ */
+.page{display:none;animation:fadeIn .25s ease;}
+.page.active{display:block;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+.page-header{margin-bottom:20px;}
+.page-header h2{font-size:26px;font-weight:800;margin-bottom:3px;}
+.page-header p{color:var(--text2);font-size:13px;}
+
+/* STATS */
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;margin-bottom:20px;}
+.stat-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:14px;display:flex;align-items:center;gap:10px;}
+.stat-ico{width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;}
+.si-y{background:rgba(240,192,64,.15);}
+.si-r{background:rgba(224,80,80,.15);}
+.si-g{background:rgba(64,208,128,.15);}
+.si-b{background:rgba(64,128,240,.15);}
+.stat-val{font-size:22px;font-weight:800;font-family:'JetBrains Mono',monospace;line-height:1;}
+.stat-lbl{font-size:10px;color:var(--text2);margin-top:2px;}
+
+/* DEADLINE */
+.dl-list{display:flex;flex-direction:column;gap:6px;}
+.dl-item{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:11px 14px;display:flex;align-items:center;gap:10px;transition:border-color .2s,background .2s;}
+.dl-item.click{cursor:pointer;}
+.dl-item.click:hover{border-color:var(--accent);background:var(--bg3);}
+.dl-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+.dot-u{background:var(--accent2);box-shadow:0 0 5px rgba(224,80,80,.5);}
+.dot-s{background:var(--warning);}
+.dot-o{background:var(--success);}
+.dl-info{flex:1;min-width:0;}
+.dl-name{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.dl-course{font-size:11px;color:var(--text2);}
+.dl-right{display:flex;align-items:center;gap:6px;flex-shrink:0;}
+.dl-date{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text2);}
+.dl-date.u{color:var(--accent2);}
+.dl-date.s{color:var(--warning);}
+
+/* TOOLBAR */
+.toolbar{display:flex;align-items:center;gap:7px;margin-bottom:14px;flex-wrap:wrap;}
+.tb-input{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:8px 12px;color:var(--text);font-family:'Inter',sans-serif;font-size:12px;outline:none;flex:1;min-width:140px;max-width:220px;transition:border-color .2s;}
+.tb-input:focus{border-color:var(--accent);}
+.tb-select{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:7px 10px;color:var(--text);font-family:'Inter',sans-serif;font-size:11px;outline:none;-webkit-appearance:none;}
+.tb-right{margin-left:auto;display:flex;gap:5px;align-items:center;}
+.section-title{font-size:9px;font-weight:700;color:var(--text2);letter-spacing:1px;text-transform:uppercase;margin:18px 0 8px;}
+
+/* FILES */
+.upload-zone{border:2px dashed var(--border);border-radius:var(--r);padding:22px;text-align:center;cursor:pointer;transition:border-color .2s,background .2s;margin-bottom:14px;}
+.upload-zone:hover,.upload-zone.drag{border-color:var(--accent);background:rgba(240,192,64,.03);}
+.upload-zone .ui{font-size:24px;margin-bottom:6px;}
+.upload-zone p{font-size:12px;color:var(--text2);}
+.upload-zone strong{color:var(--accent);}
+#file-input{display:none;}
+.file-list{display:flex;flex-direction:column;gap:6px;}
+.file-item{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:10px 13px;display:flex;align-items:center;gap:10px;}
+.file-ext{width:32px;height:32px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:700;font-family:'JetBrains Mono',monospace;flex-shrink:0;}
+.ep{background:rgba(224,80,80,.15);color:var(--accent2);}
+.ed{background:rgba(64,128,240,.15);color:#4080f0;}
+.ex{background:rgba(64,192,80,.15);color:#40c050;}
+.eo{background:var(--bg3);color:var(--text2);}
+.file-info{flex:1;min-width:0;}
+.file-name{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.file-meta{font-size:11px;color:var(--text2);margin-top:1px;}
+.file-actions{display:flex;gap:4px;flex-shrink:0;}
+
+/* BUTTONS */
+.btn{background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:5px 10px;font-size:11px;font-weight:600;color:var(--text2);cursor:pointer;transition:all .15s;font-family:'Inter',sans-serif;white-space:nowrap;}
+.btn:hover{border-color:var(--accent);color:var(--accent);}
+.btn.a{background:var(--accent);border-color:var(--accent);color:#0a0a0f;}
+.btn.a:hover{opacity:.85;color:#0a0a0f;}
+.btn.d:hover{border-color:var(--accent2);color:var(--accent2);}
+.btn.r{background:rgba(224,80,80,.1);border-color:rgba(224,80,80,.3);color:var(--accent2);}
+
+/* COURSES */
+.course-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px;}
+.course-grid.lv{grid-template-columns:1fr;}
+.course-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:15px;cursor:pointer;transition:border-color .2s,transform .15s;display:block;color:var(--text);}
+.course-card:hover{border-color:var(--accent);transform:translateY(-2px);}
+.lv .course-card{display:flex;align-items:center;gap:11px;padding:10px 13px;}
+.lv .course-card:hover{transform:none;}
+.c-num{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--accent);font-weight:500;margin-bottom:4px;flex-shrink:0;}
+.lv .c-num{margin-bottom:0;}
+.c-name{font-size:12px;font-weight:700;line-height:1.3;flex:1;}
+.c-meta{font-size:10px;color:var(--text2);margin-top:2px;}
+.lv .c-meta{display:none;}
+.ftab{padding:4px 10px;border-radius:20px;font-size:10px;font-weight:600;border:1px solid var(--border);background:var(--card);color:var(--text2);cursor:pointer;transition:all .15s;font-family:'Inter',sans-serif;}
+.ftab:hover{border-color:var(--accent);color:var(--accent);}
+.ftab.on{background:var(--accent);border-color:var(--accent);color:#0a0a0f;}
+.vbtn{width:26px;height:26px;border-radius:5px;border:1px solid var(--border);background:var(--card);color:var(--text2);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:11px;transition:all .15s;}
+.vbtn.on{background:var(--accent);border-color:var(--accent);color:#0a0a0f;}
+
+/* CHAT */
+.chat-wrap{display:flex;gap:14px;height:calc(100vh - 180px);min-height:300px;}
+.chat-sidebar{width:200px;flex-shrink:0;display:flex;flex-direction:column;gap:6px;overflow-y:auto;}
+.chat-room{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:10px 12px;cursor:pointer;transition:border-color .2s;font-size:12px;font-weight:600;}
+.chat-room:hover{border-color:var(--accent);}
+.chat-room.active{border-color:var(--accent);background:rgba(240,192,64,.07);}
+.chat-room-sub{font-size:10px;color:var(--text2);font-weight:400;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.chat-main{flex:1;display:flex;flex-direction:column;background:var(--card);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;}
+.chat-header{padding:12px 14px;border-bottom:1px solid var(--border);font-size:13px;font-weight:700;}
+.chat-messages{flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:8px;}
+.msg{max-width:75%;display:flex;flex-direction:column;gap:2px;}
+.msg.me{align-self:flex-end;align-items:flex-end;}
+.msg.other{align-self:flex-start;max-width:90%;}
+.msg-author{font-size:9px;color:var(--text2);font-weight:600;margin-bottom:1px;}
+.msg-bubble{background:var(--bg3);border-radius:10px;padding:10px 14px;font-size:14px;line-height:1.65;word-break:break-word;overflow:hidden;}
+.msg.me .msg-bubble{background:rgba(240,192,64,.15);border-radius:10px 10px 2px 10px;}
+.msg.other .msg-bubble{border-radius:10px 10px 10px 2px;}
+.ai-bubble strong{color:var(--text);font-weight:700;}
+.ai-bubble em{color:var(--text2);}
+.ai-bubble p{margin:5px 0;}
+.ai-bubble p:first-child{margin-top:0;}
+.ai-bubble p:last-child{margin-bottom:0;}
+.katex{color:var(--text);font-size:1.05em;}
+.katex-display{overflow-x:auto;overflow-y:hidden;padding:4px 0;}
+.msg-time{font-size:9px;color:var(--text2);font-family:'JetBrains Mono',monospace;}
+.chat-input-wrap{padding:10px;border-top:1px solid var(--border);display:flex;gap:7px;}
+.chat-input{flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:9px 12px;color:var(--text);font-family:'Inter',sans-serif;font-size:12px;outline:none;resize:none;}
+.chat-input:focus{border-color:var(--accent);}
+
+/* ADMIN */
+.admin-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px;}
+.admin-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:18px;}
+.admin-card h3{font-size:14px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:8px;}
+.group-item{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border);font-size:12px;}
+.group-item:last-child{border-bottom:none;}
+.group-item .gname{flex:1;font-weight:600;word-break:break-word;line-height:1.3;}
+.group-item .gcnt{font-size:10px;color:var(--text2);word-break:break-word;margin-top:2px;}
+.group-item>div:first-child{flex:1;min-width:0;}
+.user-row{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border);font-size:12px;}
+.user-row:last-child{border-bottom:none;}
+.user-row .uav{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#0a0a0f;flex-shrink:0;}
+.user-row .uname{flex:1;font-weight:600;}
+.role-sel{background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:3px 7px;color:var(--text);font-family:'Inter',sans-serif;font-size:10px;outline:none;}
+
+/* TAGS */
+.tag{display:inline-block;padding:2px 6px;border-radius:20px;font-size:9px;font-weight:600;background:var(--bg3);color:var(--text2);border:1px solid var(--border);}
+.tag.g{background:rgba(64,208,128,.12);color:var(--success);border-color:rgba(64,208,128,.2);}
+.tag.y{background:rgba(240,192,64,.12);color:var(--accent);border-color:rgba(240,192,64,.2);}
+.tag.r{background:rgba(224,80,80,.12);color:var(--accent2);border-color:rgba(224,80,80,.2);}
+
+/* SYNC BADGE */
+.sync-badge{display:inline-flex;align-items:center;gap:5px;background:rgba(64,208,128,.1);border:1px solid rgba(64,208,128,.2);border-radius:20px;padding:3px 9px;font-size:10px;color:var(--success);font-weight:600;}
+.sync-dot{width:5px;height:5px;background:var(--success);border-radius:50%;animation:pulse 2s infinite;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* STATES */
+.loading{display:flex;align-items:center;gap:8px;color:var(--text2);font-size:12px;padding:16px 0;}
+.spinner{width:14px;height:14px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg)}}
+.empty{text-align:center;padding:32px 16px;color:var(--text2);}
+.empty .emo{font-size:28px;margin-bottom:8px;}
+.empty p{font-size:12px;}
+
+/* MODAL */
+.modal-ov{position:fixed;inset:0;background:rgba(0,0,0,.7);display:none;align-items:center;justify-content:center;z-index:999;padding:16px;}
+.modal-ov.show{display:flex;}
+.modal{background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:24px;width:420px;max-width:100%;animation:fadeUp .25s ease;}
+.modal h3{font-size:16px;font-weight:800;margin-bottom:16px;}
+.modal-actions{display:flex;gap:7px;justify-content:flex-end;margin-top:16px;}
+
+/* ═══ MOBILE ═══ */
+@media(max-width:768px){
+  :root{--sidebar:0px;}
+  .sidebar{transform:translateX(-240px);width:240px;}
+  .sidebar.open{transform:translateX(0);}
+  .main{margin-left:0;}
+  .topbar{display:flex;}
+  .close-sidebar{display:block;}
+  .content{padding:16px;}
+  .stats-grid{grid-template-columns:repeat(2,1fr);gap:8px;}
+  .stat-card{padding:11px;}
+  .stat-val{font-size:18px;}
+  .chat-wrap{flex-direction:column;height:auto;}
+  .chat-sidebar{width:100%;flex-direction:row;overflow-x:auto;overflow-y:visible;padding-bottom:2px;}
+  .chat-room{min-width:120px;flex-shrink:0;}
+  .chat-main{height:400px;}
+  .admin-grid{grid-template-columns:1fr;}
+  .auth-box{padding:28px 22px;}
+  .toolbar{gap:5px;}
+  .tb-input{min-width:120px;}
+}
+@media(max-width:480px){
+  .stats-grid{grid-template-columns:1fr 1fr;}
+  .dl-date{display:none;}
+  .course-grid{grid-template-columns:1fr;}
+  .page-header h2{font-size:18px;}
+}
+
+/* ═══ CALENDAR ═══ */
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;background:var(--border);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;}
+.cal-header-cell{background:var(--bg3);text-align:center;font-size:11px;font-weight:700;color:var(--text2);padding:8px 4px;letter-spacing:.5px;text-transform:uppercase;}
+.cal-cell{background:var(--card);padding:6px;height:90px;display:flex;flex-direction:column;gap:2px;position:relative;overflow:hidden;}
+.cal-cell.expanded{height:auto;overflow:visible;z-index:10;box-shadow:0 4px 20px rgba(0,0,0,.4);}
+.cal-cell.other-month{background:var(--bg);opacity:.4;}
+.cal-cell.today{background:rgba(240,192,64,.07);outline:2px solid var(--accent);outline-offset:-2px;}
+.cal-cell.has-events{background:var(--bg3);}
+.cal-day-num{font-size:11px;font-weight:700;color:var(--text2);margin-bottom:2px;font-family:'JetBrains Mono',monospace;}
+.cal-cell.today .cal-day-num{color:var(--accent);font-size:13px;}
+.cal-event{font-size:9px;padding:2px 5px;border-radius:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;line-height:1.3;position:relative;}
+.cal-event:hover::after{content:attr(data-full);position:absolute;left:0;top:100%;margin-top:2px;background:#1a1a2e;color:#e8e8f0;border:1px solid var(--border);border-radius:6px;padding:5px 8px;font-size:11px;white-space:normal;max-width:220px;width:max-content;z-index:100;box-shadow:0 4px 16px rgba(0,0,0,.5);line-height:1.4;pointer-events:none;}
+[data-theme="light"] .cal-event:hover::after{background:#fff;color:#1a1a2e;}
+.cal-ev-urgent{background:#c0392b;color:#fff;}
+.cal-ev-soon{background:#e67e22;color:#fff;}
+.cal-ev-ok{background:#27ae60;color:#fff;}
+.cal-ev-past{background:#555;color:#ccc;}
+[data-theme="light"] .cal-ev-urgent{background:#e74c3c;color:#fff;}
+[data-theme="light"] .cal-ev-soon{background:#e67e22;color:#fff;}
+[data-theme="light"] .cal-ev-ok{background:#27ae60;color:#fff;}
+[data-theme="light"] .cal-ev-past{background:#aaa;color:#fff;}
+.cal-more{font-size:9px;padding:2px 5px;border-radius:4px;background:var(--bg3);color:var(--accent);cursor:pointer;font-weight:600;text-align:center;transition:background .15s;}
+.cal-more:hover{background:rgba(240,192,64,.15);}
+.cal-hidden{display:none;}
+
+/* ═══ NOTES ═══ */
+.note-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:14px;width:240px;cursor:pointer;transition:border-color .2s,transform .15s;position:relative;display:flex;flex-direction:column;gap:6px;}
+.note-card:hover{border-color:var(--accent);transform:translateY(-2px);}
+.note-card-del{position:absolute;top:8px;right:8px;opacity:0;transition:opacity .2s;}
+.note-card:hover .note-card-del{opacity:1;}
+.note-card-title{font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.note-card-preview{font-size:11px;color:var(--text2);line-height:1.4;overflow:hidden;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;}
+.note-card-meta{display:flex;justify-content:space-between;font-size:9px;color:var(--text2);margin-top:auto;}
+
+/* NOTE EDITOR */
+.note-editor-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:1000;display:none;align-items:stretch;}
+.note-editor-overlay.show{display:flex;}
+.note-editor{flex:1;background:var(--bg2);display:flex;flex-direction:column;margin:16px;border-radius:16px;overflow:hidden;border:1px solid var(--border);}
+.note-editor-header{display:flex;align-items:center;gap:8px;padding:12px 16px;border-bottom:1px solid var(--border);background:var(--bg3);flex-wrap:wrap;}
+.note-title-inp{flex:1;min-width:200px;background:transparent;border:none;color:var(--text);font-family:'Inter',sans-serif;font-size:16px;font-weight:700;outline:none;}
+.note-editor-body{flex:1;display:grid;grid-template-columns:1fr 1fr;gap:0;overflow:hidden;}
+.note-md-inp{background:var(--bg);border:none;border-right:1px solid var(--border);color:var(--text);font-family:'JetBrains Mono',monospace;font-size:13px;padding:16px;resize:none;outline:none;line-height:1.6;}
+.note-preview{padding:16px;overflow-y:auto;font-size:13px;line-height:1.6;}
+.note-preview h1{font-size:20px;margin-bottom:8px;}
+.note-preview h2{font-size:17px;margin-bottom:6px;}
+.note-preview h3{font-size:14px;margin-bottom:4px;}
+.note-preview code{background:var(--bg3);padding:2px 5px;border-radius:4px;font-family:'JetBrains Mono',monospace;font-size:11px;}
+.note-preview blockquote{border-left:3px solid var(--accent);padding-left:10px;color:var(--text2);}
+.note-preview li{margin-left:16px;}
+</style>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"></script>
+</head>
+<body>
+
+<!-- ═══ LOGIN ═══ -->
+<div id="screen-login" class="screen active">
+  <div class="auth-box">
+    <div class="auth-logo">
+      <div class="ico">🎓</div>
+      <h1>Student<span>Hub</span></h1>
+    </div>
+    <h2>Вхід</h2>
+    <p>Портал студентів УкрДУЗТ</p>
+    <div class="field"><label>Логін від Moodle</label><input type="text" id="li" placeholder="••••••••••" autocomplete="username"></div>
+    <div class="field"><label>Пароль від Moodle</label><input type="password" id="lp" placeholder="••••••••" autocomplete="current-password"></div>
+    <button class="btn-primary" id="login-btn" onclick="doLogin()">Увійти</button>
+    <div class="err-box" id="lerr"></div>
+    <p class="login-info">Логін/пароль передаються напряму на сервер УкрДУЗТ • Група визначається автоматично</p>
+  </div>
+</div>
+
+<!-- ═══ APP ═══ -->
+<div id="screen-app" class="screen">
+  <div class="sidebar-overlay" id="sov" onclick="closeSidebar()"></div>
+
+  <!-- SIDEBAR -->
+  <nav class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <div class="ico">🎓</div>
+      <h1>Student<span>Hub</span></h1>
+      <button class="close-sidebar" onclick="closeSidebar()">✕</button>
+    </div>
+    <div class="group-pill" id="gpill">Група: —</div>
+    <div class="nav" id="nav">
+      <div class="nav-section">Навчання</div>
+      <div class="nav-item active" onclick="go('dashboard')"><span class="ni">🏠</span>Головна</div>
+      <div class="nav-item" onclick="go('deadlines')"><span class="ni">⏰</span>Дедлайни</div>
+      <div class="nav-item" onclick="go('courses')"><span class="ni">📚</span>Курси</div>
+      <div class="nav-item" onclick="go('calendar')"><span class="ni">📅</span>Календар</div>
+      <div class="nav-item" onclick="go('assistant')"><span class="ni">🤖</span>Асистент</div>
+      <div class="nav-section">Група</div>
+      <div class="nav-item" onclick="go('files')"><span class="ni">📁</span>Файли</div>
+      <div class="nav-item" onclick="go('materials')"><span class="ni">📝</span>Матеріали</div>
+      <div class="nav-item" onclick="go('notes')"><span class="ni">✍️</span>Нотатки</div>
+      <div class="nav-item" onclick="go('chat')"><span class="ni">💬</span>Чати<span class="nav-badge" id="chat-badge" style="display:none">0</span></div>
+      <div class="nav-section" id="admin-section" style="display:none">Адміністрування</div>
+      <div class="nav-item" id="nav-admin" onclick="go('admin')" style="display:none"><span class="ni">⚙️</span>Адмін-панель</div>
+    </div>
+    <div class="sidebar-bottom">
+      <div class="user-card">
+        <div class="user-avatar" id="uav" style="background:var(--accent)">?</div>
+        <div class="user-info">
+          <div class="user-name" id="uname">...</div>
+          <div class="user-role-badge" id="urole">Студент</div>
+        </div>
+        <button class="icon-btn" onclick="toggleTheme()">🌓</button>
+        <button class="icon-btn" onclick="doLogout()">↩</button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- MAIN -->
+  <div class="main">
+    <!-- TOPBAR (mobile) -->
+    <div class="topbar" id="topbar">
+      <button class="topbar-menu" onclick="openSidebar()">☰</button>
+      <h2 id="topbar-title">Головна</h2>
+      <button class="icon-btn" onclick="toggleTheme()">🌓</button>
+      <button class="icon-btn" id="bell-btn" onclick="go('notifications')" style="position:relative">🔔<span id="bell-count" style="display:none;position:absolute;top:-2px;right:-2px;background:var(--accent2);color:#fff;font-size:8px;font-weight:700;padding:1px 4px;border-radius:10px;min-width:14px;text-align:center"></span></button>
+    </div>
+
+    <div class="content">
+      <!-- DASHBOARD -->
+      <div class="page active" id="page-dashboard">
+        <div class="page-header">
+          <h2>Добрий день! 👋</h2>
+          <p id="dash-sub">Завантаження...</p>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;flex-wrap:wrap;">
+          <div class="sync-badge"><div class="sync-dot"></div>Moodle</div>
+          <button class="btn" onclick="syncMoodle()">🔄 Оновити</button>
+        </div>
+        <div class="stats-grid">
+          <div class="stat-card"><div class="stat-ico si-y">📚</div><div><div class="stat-val" id="s-courses">—</div><div class="stat-lbl">Курсів</div></div></div>
+          <div class="stat-card"><div class="stat-ico si-r">⏰</div><div><div class="stat-val" id="s-urgent">—</div><div class="stat-lbl">Терміново</div></div></div>
+          <div class="stat-card"><div class="stat-ico si-g">✅</div><div><div class="stat-val" id="s-done">—</div><div class="stat-lbl">Минуло</div></div></div>
+          <div class="stat-card"><div class="stat-ico si-b">📁</div><div><div class="stat-val" id="s-files">—</div><div class="stat-lbl">Файлів</div></div></div>
+        </div>
+        <div class="section-title">Найближчі дедлайни</div>
+        <div id="dash-dl"><div class="loading"><div class="spinner"></div>Завантаження...</div></div>
+      </div>
+
+      <!-- DEADLINES -->
+      <div class="page" id="page-deadlines">
+        <div class="page-header"><h2>⏰ Дедлайни</h2><p>З Moodle — натисніть щоб відкрити завдання</p></div>
+        <div class="toolbar">
+          <input class="tb-input" id="dl-q" placeholder="🔍 Пошук..." oninput="applyDlFilter()">
+          <select class="tb-select" id="dl-f" onchange="applyDlFilter()">
+            <option value="all">Всі</option>
+            <option value="active" selected>Активні</option>
+            <option value="urgent">Термінові</option>
+            <option value="past">Минулі</option>
+          </select>
+          <div class="tb-right">
+            <button class="btn" onclick="toggleDlSettings()" title="Налаштування кольорів">🎨</button>
+            <button class="btn a" onclick="syncMoodle()">🔄</button>
+          </div>
+        </div>
+        <div id="dl-settings" style="display:none;background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:16px;margin-bottom:14px;animation:fadeUp .2s ease;">
+          <div style="font-size:11px;font-weight:700;color:var(--text2);letter-spacing:.5px;text-transform:uppercase;margin-bottom:12px;">🎨 Налаштування кольорів</div>
+          <div style="display:flex;flex-wrap:wrap;gap:16px;align-items:center;">
+            <label style="display:flex;align-items:center;gap:8px;font-size:13px;">
+              <span style="width:11px;height:11px;border-radius:50%;background:var(--accent2);flex-shrink:0;box-shadow:0 0 6px rgba(224,80,80,.5);"></span>
+              Червоний менше
+              <input type="number" id="dl-urgent-hours" min="1" max="240" style="width:62px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:5px 8px;color:var(--text);font-size:13px;text-align:center;outline:none;" oninput="saveDlSettings()">
+              год
+            </label>
+            <label style="display:flex;align-items:center;gap:8px;font-size:13px;">
+              <span style="width:11px;height:11px;border-radius:50%;background:var(--warning);flex-shrink:0;"></span>
+              Жовтий менше
+              <input type="number" id="dl-warn-days" min="1" max="60" style="width:62px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:5px 8px;color:var(--text);font-size:13px;text-align:center;outline:none;" oninput="saveDlSettings()">
+              днів
+            </label>
+          </div>
+          <div style="font-size:11px;color:var(--text2);margin-top:8px;">💾 Зберігається автоматично</div>
+        </div>
+        <div id="dl-list"><div class="loading"><div class="spinner"></div>Завантаження...</div></div>
+      </div>
+
+      <!-- COURSES -->
+      <div class="page" id="page-courses">
+        <div class="page-header"><h2>📚 Курси</h2><p>З Moodle — натисніть щоб відкрити</p></div>
+        <div class="toolbar">
+          <input class="tb-input" id="c-q" placeholder="🔍 Пошук курсу..." oninput="filterCourses()">
+          <button class="ftab on" id="cs-n" onclick="setCS('name')">А-Я</button>
+          <button class="ftab" id="cs-num" onclick="setCS('num')">#</button>
+          <div class="tb-right" style="display:flex;gap:4px;">
+            <button class="vbtn on" id="vg" onclick="setCV('grid')" title="Картки">⊞</button>
+            <button class="vbtn" id="vl" onclick="setCV('list')" title="Список">☰</button>
+          </div>
+        </div>
+        <div id="courses-list"><div class="loading"><div class="spinner"></div>Завантаження...</div></div>
+      </div>
+
+      <!-- FILES -->
+      <div class="page" id="page-files">
+        <div class="page-header"><h2>📁 Файли групи</h2><p id="files-lbl">Спільні файли вашої групи</p></div>
+        <div class="upload-zone" id="uz" onclick="document.getElementById('file-input').click()" ondragover="event.preventDefault();this.classList.add('drag')" ondragleave="this.classList.remove('drag')" ondrop="handleDrop(event)">
+          <div class="ui">📤</div>
+          <p><strong>Натисніть або перетягніть</strong></p>
+          <p style="font-size:10px;margin-top:2px;">до 700КБ • більші файли — через Google Drive у Матеріали</p>
+        </div>
+        <input type="file" id="file-input" multiple onchange="handleFileSelect(this)">
+        <div class="file-search-row">
+          <input class="tb-input" placeholder="🔍 Пошук файлу..." oninput="filesSearchQuery=this.value;renderFilesWithSearch(cachedFiles,this.value)" style="flex:1;max-width:260px;">
+        </div>
+        <div id="files-list"><div class="loading"><div class="spinner"></div>Завантаження...</div></div>
+      </div>
+
+      <!-- MATERIALS -->
+      <div class="page" id="page-materials">
+        <div class="page-header"><h2>📝 Матеріали</h2><p id="mats-lbl">Конспекти та посилання групи</p></div>
+        <div class="toolbar">
+          <input class="tb-input" placeholder="🔍 Пошук..." oninput="filterMats(this.value)">
+          <div class="tb-right"><button class="btn a" onclick="showModal('add-mat')">+ Додати</button></div>
+        </div>
+        <div id="mats-list"><div class="loading"><div class="spinner"></div>Завантаження...</div></div>
+      </div>
+
+      <!-- CHAT -->
+      <div class="page" id="page-chat">
+        <div class="page-header"><h2>💬 Чати</h2><p>Спілкуйтесь з групою та університетом</p></div>
+        <div class="chat-wrap">
+          <div class="chat-sidebar" id="chat-rooms"></div>
+          <div class="chat-main">
+            <div class="chat-header" id="chat-room-title">Оберіть кімнату</div>
+            <div class="chat-messages" id="chat-msgs"><div class="empty"><div class="emo">💬</div><p>Оберіть чат зліва</p></div></div>
+            <div class="chat-input-wrap">
+              <textarea class="chat-input" id="chat-inp" placeholder="Напишіть повідомлення..." rows="1" onkeydown="chatKey(event)"></textarea>
+              <button class="btn a" onclick="sendMsg()">→</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+
+      <!-- CALENDAR -->
+      <div class="page" id="page-calendar">
+        <div class="page-header"><h2>📅 Календар</h2><p>Дедлайни та власні нотатки по днях</p></div>
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap;">
+          <button class="btn" onclick="calPrev()">← Назад</button>
+          <div id="cal-title" style="font-size:15px;font-weight:700;flex:1;text-align:center;min-width:140px;"></div>
+          <button class="btn" onclick="calNext()">Вперед →</button>
+          <button class="btn a" onclick="calToday()">Сьогодні</button>
+        </div>
+        <div id="cal-grid"></div>
+        <div id="cal-note-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:1000;align-items:center;justify-content:center;padding:16px;">
+          <div style="background:var(--card);border:1px solid var(--border);border-radius:16px;width:100%;max-width:440px;padding:20px;animation:fadeUp .2s ease;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+              <div id="cal-note-date-lbl" style="font-size:15px;font-weight:700;"></div>
+              <button onclick="closeCalNoteModal()" style="background:none;border:none;color:var(--text2);font-size:20px;cursor:pointer;line-height:1;">✕</button>
+            </div>
+            <textarea id="cal-note-inp" placeholder="Нотатка для цього дня..." style="width:100%;min-height:120px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:10px 13px;color:var(--text);font-family:'Inter',sans-serif;font-size:14px;resize:vertical;outline:none;line-height:1.6;"></textarea>
+            <div style="display:flex;gap:8px;margin-top:12px;justify-content:flex-end;">
+              <button class="btn" onclick="deleteCalNote()" id="cal-note-del" style="color:var(--accent2);">🗑 Видалити</button>
+              <button class="btn a" onclick="saveCalNote()">💾 Зберегти</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+            <!-- NOTES -->
+      <div class="page" id="page-notes">
+        <div class="page-header"><h2>✍️ Нотатки</h2><p>Особисті конспекти з Markdown підтримкою</p></div>
+        <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;align-items:center;">
+          <button class="btn a" onclick="showNewNote()">+ Нова нотатка</button>
+          <input class="tb-input" placeholder="🔍 Пошук..." oninput="searchNotes(this.value)" style="flex:1;max-width:260px;">
+        </div>
+        <div id="notes-container" style="display:flex;gap:14px;flex-wrap:wrap;"></div>
+      </div>
+
+      <!-- ASSISTANT -->
+      <div class="page" id="page-assistant">
+        <div class="page-header"><h2>🤖 Асистент</h2><p>AI-помічник для навчання — безкоштовно</p></div>
+        <div style="display:flex;flex-direction:column;height:calc(100vh - 200px);min-height:400px;background:var(--card);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;">
+          <div id="ai-msgs" style="flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:10px;">
+            <div class="msg other"><div class="msg-bubble">Привіт! Я твій навчальний асистент 🎓<br>Можу допомогти з поясненням матеріалу, підготовкою до іспитів, написанням конспектів та іншим. Що тебе цікавить?</div></div>
+          </div>
+          <div style="padding:12px;border-top:1px solid var(--border);display:flex;flex-direction:column;gap:8px;">
+            <div id="ai-img-preview" style="display:none;position:relative;width:64px;">
+              <img id="ai-img-thumb" style="width:64px;height:64px;object-fit:cover;border-radius:8px;border:1px solid var(--border);">
+              <button onclick="clearAIImg()" style="position:absolute;top:-6px;right:-6px;width:20px;height:20px;border-radius:50%;background:var(--accent2);border:none;color:#fff;font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;">✕</button>
+            </div>
+            <div style="display:flex;gap:8px;align-items:flex-end;">
+              <textarea id="ai-inp" style="flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:10px 14px;color:var(--text);font-family:'Inter',sans-serif;font-size:14px;outline:none;resize:none;min-height:46px;max-height:140px;line-height:1.5;transition:border-color .2s;" rows="2" placeholder="Запитай або вставте фото (Ctrl+V)..." onkeydown="aiKey(event)" onpaste="handleAIPaste(event)"></textarea>
+              <button onclick="document.getElementById('ai-img-input').click()" title="Додати фото" style="width:46px;height:46px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);font-size:20px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:border-color .2s;">📎</button>
+              <button onclick="sendAI()" id="ai-send" style="width:46px;height:46px;background:var(--accent);border:none;border-radius:var(--r);color:#0a0a0f;font-size:22px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:opacity .2s;font-weight:700;">➤</button>
+            </div>
+            <input type="file" id="ai-img-input" accept="image/*" style="display:none" onchange="handleAIImg(this)">
+          </div>
+        </div>
+      </div>
+
+      <!-- NOTIFICATIONS -->
+      <div class="page" id="page-notifications">
+        <div class="page-header"><h2>🔔 Сповіщення</h2><p>Нові файли, повідомлення та нагадування</p></div>
+        <div style="display:flex;gap:8px;margin-bottom:14px;">
+          <button class="btn a" onclick="requestNotifPerms()">🔔 Увімкнути push-сповіщення</button>
+          <button class="btn" onclick="markAllRead()">✓ Всі прочитані</button>
+        </div>
+        <div id="notif-list"><div class="empty"><div class="emo">🔔</div><p>Немає нових сповіщень</p></div></div>
+      </div>
+      <!-- ADMIN -->
+      <div class="page" id="page-admin">
+        <div class="page-header"><h2>⚙️ Адмін-панель</h2><p>Управління групами та користувачами</p></div>
+        <div class="admin-grid">
+          <!-- Groups -->
+          <div class="admin-card">
+            <h3>🏫 Групи</h3>
+            <div id="admin-groups-list"><div class="loading"><div class="spinner"></div></div></div>
+            <button class="btn a" style="width:100%;margin-top:10px;" onclick="showModal('add-group')">+ Створити групу</button>
+          </div>
+          <!-- Users -->
+          <div class="admin-card">
+            <h3>👥 Користувачі</h3>
+            <input class="tb-input" id="users-search" placeholder="🔍 Пошук по імені..." oninput="filterAdminUsers(this.value)" style="width:100%;margin-bottom:10px;max-width:100%;">
+            <div id="admin-users-list"><div class="loading"><div class="spinner"></div></div></div>
+          </div>
+          <!-- Stats -->
+          <div class="admin-card">
+            <h3>📊 Статистика</h3>
+            <div id="admin-stats"><div class="loading"><div class="spinner"></div></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODALS -->
+<div class="modal-ov" id="modal-add-mat">
+  <div class="modal">
+    <h3>📝 Додати матеріал</h3>
+    <div class="field"><label>Назва</label><input type="text" id="mn" placeholder="Конспект по математиці"></div>
+    <div class="field"><label>Предмет</label><input type="text" id="ms" placeholder="Вища математика"></div>
+    <div class="field"><label>Посилання або опис</label><input type="text" id="md" placeholder="https://drive.google.com/..."></div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal('add-mat')">Скасувати</button>
+      <button class="btn a" onclick="addMat()">Додати</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-ov" id="modal-add-group">
+  <div class="modal">
+    <h3>🏫 Створити групу</h3>
+    <div class="field"><label>Назва групи</label><input type="text" id="gn" placeholder="103-ОПУТ-Д24"></div>
+    <div class="field"><label>Факультет</label><input type="text" id="gf" placeholder="Інформаційні технології"></div>
+    <div class="field">
+      <label>Курс (1-4 авто, 5-6 вручну)</label>
+      <input type="number" id="gc" placeholder="1" min="1" max="6">
+      <div id="gc-hint" style="font-size:9px;color:var(--text2);margin-top:3px;"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal('add-group')">Скасувати</button>
+      <button class="btn a" id="group-modal-btn" onclick="groupModalAction()">Створити</button>
+    </div>
+  </div>
+</div>
+
+<!-- Firebase -->
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+import { getFirestore, collection, addDoc, deleteDoc, doc, query, where, orderBy, onSnapshot, getDocs, setDoc, getDoc, updateDoc, serverTimestamp, limit } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+
+const cfg = {
+  apiKey:"AIzaSyAXscEMkW51sejM_yBkMcL_QyvgfAWT7sE",
+  authDomain:"student-hub-ukrdust.firebaseapp.com",
+  projectId:"student-hub-ukrdust",
+  storageBucket:"student-hub-ukrdust.firebasestorage.app",
+  messagingSenderId:"181184327168",
+  appId:"1:181184327168:web:3ceca4b24980f900eff2e5"
+};
+const app = initializeApp(cfg);
+const db = getFirestore(app);
+window._db = db;
+window._fb = { collection, addDoc, deleteDoc, doc, query, where, orderBy, onSnapshot, getDocs, setDoc, getDoc, updateDoc, serverTimestamp, limit };
+
+// loadGroupsForLogin залишаємо для fallback у випадку коли Moodle не визначив групу
+async function loadGroupsForLogin() {
+  try {
+    const snap = await getDocs(collection(db, 'groups'));
+    return snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a,b) => (a.name||'').localeCompare(b.name||''));
+  } catch(e) { return []; }
+}
+window._loadGroupsForLogin = loadGroupsForLogin;
+</script>
+
+<script>
+const MOODLE = 'https://do.kart.edu.ua';
+let token='', userData={}, allDl=[], courses=[], group={}, userRole='student';
+let unsubs=[], cachedFiles=[], cachedMats=[], currentChatRoom=null, chatUnsub=null;
+let cvMode='grid', csMode='name';
+
+// ── XSS PROTECTION ──
+function escHtml(t) { return (t==null?'':String(t)).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;'); }
+
+// ── COURSE CALC ──
+function calcCourse(entryYear) {
+  const now = new Date();
+  const acadYear = now.getMonth() >= 7 ? now.getFullYear() : now.getFullYear() - 1;
+  return Math.min(Math.max(acadYear - entryYear + 1, 1), 6);
+}
+function getGroupCourse(g) {
+  if(g.manualCourse) return g.manualCourse;
+  if(g.entryYear) return calcCourse(g.entryYear);
+  return g.course || '?';
+}
+
+// ── ROLES ──
+const ROLES = { superadmin:'🔴 Супер-адмін', admin:'🟠 Адмін', moderator:'🟡 Модератор', student:'🟢 Студент' };
+const ROLE_COLORS = { superadmin:'#e05050', admin:'#f0a030', moderator:'#f0c040', student:'#40d080' };
+function canAdmin() { return ['superadmin','admin'].includes(userRole); }
+function canMod() { return ['superadmin','admin','moderator'].includes(userRole); }
+
+// ── AUTH ──
+async function doLogin() {
+  const username = document.getElementById('li').value.trim();
+  const password = document.getElementById('lp').value;
+  const btn = document.getElementById('login-btn');
+  const err = document.getElementById('lerr');
+  err.style.display='none';
+  if (!username||!password) { showErr('Введіть логін та пароль'); return; }
+  btn.disabled=true; btn.textContent='Входимо...';
+  try {
+    // 1. Отримати токен
+    const r = await fetch(MOODLE+'/login/token.php?username='+encodeURIComponent(username)+'&password='+encodeURIComponent(password)+'&service=moodle_mobile_app');
+    const d = await r.json();
+    if (!d.token) { showErr(d.error || 'Невірний логін або пароль'); btn.disabled=false; btn.textContent='Увійти'; return; }
+    token = d.token;
+
+    // 2. Отримати інфо про користувача
+    btn.textContent='Визначаємо групу...';
+    const siteData = await moodleCall('core_webservice_get_site_info');
+
+    // 3. Перевірка — не викладач
+    const roles = Array.isArray(siteData.roles) ? siteData.roles : [];
+    const teacherShortnames = ['teacher','editingteacher','coursecreator','manager'];
+    const isTeacher = roles.some(r =>
+      teacherShortnames.includes((r.shortname||'').toLowerCase()) || [1,2,3,4].includes(Number(r.roleid))
+    );
+    if (isTeacher) {
+      token = '';
+      showErr('Цей портал лише для студентів. Викладачі не можуть увійти.');
+      btn.disabled=false; btn.textContent='Увійти'; return;
+    }
+
+    // 4. Спробувати отримати когорти (групу) студента
+    const userId = siteData.userid;
+    let moodleGroupName = null;
+    let moodleFaculty = null;
+
+    // Метод А: когорти через core_cohort_get_user_cohorts (якщо є доступ)
+    try {
+      const cohorts = await moodleCall('core_cohort_get_user_cohorts', { userid: userId });
+      if(Array.isArray(cohorts) && cohorts.length) {
+        // Беремо першу когорту — це зазвичай і є група
+        moodleGroupName = cohorts[0].name || cohorts[0].idnumber;
+        moodleFaculty = cohorts[0].description || cohorts[0].theme || null;
+        // Очищаємо HTML теги з faculty якщо є
+        if(moodleFaculty) moodleFaculty = moodleFaculty.replace(/<[^>]*>/g,'').trim() || null;
+        console.log('Cohort found:', moodleGroupName, moodleFaculty);
+      }
+    } catch(e) { console.warn('Cohort API failed:', e); }
+
+    // Метод Б: групи в курсах через core_group_get_course_user_groups
+    if(!moodleGroupName) {
+      try {
+        const enrolledCourses = await moodleCall('core_enrol_get_users_courses', { userid: userId });
+        if(Array.isArray(enrolledCourses) && enrolledCourses.length) {
+          for(const course of enrolledCourses.slice(0,5)) {
+            try {
+              const grps = await moodleCall('core_group_get_course_user_groups', { courseid: course.id, userid: userId });
+              if(grps && Array.isArray(grps.groups) && grps.groups.length) {
+                moodleGroupName = grps.groups[0].name;
+                console.log('Group from course found:', moodleGroupName);
+                break;
+              }
+            } catch(e2) {}
+          }
+        }
+      } catch(e) { console.warn('Course groups API failed:', e); }
+    }
+
+    // Метод В: витягнути групу з назви курсу (pattern: "ГрупаХХХ" або "ХХХ-ХХ")
+    if(!moodleGroupName) {
+      try {
+        const enrolledCourses = await moodleCall('core_enrol_get_users_courses', { userid: userId });
+        if(Array.isArray(enrolledCourses) && enrolledCourses.length) {
+          // Шукаємо патерн групи в назві курсу: XXX-XXX-X або схоже
+          for(const c of enrolledCourses) {
+            const match = (c.fullname||'').match(/\b([А-ЯІЇЄA-Z]{1,5}-?\d{2,4}[А-ЯA-Z]?\d{0,2})\b/i);
+            if(match) { moodleGroupName = match[1]; break; }
+          }
+        }
+      } catch(e) {}
+    }
+
+    // 5. Якщо групу не знайдено — показати ручний вибір
+    if(!moodleGroupName) {
+      console.warn('Could not detect group from Moodle, falling back to manual selection');
+      await showGroupFallback(token, siteData);
+      btn.disabled=false; btn.textContent='Увійти';
+      return;
+    }
+
+    // 6. Знайти або створити групу в Firestore
+    btn.textContent='Синхронізація...';
+    group = await findOrCreateGroup(moodleGroupName, moodleFaculty);
+
+    // 7. Зайти
+    localStorage.setItem('sh_token', token);
+    localStorage.setItem('sh_gid', group.id);
+    await initApp();
+
+  } catch(e) { console.error('Login error:', e); showErr('Помилка підключення'); }
+  btn.disabled=false; btn.textContent='Увійти';
+}
+
+// Знайти групу в Firestore або створити нову
+async function findOrCreateGroup(name, faculty) {
+  const { collection, getDocs, addDoc, query, where } = window._fb;
+  // Шукаємо по назві (регістронезалежно)
+  const snap = await getDocs(collection(window._db, 'groups'));
+  const existing = snap.docs.map(d=>({id:d.id,...d.data()}))
+    .find(g => (g.name||'').toLowerCase().trim() === name.toLowerCase().trim());
+  if(existing) { console.log('Found existing group:', existing.name); return existing; }
+
+  // Не знайдено — створюємо автоматично
+  console.log('Creating new group:', name, faculty);
+  const now2 = new Date();
+  const acadYear = now2.getMonth() >= 7 ? now2.getFullYear() : now2.getFullYear() - 1;
+  // Спробуємо витягти курс з назви групи (напр. "103-ОПУТ-Д24" → рік 24 → курс)
+  let course = 1, entryYear = null, manualCourse = null;
+  const yearMatch = name.match(/[ДД]?(\d{2})$/i) || name.match(/(\d{4})/);
+  if(yearMatch) {
+    let yr = parseInt(yearMatch[1]);
+    if(yr < 100) yr += 2000;
+    course = Math.min(Math.max(acadYear - yr + 1, 1), 6);
+    entryYear = yr;
+  }
+  const newDoc = await addDoc(collection(window._db,'groups'), {
+    name, faculty: faculty || '', course, entryYear, manualCourse,
+    createdAt: Date.now(), autoCreated: true
+  });
+  if(window._loadGroupsForLogin) window._loadGroupsForLogin();
+  return { id: newDoc.id, name, faculty: faculty||'', course, entryYear };
+}
+
+// Якщо автовизначення не вдалося — показати кнопку ручного вибору
+async function showGroupFallback(tok, siteData) {
+  showErr('Не вдалося визначити групу автоматично. Оберіть групу вручну:');
+  // Показати select якщо він ще не існує
+  let sel = document.getElementById('lg-fallback');
+  if(!sel) {
+    sel = document.createElement('select');
+    sel.id = 'lg-fallback';
+    sel.className = 'field';
+    sel.style.cssText = 'width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:11px 13px;color:var(--text);font-family:Inter,sans-serif;font-size:13px;outline:none;margin-top:8px;-webkit-appearance:none;';
+    sel.innerHTML = '<option value="">— Оберіть групу —</option>';
+    // Завантажити групи
+    const { collection, getDocs } = window._fb;
+    const gsnap = await getDocs(collection(window._db,'groups'));
+    const groups = gsnap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(a.name||'').localeCompare(b.name||''));
+    groups.forEach(g => { sel.innerHTML += '<option value="'+escHtml(g.id)+'">'+escHtml(g.name)+'</option>'; });
+    document.getElementById('lerr').after(sel);
+    // Кнопка підтвердження
+    const confirmBtn = document.createElement('button');
+    confirmBtn.className = 'btn-primary';
+    confirmBtn.style.marginTop = '8px';
+    confirmBtn.textContent = 'Продовжити';
+    confirmBtn.onclick = async () => {
+      const gid = sel.value;
+      if(!gid) { showErr('Оберіть групу'); return; }
+      confirmBtn.disabled=true; confirmBtn.textContent='Входимо...';
+      const { doc, getDoc } = window._fb;
+      const gSnap = await getDoc(doc(window._db,'groups',gid));
+      if(!gSnap.exists()) { showErr('Групу не знайдено'); confirmBtn.disabled=false; confirmBtn.textContent='Продовжити'; return; }
+      group = { id: gid, ...gSnap.data() };
+      sel.remove(); confirmBtn.remove();
+      localStorage.setItem('sh_token', tok);
+      localStorage.setItem('sh_gid', gid);
+      await initApp();
+    };
+    sel.after(confirmBtn);
+  }
+}
+
+function showErr(msg) { const e=document.getElementById('lerr'); e.textContent=msg; e.style.display='block'; }
+document.getElementById('lp').addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
+
+async function initApp() {
+  document.getElementById('screen-login').classList.remove('active');
+  document.getElementById('screen-app').classList.add('active');
+  document.getElementById('gpill').textContent = '📌 ' + group.name;
+  document.getElementById('files-lbl').textContent = 'Файли групи ' + group.name;
+  document.getElementById('mats-lbl').textContent = 'Матеріали групи ' + group.name;
+  await loadUserInfo();
+  await loadUserRole();
+  setupNav();
+  await startUserSettingsSync(); // ← Firestore sync для налаштувань і нотаток
+  await syncMoodle();
+  listenFiles(); listenMats(); setupChatRooms();
+  if (canAdmin()) listenAdminData();
+  loadNotes();
+  loadNotifications();
+  renderCalendar();
+  scheduleDeadlineNotifs();
+  updateBellCount();
+}
+
+async function loadUserInfo() {
+  try {
+    const d = await moodleCall('core_webservice_get_site_info');
+    userData = d;
+    const name = d.fullname || 'Студент';
+    document.getElementById('uname').textContent = name;
+    document.getElementById('uav').textContent = name[0].toUpperCase();
+    const today = new Date().toLocaleDateString('uk-UA',{weekday:'long',day:'numeric',month:'long'});
+    document.getElementById('dash-sub').textContent = today + ' • ' + name;
+    // Save/update user in Firestore
+    if (window._db && userData.userid) {
+      const { doc, setDoc } = window._fb;
+      await setDoc(doc(window._db,'users',String(userData.userid)), {
+        name, groupId: group.id, groupName: group.name,
+        moodleId: userData.userid, lastSeen: Date.now()
+      }, { merge: true });
+    }
+  } catch(e) {}
+}
+
+async function loadUserRole() {
+  if (!window._db || !userData.userid) return;
+  const { doc, getDoc } = window._fb;
+  try {
+    const snap = await getDoc(doc(window._db,'users',String(userData.userid)));
+    if (snap.exists() && snap.data().role) {
+      userRole = snap.data().role;
+    } else { userRole = 'student'; }
+  } catch(e) { userRole = 'student'; }
+  document.getElementById('urole').textContent = ROLES[userRole] || 'Студент';
+  document.getElementById('uav').style.background = ROLE_COLORS[userRole] || '#f0c040';
+}
+
+function setupNav() {
+  if (canAdmin()) {
+    document.getElementById('admin-section').style.display='';
+    document.getElementById('nav-admin').style.display='';
+  }
+}
+
+async function moodleCall(fn, params={}) {
+  const p = new URLSearchParams({ wstoken:token, wsfunction:fn, moodlewsrestformat:'json', ...params });
+  const r = await fetch(MOODLE+'/webservice/rest/server.php?'+p);
+  return r.json();
+}
+
+// ── SYNC ──
+async function syncMoodle() { await loadCourses(); await loadDeadlines(); }
+
+// ── COURSES ──
+async function loadCourses() {
+  document.getElementById('courses-list').innerHTML='<div class="loading"><div class="spinner"></div>Завантаження курсів...</div>';
+  if(!token){ document.getElementById('courses-list').innerHTML='<div class="empty"><div class="emo">⚠️</div><p>Немає токену. Вийдіть і увійдіть знову.</p></div>'; return; }
+  try {
+    const info = await moodleCall('core_webservice_get_site_info');
+    const d = await moodleCall('core_enrol_get_users_courses',{userid:info.userid});
+    courses = Array.isArray(d) ? d : [];
+    document.getElementById('s-courses').textContent = courses.length;
+    filterCourses();
+  } catch(e) { courses=[]; }
+}
+function setCV(v) { cvMode=v; document.getElementById('vg').classList.toggle('on',v==='grid'); document.getElementById('vl').classList.toggle('on',v==='list'); filterCourses(); }
+function setCS(s) { csMode=s; document.getElementById('cs-n').classList.toggle('on',s==='name'); document.getElementById('cs-num').classList.toggle('on',s==='num'); filterCourses(); }
+function filterCourses() {
+  const q=(document.getElementById('c-q')||{value:''}).value.toLowerCase();
+  let list=courses.filter(c=>!q||(c.fullname||c.shortname||'').toLowerCase().includes(q));
+  if(csMode==='name') list=list.slice().sort((a,b)=>(a.fullname||a.shortname).localeCompare(b.fullname||b.shortname));
+  const el=document.getElementById('courses-list');
+  if(!list.length){el.innerHTML='<div class="empty"><div class="emo">📚</div><p>Курси не знайдено</p></div>';return;}
+  const cls=cvMode==='list'?'course-grid lv':'course-grid';
+  el.innerHTML='<div class="'+cls+'">'+list.map((c,i)=>
+    '<a class="course-card" href="https://do.kart.edu.ua/course/view.php?id='+encodeURIComponent(c.id)+'" target="_blank" rel="noopener noreferrer">'+
+    '<div class="c-num">№'+(i+1)+'</div>'+
+    '<div class="c-name">'+escHtml(c.fullname||c.shortname)+'</div>'+
+    '<div class="c-meta">'+escHtml(c.shortname||'')+'</div></a>'
+  ).join('')+'</div>';
+}
+
+// ── DEADLINES ──
+async function loadDeadlines() {
+  const now=Math.floor(Date.now()/1000);
+  document.getElementById('dl-list').innerHTML='<div class="loading"><div class="spinner"></div>Завантаження з Moodle...</div>';
+  document.getElementById('dash-dl').innerHTML='<div class="loading"><div class="spinner"></div>Завантаження...</div>';
+  if(!token){ 
+    document.getElementById('dl-list').innerHTML='<div class="empty"><div class="emo">⚠️</div><p>Немає токену Moodle. Вийдіть і увійдіть знову.</p></div>';
+    document.getElementById('dash-dl').innerHTML='<div class="empty"><div class="emo">⚠️</div><p>Немає токену</p></div>';
+    return; 
+  }
+  try {
+    let events = [];
+    
+    // Method 1: Action events by timesort — без limitcourse щоб не блокувати
+    try {
+      const d1 = await moodleCall('core_calendar_get_action_events_by_timesort',{
+        timesortfrom: now - 60*60*24*365*3,
+        timesortto: now + 60*60*24*365,
+        limitnum: 50
+      });
+      console.log('Method 1 raw:', JSON.stringify(d1).slice(0,200));
+      if(d1 && !d1.errorcode) {
+        const evts = d1.events || d1.data?.events || [];
+        if(evts.length) { events = evts; console.log('Method 1:', evts.length); }
+      }
+    } catch(e1) { console.warn('Method 1 failed:', e1); }
+    
+    // Method 2 і 3 видалені — блокуються CORS університетського сервера
+
+    // Method 4 + 5: ЗАВЖДИ запускаємо паралельно — завдання (assign) і тести (quiz)
+    // Це ловить тести без duedate (тільки timeclose) та завдання яких немає в календарі
+    if(courses.length) {
+      try {
+        const courseids = courses.slice(0,25).map((c,i)=>`courseids[${i}]=${c.id}`).join('&');
+        
+        const d4 = await fetch(MOODLE+'/webservice/rest/server.php?wstoken='+token+'&wsfunction=mod_assign_get_assignments&moodlewsrestformat=json&'+courseids)
+            .then(r=>r.json()).catch(()=>null);
+
+        const extraEvents = [];
+
+        if(d4 && d4.courses) {
+          d4.courses.forEach(course => {
+            (course.assignments||[]).forEach(a => {
+              const deadline = a.duedate || 0;
+              if(deadline > 0) {
+                extraEvents.push({
+                  id: 'assign_'+a.id, name: a.name,
+                  course: { fullname: course.fullname },
+                  timesort: deadline, modulename: 'assign',
+                  url: MOODLE+'/mod/assign/view.php?id='+a.cmid
+                });
+              }
+            });
+          });
+          console.log('Method 4 (assign):', extraEvents.length);
+        }
+
+        // Мержимо: дедуплікація по назві+курс+дата
+        const existingKeys = new Set(events.map(e => {
+          const cn = e.course ? (e.course.fullname||e.course.shortname||'') : '';
+          return (e.name||'').toLowerCase().trim() + '|' + cn.toLowerCase().trim() + '|' + (e.timesort||0);
+        }));
+        extraEvents.forEach(e => {
+          const cn = e.course ? (e.course.fullname||e.course.shortname||'') : '';
+          const key = (e.name||'').toLowerCase().trim() + '|' + cn.toLowerCase().trim() + '|' + (e.timesort||0);
+          if(!existingKeys.has(key)) {
+            events.push(e);
+            existingKeys.add(key);
+          }
+        });
+        console.log('After merge total:', events.length);
+
+      } catch(e45) { console.warn('Method 4/5 failed:', e45); }
+    }
+    
+    console.log('Total events found:', events.length);
+    
+    // Модулі які точно не є дедлайнами
+    const IGNORE_MODULES = ['forum', 'chat', 'wiki', 'glossary'];
+    // Типи подій-відкриттів які треба ігнорувати
+    const IGNORE_TYPES = ['open', 'opensubmission', 'expectcompletionon', 'gradingdue'];
+    // Типи які є дедлайнами
+    const DEADLINE_TYPES = ['due', 'close', 'closingdate', 'duedate', 'timeclose'];
+    
+    // Final global dedup by id first
+    const seenIds = new Set();
+    events = events.filter(e => {
+      const key = String(e.id);
+      if(seenIds.has(key)) return false;
+      seenIds.add(key);
+      return true;
+    });
+
+    allDl = events.filter(e => {
+      const t = e.timesort || e.timestart || e.timefinish || 0;
+      if(t <= 0) return false;
+      
+      // Фільтруємо тільки якщо modname явно вказаний і є в списку ігнорування
+      const modname = (e.modulename || e.modname || e.activitytype || '').toLowerCase();
+      if(modname && IGNORE_MODULES.some(x => modname === x)) return false;
+      
+      const etype = (e.eventtype || e.type || '').toLowerCase();
+      
+      // Ігноруємо події-відкриття
+      if(etype && IGNORE_TYPES.some(x => etype === x)) return false;
+      
+      // Якщо тип явно дедлайновий — беремо
+      if(etype && DEADLINE_TYPES.some(x => etype.includes(x))) return true;
+      
+      // Якщо є timesort — це action event, беремо
+      if(e.timesort) return true;
+      
+      // Якщо тільки timestart без timesort і без timefinish — це "відкриття", ігноруємо
+      if(!e.timesort && e.timestart && !e.timefinish) return false;
+      
+      return true;
+    }).map(e => {
+      const due = e.timesort || e.timefinish || e.timestart;
+      const courseName = e.course ? (e.course.fullname || e.course.shortname || '—') : 
+                        (e.coursename || (e.courseid ? 'Курс '+e.courseid : '—'));
+      
+      // Прибираємо службові префікси і суфікси з назви (укр та англ варіанти)
+      let name = e.name || e.activityname || 'Завдання';
+      // Прибираємо префікси які Moodle додає автоматично
+      name = name.replace(/^(строк\s+|термін\s+|дедлайн\s+|здача\s+)/i, '').trim();
+      // Прибираємо суфікси
+      name = name.replace(/\s*(спливає|закрито|закривається|відкрито|відкривається|завершується|closes|due|open|is due|is closing|has closed|closed)\s*$/i, '').trim();
+      
+      return {
+        id: e.id,
+        name,
+        // Normalize name for dedup: remove "Строк", "Завдання" prefixes
+        _normName: name.replace(/^(строк\s+|завдання\s+|тест\s+|здача\s+)/i,'').toLowerCase().trim(),
+        course: courseName,
+        due: due,
+        past: due < now,
+        url: e.url || e.activityurl || '#'
+      };
+    }).sort((a,b) => a.due - b.due);
+
+    // Final dedup: same normalized name + same course + same day = duplicate
+    const seenFinal = new Set();
+    allDl = allDl.filter(dl => {
+      const dayKey = Math.floor(dl.due / 86400); // group by day
+      const key = dl._normName + '|' + dl.course.toLowerCase().trim() + '|' + dayKey;
+      if(seenFinal.has(key)) return false;
+      seenFinal.add(key);
+      return true;
+    });
+    
+    const urgent = allDl.filter(d=>!d.past&&(d.due-now)<60*60*48).length;
+    const past = allDl.filter(d=>d.past).length;
+    document.getElementById('s-urgent').textContent = urgent;
+    document.getElementById('s-done').textContent = past;
+    applyDlFilter();
+    renderDashDl();
+    renderCalendar();
+    scheduleDeadlineNotifs();
+    _renderCalNotesInDeadlines();
+  } catch(e) {
+    console.error('Deadlines error:', e);
+    const msg = e && e.message ? e.message : String(e);
+    document.getElementById('dl-list').innerHTML='<div class="empty"><div class="emo">⚠️</div><p>Помилка дедлайнів: ' + escHtml(msg) + '</p></div>';
+    document.getElementById('dash-dl').innerHTML='<div class="empty"><div class="emo">⚠️</div><p>Помилка завантаження дедлайнів</p></div>';
+    document.getElementById('s-urgent').textContent='!';
+    document.getElementById('s-done').textContent='!';
+  }
+}
+
+// ══════════════════════════════════════════════
+// ── USER SETTINGS — Firestore sync ──
+// Зберігає: налаштування кольорів, видалені дедлайни
+// Колекція: userSettings/{userId}
+// ══════════════════════════════════════════════
+let _dlUrgentH = 48;
+let _dlWarnD   = 7;
+let _dlDeleted = [];
+let _calNotes  = {}; // { 'YYYY-MM-DD': 'текст нотатки' }
+let _userSettingsUnsub = null;
+let _settingsLoaded = false;
+
+function _userSettingsDoc() {
+  const { doc } = window._fb;
+  return doc(window._db, 'userSettings', String(userData.userid));
+}
+
+// Завантажити і підписатись на realtime оновлення (між пристроями!)
+function startUserSettingsSync() {
+  return new Promise(resolve => {
+    if(!window._db || !userData.userid) { resolve(); return; }
+    const { onSnapshot } = window._fb;
+    if(_userSettingsUnsub) _userSettingsUnsub();
+    let firstLoad = true;
+    _userSettingsUnsub = onSnapshot(_userSettingsDoc(), snap => {
+      const data = snap.exists() ? snap.data() : {};
+      _dlUrgentH = data.dlUrgentH ?? 48;
+      _dlWarnD   = data.dlWarnD   ?? 7;
+      _dlDeleted = Array.isArray(data.dlDeleted) ? data.dlDeleted : [];
+      _calNotes  = (data.calNotes && typeof data.calNotes==='object') ? data.calNotes : {};
+      _settingsLoaded = true;
+      // Оновити поля налаштувань якщо відкриті
+      const uh = document.getElementById('dl-urgent-hours');
+      const wd = document.getElementById('dl-warn-days');
+      if(uh) uh.value = _dlUrgentH;
+      if(wd) wd.value = _dlWarnD;
+      // Оновити UI (тільки якщо вже завантажені дедлайни)
+      if(allDl.length > 0) {
+        applyDlFilter();
+        renderDashDl();
+        renderCalendar();
+        _renderCalNotesInDeadlines();
+      }
+      if(firstLoad) { firstLoad = false; resolve(); }
+    }, err => {
+      console.warn('userSettings sync error:', err.code, err.message);
+      // Якщо доступ заборонений — просто продовжуємо без синхронізації
+      resolve();
+    });
+  });
+}
+
+let _saveSettingsTimer = null;
+async function _saveUserSettings() {
+  if(!window._db || !userData.userid) return;
+  // Debounce — не зберігати частіше ніж раз на 800мс
+  clearTimeout(_saveSettingsTimer);
+  _saveSettingsTimer = setTimeout(async () => {
+    const { setDoc } = window._fb;
+    try {
+      await setDoc(_userSettingsDoc(), {
+        dlUrgentH: _dlUrgentH,
+        dlWarnD:   _dlWarnD,
+        dlDeleted: _dlDeleted,
+        calNotes:  _calNotes,
+        updatedAt: Date.now(),
+        userId: String(userData.userid)
+      });
+      console.log('✅ Settings saved to Firestore');
+    } catch(e) {
+      console.warn('❌ saveUserSettings error:', e.code, e.message);
+      // Fallback: localStorage
+      localStorage.setItem('ush_'+userData.userid, JSON.stringify({
+        dlUrgentH:_dlUrgentH, dlWarnD:_dlWarnD, dlDeleted:_dlDeleted, calNotes:_calNotes
+      }));
+    }
+  }, 800);
+}
+
+function loadDlSettings() {
+  const uh = document.getElementById('dl-urgent-hours');
+  const wd = document.getElementById('dl-warn-days');
+  if(uh) uh.value = _dlUrgentH;
+  if(wd) wd.value = _dlWarnD;
+}
+
+function saveDlSettings() {
+  _dlUrgentH = parseInt(document.getElementById('dl-urgent-hours').value)||48;
+  _dlWarnD   = parseInt(document.getElementById('dl-warm-days') ? document.getElementById('dl-warn-days').value : _dlWarnD)||7;
+  applyDlFilter(); renderDashDl(); renderCalendar();
+  _saveUserSettings();
+}
+
+function toggleDlSettings() {
+  const el = document.getElementById('dl-settings');
+  el.style.display = el.style.display==='none' ? 'block' : 'none';
+  if(el.style.display!=='none') loadDlSettings();
+}
+
+function deleteDl(id, e) {
+  if(e) e.stopPropagation();
+  if(!confirm('Приховати цей дедлайн?')) return;
+  const sid = String(id);
+  if(!_dlDeleted.includes(sid)) _dlDeleted.push(sid);
+  applyDlFilter(); renderDashDl(); renderCalendar();
+  _saveUserSettings();
+}
+
+// ── CALENDAR NOTES — Firestore sync ──
+function getCalNote(ds) { return _calNotes[ds] || ''; }
+
+function saveCalNote() {
+  const txt = document.getElementById('cal-note-inp').value.trim();
+  const ds  = window._calNoteDate;
+  if(txt) _calNotes[ds] = txt;
+  else    delete _calNotes[ds];
+  closeCalNoteModal();
+  renderCalendar();
+  _renderCalNotesInDeadlines();
+  _saveUserSettings();
+}
+
+function deleteCalNote() {
+  delete _calNotes[window._calNoteDate];
+  closeCalNoteModal();
+  renderCalendar();
+  _renderCalNotesInDeadlines();
+  _saveUserSettings();
+}
+
+function openCalNoteModal(ds, e) {
+  if(e) e.stopPropagation();
+  window._calNoteDate = ds;
+  const d = new Date(ds+'T12:00:00');
+  document.getElementById('cal-note-date-lbl').textContent = d.toLocaleDateString('uk-UA',{weekday:'long',day:'numeric',month:'long'});
+  document.getElementById('cal-note-inp').value = getCalNote(ds);
+  const modal = document.getElementById('cal-note-modal');
+  modal.style.display = 'flex';
+  setTimeout(()=>document.getElementById('cal-note-inp').focus(),50);
+  const del = document.getElementById('cal-note-del');
+  if(del) del.style.display = getCalNote(ds)?'':'none';
+}
+function closeCalNoteModal() { document.getElementById('cal-note-modal').style.display='none'; }
+document.addEventListener('keydown', e=>{
+  if(e.key==='Escape') closeCalNoteModal();
+  if(e.key==='Enter'&&e.ctrlKey&&document.getElementById('cal-note-modal').style.display!=='none') saveCalNote();
+});
+
+// ── ПОКАЗАТИ НОТАТКИ В ДЕДЛАЙНАХ (і на головній) ──
+function _renderCalNotesInDeadlines() {
+  const today = new Date(); today.setHours(0,0,0,0);
+  const notes = Object.entries(_calNotes)
+    .filter(([,v])=>v)
+    .sort(([a],[b])=>a.localeCompare(b));
+
+  // Рендер для сторінки дедлайнів
+  const dlList = document.getElementById('dl-list');
+  if(dlList) {
+    let noteBlock = document.getElementById('cal-notes-in-dl');
+    if(!noteBlock) {
+      noteBlock = document.createElement('div');
+      noteBlock.id = 'cal-notes-in-dl';
+      dlList.parentNode.insertBefore(noteBlock, dlList);
+    }
+    noteBlock.innerHTML = notes.length ? _buildNoteRows(notes, today, true) : '';
+  }
+
+  // Рендер для головної (dash-dl — ПЕРЕД дедлайнами)
+  const dashDl = document.getElementById('dash-dl');
+  if(dashDl) {
+    let dashNotes = document.getElementById('cal-notes-in-dash');
+    if(!dashNotes) {
+      dashNotes = document.createElement('div');
+      dashNotes.id = 'cal-notes-in-dash';
+      dashDl.parentNode.insertBefore(dashNotes, dashDl);
+    }
+    // На головній — тільки майбутні нотатки (не минулі)
+    const futureNotes = notes.filter(([ds]) => new Date(ds+'T12:00:00') >= today);
+    dashNotes.innerHTML = futureNotes.length ? _buildNoteRows(futureNotes, today, false) : '';
+  }
+}
+
+function _buildNoteRows(notes, today, showPast) {
+  const rows = notes.map(([ds, txt]) => {
+    const d = new Date(ds+'T12:00:00');
+    const isPast = d < today;
+    if(isPast && !showPast) return '';
+    const isToday = d.toDateString()===today.toDateString();
+    const isTomorrow = d.toDateString()===new Date(today.getTime()+86400000).toDateString();
+    const label = isToday ? '<span class="tag r">Сьогодні</span>' :
+                  isTomorrow ? '<span class="tag y">Завтра</span>' :
+                  isPast ? '<span class="tag" style="background:var(--bg3);color:var(--text2);">Минуло</span>' : '';
+    const dateStr = d.toLocaleDateString('uk-UA',{day:'numeric',month:'short'});
+    return `<div class="dl-item" onclick="openCalNoteModal('${escHtml(ds)}',event)" style="${isPast?'opacity:.5':''}">
+      <div class="dl-dot" style="background:var(--accent);box-shadow:0 0 5px rgba(240,192,64,.4);"></div>
+      <div class="dl-info">
+        <div class="dl-name">✏️ ${escHtml(txt.length>70?txt.slice(0,70)+'…':txt)}</div>
+        <div class="dl-course">Нотатка в календарі</div>
+      </div>
+      <div class="dl-right">
+        <div class="dl-date">${dateStr}</div>${label}
+      </div>
+    </div>`;
+  }).join('');
+  if(!rows.trim()) return '';
+  return `<div style="font-size:10px;font-weight:700;color:var(--text2);letter-spacing:.5px;text-transform:uppercase;margin-bottom:6px;">📅 Нотатки з календаря</div>
+    <div class="dl-list" style="margin-bottom:8px;">${rows}</div>
+    <div style="height:1px;background:var(--border);margin-bottom:12px;"></div>`;
+}
+
+function dlDot(d) {
+  if(d.past) return 'dot-u';
+  const diff = d.due - Date.now()/1000;
+  if(diff < _dlUrgentH*3600) return 'dot-u';
+  if(diff < _dlWarnD*86400)  return 'dot-s';
+  return 'dot-o';
+}
+function dlDateCls(d) {
+  if(d.past) return 'u';
+  const diff = d.due - Date.now()/1000;
+  if(diff < _dlUrgentH*3600) return 'u';
+  if(diff < _dlWarnD*86400)  return 's';
+  return '';
+}
+function fmtDate(ts) { return new Date(ts*1000).toLocaleDateString('uk-UA',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}); }
+
+function applyDlFilter() {
+  const q=(document.getElementById('dl-q')||{value:''}).value.toLowerCase();
+  const f=(document.getElementById('dl-f')||{value:'active'}).value;
+  const now=Date.now()/1000;
+  let list=allDl.filter(d=>!_dlDeleted.includes(String(d.id)));
+  list=list.filter(d=>!q||d.name.toLowerCase().includes(q)||d.course.toLowerCase().includes(q));
+  if(f==='active') list=list.filter(d=>!d.past);
+  else if(f==='urgent') list=list.filter(d=>!d.past&&(d.due-now)<_dlUrgentH*3600);
+  else if(f==='past') list=list.filter(d=>d.past);
+  renderDl(list, document.getElementById('dl-list'));
+}
+
+function renderDl(list, el) {
+  if(!list.length){el.innerHTML='<div class="empty"><div class="emo">🎉</div><p>Дедлайнів не знайдено</p></div>';return;}
+  const now = Date.now()/1000;
+  el.innerHTML='<div class="dl-list">'+list.map(d=>{
+    const dc=dlDot(d), dtc=dlDateCls(d);
+    const hasUrl=d.url&&d.url!=='#';
+    const diff = d.due - now;
+    let tag = '';
+    if(d.past) tag='<span class="tag r">Минув</span>';
+    else if(diff < _dlUrgentH*3600) tag='<span class="tag r">🔴 Термін!</span>';
+    else if(diff < 86400*2) tag='<span class="tag y">Завтра</span>';
+    return '<div class="dl-item'+(hasUrl?' click':'')+'"'+
+      (hasUrl?' onclick="window.open(this.dataset.url)" data-url="'+escHtml(d.url)+'"':'')+(d.past?' style="opacity:.6"':'')+'>'+
+      '<div class="dl-dot '+dc+'"></div>'+
+      '<div class="dl-info"><div class="dl-name">'+escHtml(d.name)+(hasUrl?' <span style="opacity:.35;font-size:9px">↗</span>':'')+'</div>'+
+      '<div class="dl-course">'+escHtml(d.course)+'</div></div>'+
+      '<div class="dl-right">'+
+        '<div class="dl-date '+dtc+'">'+fmtDate(d.due)+'</div>'+
+        tag+
+        '<button onclick="event.stopPropagation();deleteDl(this.dataset.dlid,event)" data-dlid="'+escHtml(String(d.id))+'" title="Приховати" style="background:none;border:none;color:var(--text2);font-size:12px;cursor:pointer;opacity:.4;padding:2px 4px;border-radius:4px;transition:opacity .15s;margin-top:2px;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=.4">✕</button>'+
+      '</div></div>';
+  }).join('')+'</div>';
+}
+
+function renderDashDl() {
+  const el=document.getElementById('dash-dl');
+  const dlDel=typeof _dlDeleted!=='undefined'?_dlDeleted:[];
+  const top=allDl.filter(d=>!d.past&&!dlDel.includes(String(d.id))).slice(0,5);
+  if(!top.length){el.innerHTML='<div class="empty"><div class="emo">🎉</div><p>Немає активних дедлайнів!</p></div>';return;}
+  renderDl(top,el);
+}
+
+// ── FILES ──
+function listenFiles() {
+  if(!window._db||!group.id) return;
+  const {collection,query,where,orderBy,onSnapshot}=window._fb;
+  const q=query(collection(window._db,'files'),where('groupId','==',group.id));
+  const unsub=onSnapshot(q,snap=>{
+    cachedFiles=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
+    checkFileNotifs(cachedFiles);
+    renderFiles(cachedFiles);
+    renderFilesWithSearch(cachedFiles, filesSearchQuery);
+    document.getElementById('s-files').textContent=cachedFiles.length;
+  },err=>{ 
+    console.warn('Files listener error:', err);
+    document.getElementById('files-list').innerHTML='<div class="empty"><div class="emo">⚠️</div><p>Помилка завантаження файлів. Можливо, потрібен індекс Firestore.</p></div>'; 
+  });
+  unsubs.push(unsub);
+}
+function handleFileSelect(inp) { Array.from(inp.files).forEach(uploadFile); inp.value=''; }
+function handleDrop(e) { e.preventDefault(); document.getElementById('uz').classList.remove('drag'); Array.from(e.dataTransfer.files).forEach(uploadFile); }
+async function uploadFile(file) {
+  const MAX = 700 * 1024; // ~700KB safe Firestore limit
+  if(file.size > MAX){
+    alert('Файл більше 700КБ (\'' + file.name + '\'). Firestore не підтримує великі файли напряму.\n\nЗавантаж файл на Google Drive і додай посилання через розділ "Матеріали".');
+    return;
+  }
+  if(!window._db){alert('Firebase не готовий');return;}
+  const uz=document.getElementById('uz');
+  uz.innerHTML='<div class="ui">⏳</div><p>Завантаження ' + escHtml(file.name) + '...</p>';
+  const {collection,addDoc}=window._fb;
+  const reader=new FileReader();
+  reader.onload=async e=>{
+    try {
+      await addDoc(collection(window._db,'files'),{
+        groupId:group.id, groupName:group.name,
+        name:file.name, size:file.size,
+        uploader:userData.fullname||'Студент',
+        createdAt:Date.now(), dataUrl:e.target.result
+      });
+    } catch(err){
+      console.error('Upload error:', err);
+      alert('Помилка завантаження: ' + err.message);
+    }
+    uz.innerHTML='<div class="ui">📤</div><p><strong>Натисніть або перетягніть</strong></p><p style="font-size:10px;margin-top:2px;">до 700КБ • більші файли — через Google Drive у Матеріали</p>';
+  };
+  reader.readAsDataURL(file);
+}
+function renderFiles(files) {
+  const el=document.getElementById('files-list');
+  if(!files.length){el.innerHTML='<div class="empty"><div class="emo">📂</div><p>Файлів ще немає</p></div>';return;}
+  el.innerHTML='<div class="file-list">'+files.map(f=>{
+    const ext=(f.name||'').split('.').pop().toLowerCase();
+    const ec=ext==='pdf'?'ep':['doc','docx'].includes(ext)?'ed':['xls','xlsx'].includes(ext)?'ex':'eo';
+    const sz=f.size>1048576?(f.size/1048576).toFixed(1)+' МБ':Math.round(f.size/1024)+' КБ';
+    return '<div class="file-item">'+
+      '<div class="file-ext '+ec+'">'+escHtml(ext.toUpperCase())+'</div>'+
+      '<div class="file-info"><div class="file-name">'+escHtml(f.name)+'</div>'+
+      '<div class="file-meta">'+escHtml(f.uploader||'?')+' • '+new Date(f.createdAt).toLocaleDateString('uk-UA')+' • '+escHtml(sz)+'</div></div>'+
+      '<div class="file-actions">'+
+        (f.dataUrl?'<button class="btn a" onclick="dlFile(this.dataset.id)" data-id="'+escHtml(f.id)+'">⬇</button>':'')+
+        '<button class="btn d" onclick="rmFile(this.dataset.id)" data-id="'+escHtml(f.id)+'">🗑</button>'+
+      '</div></div>';
+  }).join('')+'</div>';
+}
+async function dlFile(id) { const f=cachedFiles.find(x=>x.id===id); if(!f||!f.dataUrl)return; const a=document.createElement('a');a.href=f.dataUrl;a.download=f.name;a.click(); }
+async function rmFile(id) { 
+  if(!confirm('Видалити файл?'))return; 
+  try {
+    const {doc,deleteDoc}=window._fb; 
+    await deleteDoc(doc(window._db,'files',id));
+  } catch(e) { alert('Помилка видалення: ' + e.message); }
+}
+
+// ── MATERIALS ──
+function listenMats() {
+  if(!window._db||!group.id) return;
+  const {collection,query,where,orderBy,onSnapshot}=window._fb;
+  const q=query(collection(window._db,'materials'),where('groupId','==',group.id));
+  const unsub=onSnapshot(q,snap=>{ cachedMats=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(b.createdAt||0)-(a.createdAt||0)); renderMats(cachedMats); },
+  err=>{ 
+    console.warn('Materials listener error:', err);
+    document.getElementById('mats-list').innerHTML='<div class="empty"><div class="emo">⚠️</div><p>Помилка завантаження матеріалів.</p></div>'; 
+  });
+  unsubs.push(unsub);
+}
+function filterMats(q) { renderMats(cachedMats,q.toLowerCase()); }
+function renderMats(list,q='') {
+  const el=document.getElementById('mats-list');
+  const items=q?list.filter(m=>(m.name||'').toLowerCase().includes(q)||(m.subject||'').toLowerCase().includes(q)):list;
+  if(!items.length){el.innerHTML='<div class="empty"><div class="emo">📝</div><p>Матеріалів ще немає</p></div>';return;}
+  el.innerHTML='<div class="file-list">'+items.map(m=>
+    '<div class="file-item">'+
+    '<div class="file-ext eo">📝</div>'+
+    '<div class="file-info"><div class="file-name">'+escHtml(m.name||'')+'</div>'+
+    '<div class="file-meta">'+escHtml(m.subject||'')+(m.desc?' • '+escHtml(m.desc):'')+'</div></div>'+
+    '<div class="file-actions">'+
+      (m.desc&&/^https?:\/\//i.test(m.desc)?'<a href="'+escHtml(m.desc)+'" target="_blank" rel="noopener noreferrer"><button class="btn a">🔗</button></a>':'')+
+      '<button class="btn d" onclick="rmMat(this.dataset.id)" data-id="'+escHtml(m.id)+'">🗑</button>'+
+    '</div></div>'
+  ).join('')+'</div>';
+}
+let _groupModalMode = 'create';
+let _groupEditId = null;
+
+function groupModalAction() {
+  if(_groupModalMode === 'edit' && _groupEditId) {
+    _doEditGroup(_groupEditId);
+  } else {
+    createGroup();
+  }
+}
+
+async function _doEditGroup(id) {
+  const name = document.getElementById('gn').value.trim();
+  const faculty = document.getElementById('gf').value.trim();
+  const course = parseInt(document.getElementById('gc').value)||1;
+  if(!name) return;
+  const now = new Date();
+  const acadYear = now.getMonth() >= 7 ? now.getFullYear() : now.getFullYear() - 1;
+  const entryYear = course <= 4 ? acadYear - course + 1 : null;
+  const manualCourse = course > 4 ? course : null;
+  const {doc, updateDoc} = window._fb;
+  await updateDoc(doc(window._db,'groups',id), {name, faculty, course, entryYear, manualCourse});
+  closeModal('add-group');
+  ['gn','gf','gc'].forEach(i=>document.getElementById(i).value='');
+  if(window._loadGroupsForLogin) window._loadGroupsForLogin();
+}
+
+function showModal(id) { 
+  if(id==='add-group') {
+    _groupModalMode = 'create';
+    _groupEditId = null;
+    document.querySelector('#modal-add-group h3').textContent = '🏫 Створити групу';
+    document.getElementById('group-modal-btn').textContent = 'Створити';
+  }
+  document.getElementById('modal-'+id).classList.add('show'); 
+}
+function closeModal(id) { document.getElementById('modal-'+id).classList.remove('show'); }
+async function addMat() {
+  const name=document.getElementById('mn').value.trim();
+  const subject=document.getElementById('ms').value.trim();
+  const desc=document.getElementById('md').value.trim();
+  if(!name)return;
+  const {collection,addDoc}=window._fb;
+  await addDoc(collection(window._db,'materials'),{groupId:group.id,groupName:group.name,name,subject,desc,uploader:userData.fullname||'?',createdAt:Date.now()});
+  closeModal('add-mat');
+  ['mn','ms','md'].forEach(id=>document.getElementById(id).value='');
+}
+async function rmMat(id) { 
+  if(!confirm('Видалити матеріал?'))return; 
+  try {
+    const {doc,deleteDoc}=window._fb; 
+    await deleteDoc(doc(window._db,'materials',id));
+  } catch(e) { alert('Помилка видалення: ' + e.message); }
+}
+
+// ── CHAT ──
+function setupChatRooms() {
+  const rooms=[
+    {id:'group-'+group.id, label:'👥 '+group.name, sub:'Ваша група'},
+    {id:'faculty-'+(group.faculty||'general'), label:'🏛 Факультет', sub:group.faculty||'Загальний'},
+    {id:'university', label:'🎓 Університет', sub:'Всі студенти'},
+  ];
+  const el=document.getElementById('chat-rooms');
+  el.innerHTML=rooms.map(r=>
+    '<div class="chat-room" onclick="openChatRoom(this.dataset.roomid,this.dataset.label)" data-roomid="'+escHtml(r.id)+'" data-label="'+escHtml(r.label)+'">'+
+    escHtml(r.label)+'<div class="chat-room-sub">'+escHtml(r.sub)+'</div></div>'
+  ).join('');
+}
+function openChatRoom(roomId, label) {
+  currentChatRoom=roomId;
+  document.getElementById('chat-room-title').textContent=label;
+  document.querySelectorAll('.chat-room').forEach(r=>r.classList.remove('active'));
+  const activeRoom=document.querySelector('[data-roomid="'+roomId+'"]');
+  if(activeRoom) activeRoom.classList.add('active');
+  if(chatUnsub) chatUnsub();
+  const {collection,query,orderBy,onSnapshot,where,limit}=window._fb;
+  const q=query(collection(window._db,'messages'),where('room','==',roomId),limit(50));
+  chatUnsub=onSnapshot(q,snap=>{
+    const msgs=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(a.ts||0)-(b.ts||0));
+    renderMessages(msgs);
+  }, err=>{
+    console.warn('Chat listener error:', err);
+    document.getElementById('chat-msgs').innerHTML='<div class="empty"><div class="emo">⚠️</div><p>Помилка завантаження чату</p></div>';
+  });
+}
+function renderMessages(msgs) {
+  const el=document.getElementById('chat-msgs');
+  if(!msgs.length){el.innerHTML='<div class="empty"><div class="emo">💬</div><p>Повідомлень ще немає</p></div>';return;}
+  el.innerHTML=msgs.map(m=>{
+    const isMe=m.uid===String(userData.userid);
+    const t=m.ts?new Date(m.ts).toLocaleTimeString('uk-UA',{hour:'2-digit',minute:'2-digit'}):'';
+    const canDel = canMod() || m.uid===String(userData.userid);
+    return '<div class="msg '+(isMe?'me':'other')+'" style="position:relative" '+
+      'onmouseenter="this.querySelector(\'.msg-del\')&&(this.querySelector(\'.msg-del\').style.opacity=1)" '+
+      'onmouseleave="this.querySelector(\'.msg-del\')&&(this.querySelector(\'.msg-del\').style.opacity=0)">'+
+      (!isMe?'<div class="msg-author">'+escHtml(m.author)+'</div>':'')+
+      '<div style="display:flex;align-items:flex-end;gap:4px;'+(isMe?'flex-direction:row-reverse':'')+'">'+
+        '<div class="msg-bubble">'+escHtml(m.text)+'</div>'+
+        (canDel&&m.id?'<button class="msg-del" data-id="'+escHtml(m.id)+'" onclick="delMsg(this.dataset.id)" style="background:rgba(224,80,80,.15);border:1px solid rgba(224,80,80,.3);color:var(--accent2);border-radius:5px;padding:2px 5px;font-size:9px;cursor:pointer;opacity:0;transition:opacity .2s;flex-shrink:0">🗑</button>':'')+
+      '</div>'+
+      '<div class="msg-time">'+t+'</div></div>';
+  }).join('');
+  el.scrollTop=el.scrollHeight;
+}
+// escHtml defined at top of script
+function chatKey(e) { if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMsg();} }
+async function sendMsg() {
+  if(!currentChatRoom)return;
+  const inp=document.getElementById('chat-inp');
+  const text=inp.value.trim();
+  if(!text)return;
+  inp.value='';
+  const {collection,addDoc}=window._fb;
+  await addDoc(collection(window._db,'messages'),{
+    room:currentChatRoom, text,
+    author:userData.fullname||'?',
+    uid:String(userData.userid),
+    groupId:group.id,
+    ts:Date.now()
+  });
+}
+
+async function delMsg(id) {
+  if(!canMod()&&!confirm('Видалити своє повідомлення?'))return;
+  try {
+    const {doc,deleteDoc}=window._fb;
+    await deleteDoc(doc(window._db,'messages',id));
+  } catch(e){ alert('Помилка: '+e.message); }
+}
+
+// ── ADMIN ──
+function listenAdminData() {
+  if(!window._db)return;
+  const {collection,query,onSnapshot,orderBy}=window._fb;
+  // Groups
+  onSnapshot(query(collection(window._db,'groups'),orderBy('name')),snap=>{
+    const groups=snap.docs.map(d=>({id:d.id,...d.data()}));
+    renderAdminGroups(groups);
+  }, err=>{ console.warn('Admin groups error:',err); document.getElementById('admin-groups-list').innerHTML='<div class="empty"><p>Помилка завантаження груп</p></div>'; });
+  // Users
+  onSnapshot(collection(window._db,'users'),snap=>{
+    const users=snap.docs.map(d=>({id:d.id,...d.data()}));
+    _allAdminUsers = users;
+    const q = (document.getElementById('users-search')||{value:''}).value;
+    filterAdminUsers(q);
+    document.getElementById('admin-stats').innerHTML=
+      '<div style="font-size:13px;line-height:2;">'+
+      '👥 Користувачів: <b>'+users.length+'</b><br>'+
+      '🏫 Груп: <b>—</b><br>'+
+      '📁 Файлів: <b>—</b>'+
+      '</div>';
+  });
+}
+function renderAdminGroups(groups) {
+  const el=document.getElementById('admin-groups-list');
+  if(!groups.length){el.innerHTML='<div class="empty"><p>Груп ще немає</p></div>';return;}
+  el.innerHTML=groups.map(g=>
+    '<div class="group-item">'+
+    '<div>'+
+      '<div class="gname">'+escHtml(g.name)+'</div>'+
+      '<div class="gcnt">'+escHtml(g.faculty||'—')+' • Курс '+escHtml(String(getGroupCourse(g)))+(g.entryYear?' 🔄':'')+'</div>'+
+    '</div>'+
+    '<div style="display:flex;gap:3px;flex-shrink:0;">'+
+    '<button class="btn" onclick="editGroup(this.dataset.id,this.dataset.name,this.dataset.faculty,this.dataset.course)" data-id="'+escHtml(g.id)+'" data-name="'+escHtml(g.name)+'" data-faculty="'+escHtml(g.faculty||'')+'" data-course="'+escHtml(String(g.course||'1'))+'">✏️</button>'+
+    '<button class="btn d" onclick="delGroup(this.dataset.id)" data-id="'+escHtml(g.id)+'">🗑</button>'+
+    '</div>'+
+    '</div>'
+  ).join('');
+}
+let _allAdminUsers = [];
+function filterAdminUsers(q) {
+  const filtered = q ? _allAdminUsers.filter(u => (u.name||'').toLowerCase().includes(q.toLowerCase())) : _allAdminUsers;
+  renderAdminUsers(filtered);
+}
+function renderAdminUsers(users) {
+  const el=document.getElementById('admin-users-list');
+  if(!users.length){el.innerHTML='<div class="empty"><p>Користувачів ще немає</p></div>';return;}
+  el.innerHTML=users.map(u=>
+    '<div class="user-row">'+
+    '<div class="uav" style="background:'+escHtml(ROLE_COLORS[u.role]||'#8888aa')+'">'+escHtml((u.name||'?')[0].toUpperCase())+'</div>'+
+    '<div style="flex:1;min-width:0;"><div class="uname" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+escHtml(u.name||'?')+'</div>'+
+    '<div style="font-size:9px;color:var(--text2);">'+escHtml(u.groupName||'')+'</div></div>'+
+    (canAdmin()?'<select class="role-sel" data-uid="'+escHtml(u.id)+'" onchange="setRole(this.dataset.uid,this.value)">'+
+      Object.keys(ROLES).map(r=>'<option value="'+escHtml(r)+'"'+(u.role===r?' selected':'')+'>'+escHtml(ROLES[r])+'</option>').join('')+
+    '</select>':'')+
+    '</div>'
+  ).join('');
+}
+async function setRole(uid, role) {
+  const {doc,updateDoc}=window._fb;
+  await updateDoc(doc(window._db,'users',uid),{role});
+}
+async function createGroup() {
+  const name=document.getElementById('gn').value.trim();
+  const faculty=document.getElementById('gf').value.trim();
+  const course=parseInt(document.getElementById('gc').value)||1;
+  if(!name)return;
+  const {collection,addDoc}=window._fb;
+  // For courses 1-4: calc entryYear so it auto-updates each August
+  // For courses 5-6: save as manualCourse so it never auto-changes
+  const now = new Date();
+  const acadYear = now.getMonth() >= 7 ? now.getFullYear() : now.getFullYear() - 1;
+  const entryYear = course <= 4 ? acadYear - course + 1 : null;
+  const manualCourse = course > 4 ? course : null;
+  await addDoc(collection(window._db,'groups'),{name,faculty,course,entryYear,manualCourse,createdAt:Date.now()});
+  closeModal('add-group');
+  ['gn','gf','gc'].forEach(id=>document.getElementById(id).value='');
+  if(window._loadGroupsForLogin) window._loadGroupsForLogin();
+}
+function editGroup(id, name, faculty, course) {
+  _groupModalMode = 'edit';
+  _groupEditId = id;
+  document.getElementById('gn').value = name;
+  document.getElementById('gf').value = faculty;
+  document.getElementById('gc').value = course;
+  document.querySelector('#modal-add-group h3').textContent = '✏️ Редагувати групу';
+  document.getElementById('group-modal-btn').textContent = 'Зберегти';
+  document.getElementById('modal-add-group').classList.add('show');
+}
+
+async function delGroup(id) {
+  if(!confirm('Видалити групу? Файли та матеріали залишаться.'))return;
+  const {doc,deleteDoc}=window._fb;
+  await deleteDoc(doc(window._db,'groups',id));
+}
+
+// ── NAV ──
+const PAGE_TITLES={dashboard:'Головна',deadlines:'Дедлайни',courses:'Курси',files:'Файли',materials:'Матеріали',chat:'Чати',admin:'Адмін-панель',calendar:'Календар',notes:'Нотатки',assistant:'Асистент',notifications:'Сповіщення'};
+function go(name) {
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  const pg = document.getElementById('page-'+name);
+  if(!pg) return;
+  pg.classList.add('active');
+  const labels={dashboard:'Голов',deadlines:'Дедл',courses:'Курс',files:'Файл',materials:'Матер',chat:'Чат',admin:'Адмін',calendar:'Календ',notes:'Нотат',assistant:'Асист',notifications:'Сповіщ'};
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.toggle('active',n.textContent.trim().startsWith(labels[name]||'_')));
+  document.getElementById('topbar-title').textContent=PAGE_TITLES[name]||name;
+  // grades removed
+  if(name==='calendar') renderCalendar();
+  if(name==='notes') loadNotes();
+  // assistant page
+  if(name==='notifications') { markAllRead(); }
+  closeSidebar();
+}
+
+// ── MOBILE SIDEBAR ──
+function openSidebar() { document.getElementById('sidebar').classList.add('open'); document.getElementById('sov').classList.add('show'); }
+function closeSidebar() { document.getElementById('sidebar').classList.remove('open'); document.getElementById('sov').classList.remove('show'); }
+
+// ── THEME ──
+function toggleTheme() {
+  const t=document.documentElement.getAttribute('data-theme')==='dark'?'light':'dark';
+  document.documentElement.setAttribute('data-theme',t);
+  localStorage.setItem('sh_theme',t);
+  updateThemeIcon(t);
+}
+function updateThemeIcon(t) {
+  const icon = t==='dark' ? '🌙' : '☀️';
+  const b1=document.getElementById('theme-btn');
+  const b2=document.getElementById('theme-btn-top');
+  if(b1) b1.textContent=icon;
+  if(b2) b2.textContent=icon;
+}
+const st=localStorage.getItem('sh_theme');
+if(st) { document.documentElement.setAttribute('data-theme',st); updateThemeIcon(st); }
+
+
+// ═══ CALENDAR ═══
+let calDate = new Date();
+const CAL_DAYS = ['Пн','Вт','Ср','Чт','Пт','Сб','Нд'];
+const CAL_MONTHS = ['Січень','Лютий','Березень','Квітень','Травень','Червень','Липень','Серпень','Вересень','Жовтень','Листопад','Грудень'];
+
+// ── CALENDAR USER NOTES functions moved above (Firestore sync) ──
+
+function renderCalendar() {
+  const year = calDate.getFullYear(), month = calDate.getMonth();
+  document.getElementById('cal-title').textContent = CAL_MONTHS[month] + ' ' + year;
+  const firstDay = new Date(year, month, 1);
+  const lastDay = new Date(year, month+1, 0);
+  let startDow = (firstDay.getDay()+6)%7;
+  const today = new Date(); today.setHours(0,0,0,0);
+  const nowTs = Date.now()/1000;
+  const dlDeleted = typeof _dlDeleted!=='undefined' ? _dlDeleted : [];
+
+  let html = '<div class="cal-grid">';
+  CAL_DAYS.forEach(d => html += '<div class="cal-header-cell">'+d+'</div>');
+
+  for(let i=0;i<startDow;i++) {
+    const pDate = new Date(year,month,-startDow+i+1);
+    html += '<div class="cal-cell other-month"><div class="cal-day-num">'+pDate.getDate()+'</div></div>';
+  }
+
+  for(let d=1;d<=lastDay.getDate();d++) {
+    const cellDate = new Date(year,month,d); cellDate.setHours(0,0,0,0);
+    const isToday = cellDate.getTime()===today.getTime();
+    const dateStr = year+'-'+String(month+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');
+    const dayStart = cellDate.getTime()/1000;
+    const dayEnd = dayStart+86400;
+    const urgH = typeof _dlUrgentH!=='undefined'?_dlUrgentH:48;
+    const warnD = typeof _dlWarnD!=='undefined'?_dlWarnD:7;
+    const dayDl = allDl.filter(dl=>!dlDeleted.includes(String(dl.id))&&dl.due>=dayStart&&dl.due<dayEnd);
+    const userNote = getCalNote(dateStr);
+    const hasAny = dayDl.length>0||!!userNote;
+
+    html += '<div class="cal-cell'+(isToday?' today':'')+(hasAny?' has-events':'')+'">';
+    html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:2px;">';
+    html += '<div class="cal-day-num">'+d+'</div>';
+    html += '<button data-date="'+dateStr+'" onclick="openCalNoteModal(this.dataset.date,event)" title="Нотатка" style="background:none;border:none;color:var(--text2);font-size:11px;cursor:pointer;padding:0 2px;opacity:.4;line-height:1;transition:opacity .15s;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=.4">＋</button>';
+    html += '</div>';
+
+    if(userNote) {
+      const prev = userNote.length>28?userNote.slice(0,28)+'…':userNote;
+      html += '<div class="cal-event" data-date="'+dateStr+'" onclick="openCalNoteModal(this.dataset.date,event)" style="background:rgba(240,192,64,.15);color:var(--accent);border:1px solid rgba(240,192,64,.25);cursor:pointer;" title="'+escHtml(userNote)+'" data-full="'+escHtml(userNote)+'">✏️ '+escHtml(prev)+'</div>';
+    }
+
+    dayDl.slice(0,2).forEach(dl=>{
+      const diff=dl.due-nowTs, isPast=dl.due<nowTs;
+      const cls=isPast?'cal-ev-past':diff<urgH*3600?'cal-ev-urgent':diff<warnD*86400?'cal-ev-soon':'cal-ev-ok';
+      const onclk=dl.url&&dl.url!=='#'?'onclick="window.open(this.dataset.url)" data-url="'+escHtml(dl.url)+'"':'';
+      html+='<div class="cal-event '+cls+'" '+onclk+' title="'+escHtml(dl.name)+'" data-full="'+escHtml(dl.name+(dl.course?'\n'+dl.course:''))+'">'+escHtml(dl.name)+'</div>';
+    });
+    if(dayDl.length>2){
+      html+='<div class="cal-more" onclick="expandCalCell(this,event)" data-count="'+(dayDl.length-2)+'">+'+(dayDl.length-2)+' ще</div>';
+      dayDl.slice(2).forEach(dl=>{
+        const diff2=dl.due-nowTs,isPast2=dl.due<nowTs;
+        const cls2=isPast2?'cal-ev-past':diff2<urgH*3600?'cal-ev-urgent':diff2<warnD*86400?'cal-ev-soon':'cal-ev-ok';
+        const onclk2=dl.url&&dl.url!=='#'?'onclick="window.open(this.dataset.url)" data-url="'+escHtml(dl.url)+'"':'';
+        html+='<div class="cal-event '+cls2+' cal-hidden" '+onclk2+' title="'+escHtml(dl.name)+'" data-full="'+escHtml(dl.name+(dl.course?'\n'+dl.course:''))+'">'+escHtml(dl.name)+'</div>';
+      });
+    }
+    html+='</div>';
+  }
+
+  const rem=(startDow+lastDay.getDate())%7;
+  if(rem>0) for(let i=1;i<=7-rem;i++) html+='<div class="cal-cell other-month"><div class="cal-day-num">'+i+'</div></div>';
+  html+='</div>';
+  document.getElementById('cal-grid').innerHTML=html;
+}
+
+function expandCalCell(btn, e) {
+  e.stopPropagation();
+  const cell = btn.closest('.cal-cell');
+  cell.classList.toggle('expanded');
+  cell.querySelectorAll('.cal-hidden').forEach(el => {
+    el.style.display = cell.classList.contains('expanded') ? 'block' : 'none';
+  });
+  btn.textContent = cell.classList.contains('expanded') ? '▲ Сховати' : '+' + btn.dataset.count + ' ще';
+}
+
+function calPrev() { calDate.setMonth(calDate.getMonth() - 1); renderCalendar(); }
+function calNext() { calDate.setMonth(calDate.getMonth() + 1); renderCalendar(); }
+function calToday() { calDate = new Date(); renderCalendar(); }
+
+// ═══ GRADES ═══
+let allGrades = [], gradesByCourse = {};
+
+async function loadGrades() {
+  const el = document.getElementById('grades-list');
+  el.innerHTML = '<div class="loading"><div class="spinner"></div>Завантаження оцінок...</div>';
+  try {
+    const info = await moodleCall('core_webservice_get_site_info');
+    const data = await moodleCall('gradereport_user_get_grade_items', { userid: info.userid, courseid: 0 });
+    
+    if(!data || data.errorcode) throw new Error(data ? data.message : 'No data');
+    
+    const items = data.usergrades || [];
+    allGrades = items;
+    
+    // Group by course
+    gradesByCourse = {};
+    items.forEach(grade => {
+      const cn = grade.coursefullname || grade.courseshortname || 'Невідомий курс';
+      if(!gradesByCourse[cn]) gradesByCourse[cn] = { name: cn, items: [] };
+      (grade.gradeitems || []).forEach(gi => {
+        if(gi.gradeformatted && gi.gradeformatted !== '-' && gi.gradeformatted !== '0.00') {
+          gradesByCourse[cn].items.push(gi);
+        }
+      });
+    });
+    
+    // Populate course filter
+    const sel = document.getElementById('grades-course-filter');
+    sel.innerHTML = '<option value="all">Всі курси</option>';
+    Object.keys(gradesByCourse).forEach(cn => {
+      sel.innerHTML += '<option value="'+escHtml(cn)+'">'+escHtml(cn)+'</option>';
+    });
+    
+    renderGrades(gradesByCourse);
+  } catch(e) {
+    el.innerHTML = '<div class="empty"><div class="emo">⚠️</div><p>Помилка завантаження оцінок: ' + escHtml(e.message) + '</p></div>';
+  }
+}
+
+function filterGradesByCourse(cn) {
+  if(cn === 'all') renderGrades(gradesByCourse);
+  else {
+    const filtered = {};
+    if(gradesByCourse[cn]) filtered[cn] = gradesByCourse[cn];
+    renderGrades(filtered);
+  }
+}
+
+function renderGrades(byCourse) {
+  const el = document.getElementById('grades-list');
+  const keys = Object.keys(byCourse);
+  if(!keys.length) { el.innerHTML = '<div class="empty"><div class="emo">📊</div><p>Оцінок не знайдено</p></div>'; return; }
+  
+  el.innerHTML = keys.map(cn => {
+    const course = byCourse[cn];
+    if(!course.items.length) return '';
+    
+    // Calculate average
+    const numericGrades = course.items.map(gi => parseFloat(gi.gradeformatted)).filter(g => !isNaN(g) && g > 0);
+    const avg = numericGrades.length ? (numericGrades.reduce((a,b)=>a+b,0)/numericGrades.length) : null;
+    const avgCls = avg === null ? '' : avg >= 75 ? 'high' : avg >= 50 ? 'mid' : 'low';
+    const avgText = avg !== null ? Math.round(avg) + '%' : '—';
+    
+    const toggleFn = "var b=this.nextElementSibling;b.style.display=b.style.display==='none'?'block':'none'";
+    let html = '<div class="grades-course">';
+    html += '<div class="grades-course-header" onclick="' + toggleFn + '">';
+    html += '<div class="grades-course-name">'+escHtml(cn)+'</div>';
+    html += '<div class="grades-avg '+avgCls+'">Ø '+avgText+'</div>';
+    html += '</div>';
+    html += '<div>';
+    
+    course.items.forEach(gi => {
+      const val = parseFloat(gi.gradeformatted);
+      const max = parseFloat(gi.grademax) || 100;
+      const pct = isNaN(val) ? 0 : Math.min(100, Math.round(val/max*100));
+      const barColor = pct >= 75 ? 'var(--success)' : pct >= 50 ? 'var(--warning)' : 'var(--accent2)';
+      const valCls = pct >= 75 ? 'high' : pct >= 50 ? 'mid' : 'low';
+      
+      html += '<div class="grade-item">';
+      html += '<div class="grade-item-name">'+escHtml(gi.itemname || 'Завдання')+'</div>';
+      html += '<div class="grade-bar-wrap"><div class="grade-bar" style="width:'+pct+'%;background:'+barColor+'"></div></div>';
+      html += '<div class="grade-val grades-avg '+valCls+'">'+escHtml(gi.gradeformatted||'—')+'</div>';
+      html += '</div>';
+    });
+    
+    html += '</div></div>';
+    return html;
+  }).filter(Boolean).join('') || '<div class="empty"><div class="emo">📊</div><p>Оцінок поки немає</p></div>';
+}
+
+// ═══ NOTES ═══
+let notes = [], currentNoteId = null;
+
+function loadNotes() {
+  const raw = localStorage.getItem('sh_notes_'+String(userData.userid||'local'));
+  notes = raw ? JSON.parse(raw) : [];
+  renderNotesList(notes);
+  // Populate course select
+  const sel = document.getElementById('note-course-sel');
+  sel.innerHTML = '<option value="">Без курсу</option>';
+  courses.forEach(c => sel.innerHTML += '<option value="'+escHtml(c.id)+'">'+escHtml(c.shortname||c.fullname)+'</option>');
+}
+
+function saveNotesToLS() {
+  localStorage.setItem('sh_notes_'+String(userData.userid||'local'), JSON.stringify(notes));
+}
+
+function renderNotesList(list) {
+  const el = document.getElementById('notes-container');
+  if(!list.length) { el.innerHTML = '<div class="empty" style="width:100%"><div class="emo">✍️</div><p>Нотаток ще немає. Створіть першу!</p></div>'; return; }
+  el.innerHTML = list.map(n => 
+    '<div class="note-card" onclick="openNote(this.dataset.id)" data-id="'+escHtml(n.id)+'">'+
+    '<button class="btn note-card-del" onclick="event.stopPropagation();deleteNote(this.closest(\'[data-id]\').dataset.id)" style="font-size:10px;padding:3px 6px;">🗑</button>'+
+    '<div class="note-card-title">'+escHtml(n.title||'Без назви')+'</div>'+
+    '<div class="note-card-preview">'+escHtml((n.content||'').slice(0,200))+'</div>'+
+    '<div class="note-card-meta"><span>'+escHtml(n.course||'')+'</span><span>'+new Date(n.updated||n.created).toLocaleDateString('uk-UA')+'</span></div>'+
+    '</div>'
+  ).join('');
+}
+
+function searchNotes(q) {
+  const lq = q.toLowerCase();
+  renderNotesList(q ? notes.filter(n => (n.title||'').toLowerCase().includes(lq)||(n.content||'').toLowerCase().includes(lq)) : notes);
+}
+
+function showNewNote() {
+  currentNoteId = null;
+  document.getElementById('note-title').value = '';
+  document.getElementById('note-md').value = '';
+  document.getElementById('note-preview').innerHTML = '<p style="color:var(--text2);font-size:12px;">Попередній перегляд...</p>';
+  document.getElementById('note-editor-overlay').classList.add('show');
+}
+
+function openNote(id) {
+  const n = notes.find(x => x.id === id);
+  if(!n) return;
+  currentNoteId = id;
+  document.getElementById('note-title').value = n.title || '';
+  document.getElementById('note-md').value = n.content || '';
+  document.getElementById('note-course-sel').value = n.courseId || '';
+  updateNotePreview();
+  document.getElementById('note-editor-overlay').classList.add('show');
+}
+
+function closeNoteEditor() { document.getElementById('note-editor-overlay').classList.remove('show'); }
+
+function saveNote() {
+  const title = document.getElementById('note-title').value.trim() || 'Без назви';
+  const content = document.getElementById('note-md').value;
+  const courseId = document.getElementById('note-course-sel').value;
+  const courseSel = document.getElementById('note-course-sel');
+  const courseText = courseSel.options[courseSel.selectedIndex]?.text || '';
+  
+  if(currentNoteId) {
+    const n = notes.find(x => x.id === currentNoteId);
+    if(n) { n.title = title; n.content = content; n.courseId = courseId; n.course = courseText; n.updated = Date.now(); }
+  } else {
+    notes.unshift({ id: Date.now().toString(36)+Math.random().toString(36).slice(2), title, content, courseId, course: courseText, created: Date.now(), updated: Date.now() });
+  }
+  saveNotesToLS();
+  renderNotesList(notes);
+  closeNoteEditor();
+}
+
+function deleteNote(id) {
+  if(!confirm('Видалити нотатку?')) return;
+  notes = notes.filter(n => n.id !== id);
+  saveNotesToLS();
+  renderNotesList(notes);
+}
+
+// Simple Markdown parser
+function parseMarkdown(md) {
+  let s = md.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  s = s.replace(/^### (.+)$/gm,'<h3>$1</h3>');
+  s = s.replace(/^## (.+)$/gm,'<h2>$1</h2>');
+  s = s.replace(/^# (.+)$/gm,'<h1>$1</h1>');
+  s = s.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>');
+  s = s.replace(/\*(.+?)\*/g,'<em>$1</em>');
+  s = s.replace(/`([^`]+)`/g,'<code>$1</code>');
+  s = s.replace(/^> (.+)$/gm,'<blockquote>$1</blockquote>');
+  s = s.replace(/^- (.+)$/gm,'<li>$1</li>');
+  s = s.replace(/\n\n/g,'</p><p>');
+  s = s.replace(/^(?!<[hupbl])(.+)$/gm,'<p>$1</p>');
+  return s;
+}
+
+function updateNotePreview() {
+  const md = document.getElementById('note-md').value;
+  document.getElementById('note-preview').innerHTML = md ? parseMarkdown(md) : '<p style="color:var(--text2)">Попередній перегляд...</p>';
+}
+
+// ═══ AI ASSISTANT ═══
+let aiHistory = [];
+
+let aiImageBase64 = null;
+let aiImageMime = 'image/jpeg';
+
+function setAIImage(base64, mime) {
+  aiImageBase64 = base64;
+  aiImageMime = mime || 'image/jpeg';
+  document.getElementById('ai-img-thumb').src = 'data:'+aiImageMime+';base64,'+base64;
+  document.getElementById('ai-img-preview').style.display = 'block';
+}
+
+function handleAIImg(inp) {
+  const file = inp.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const result = e.target.result;
+    setAIImage(result.split(',')[1], file.type);
+  };
+  reader.readAsDataURL(file);
+  inp.value = '';
+}
+
+function handleAIPaste(e) {
+  const items = (e.clipboardData || e.originalEvent.clipboardData).items;
+  for(const item of items) {
+    if(item.type.startsWith('image/')) {
+      e.preventDefault();
+      const file = item.getAsFile();
+      const reader = new FileReader();
+      reader.onload = ev => setAIImage(ev.target.result.split(',')[1], file.type);
+      reader.readAsDataURL(file);
+      break;
+    }
+  }
+}
+
+function clearAIImg() {
+  aiImageBase64 = null;
+  document.getElementById('ai-img-preview').style.display = 'none';
+}
+
+function aiKey(e) { if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendAI();} }
+
+async function sendAI() {
+  const inp = document.getElementById('ai-inp');
+  const text = inp.value.trim();
+  const hasImage = !!aiImageBase64;
+  if(!text && !hasImage) return;
+  inp.value = '';
+
+  // Показати повідомлення користувача
+  appendAIMsg('me', text || '📷 Фото', hasImage ? ('data:'+aiImageMime+';base64,'+aiImageBase64) : null);
+
+  // Будуємо вміст для API
+  let userContent;
+  if(hasImage) {
+    userContent = [
+      { type:'text', text: text || 'Що зображено? Поясни детально.' },
+      { type:'image_url', image_url:{ url:'data:'+aiImageMime+';base64,'+aiImageBase64 } }
+    ];
+  } else {
+    userContent = text;
+  }
+  aiHistory.push({ role:'user', content: userContent });
+  clearAIImg();
+
+  // Анімація "думає"
+  const thinkingDiv = document.createElement('div');
+  thinkingDiv.className = 'msg other';
+  thinkingDiv.innerHTML = '<div class="msg-bubble"><div class="ai-thinking"><span></span><span></span><span></span></div></div>';
+  document.getElementById('ai-msgs').appendChild(thinkingDiv);
+  document.getElementById('ai-msgs').scrollTop = 99999;
+  document.getElementById('ai-send').disabled = true;
+
+  try {
+    const contextParts = [];
+    if(typeof courses !== 'undefined' && courses.length) contextParts.push('Курси студента: ' + courses.slice(0,10).map(c=>c.fullname||c.shortname).join(', '));
+    if(typeof allDl !== 'undefined') {
+      const upcomingDl = allDl.filter(d=>!d.past).slice(0,5);
+      if(upcomingDl.length) contextParts.push('Найближчі дедлайни: ' + upcomingDl.map(d=>d.name+' ('+fmtDate(d.due)+')').join(', '));
+    }
+
+    const systemPrompt = `Ти навчальний асистент для студентів університету УкрДУЗТ.
+ПРАВИЛА:
+- Відповідай ЗАВЖДИ українською мовою
+- Давай ТОЧНІ та ПОВНІ відповіді — не обривай на середині
+- Якщо на фото задача або інтеграл — розв'яжи ПОВНІСТЮ покроково, покажи всі дії
+- Якщо питання теоретичне — дай чітке пояснення з прикладами
+- Використовуй markdown: **жирний**, ## заголовки, - списки, \`код\`
+- При математичних розрахунках показуй кожен крок окремо
+- В кінці ЗАВЖДИ давай чітку фінальну відповідь
+${contextParts.length ? '\nКонтекст студента: ' + contextParts.join('. ') : ''}`;
+
+    // Для зображень — Llama 4 Maverick (краще розпізнає математику/текст на фото)
+    const model = hasImage ? 'meta-llama/llama-4-maverick-17b-128e-instruct' : 'llama-3.3-70b-versatile';
+
+    // В history прибираємо старі base64 зображення (занадто великі)
+    const historyForAPI = aiHistory.slice(-12).map((m, i, arr) => {
+      if(i < arr.length - 1 && Array.isArray(m.content)) {
+        const textOnly = m.content.filter(p=>p.type==='text').map(p=>p.text).join(' ');
+        return { role: m.role, content: textOnly || '[зображення]' };
+      }
+      return m;
+    });
+
+    const resp = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type':'application/json', 'Authorization':'Bearer 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' },
+      body: JSON.stringify({ model, max_tokens:4096, messages:[{role:'system',content:systemPrompt},...historyForAPI] })
+    });
+
+    const data = await resp.json();
+    if(data.error) {
+      thinkingDiv.remove();
+      appendAIMsg('other', '⚠️ Помилка: ' + (data.error.message || JSON.stringify(data.error)));
+      document.getElementById('ai-send').disabled = false;
+      return;
+    }
+    const reply = data.choices?.[0]?.message?.content || 'Вибачте, не вдалося отримати відповідь.';
+    aiHistory.push({ role:'assistant', content: reply });
+    thinkingDiv.remove();
+    appendAIMsg('other', reply);
+  } catch(e) {
+    thinkingDiv.remove();
+    appendAIMsg('other', '⚠️ Помилка з\'єднання: ' + e.message);
+  }
+  document.getElementById('ai-send').disabled = false;
+}
+
+function renderMarkdown(text) {
+  // 1. Спочатку витягуємо LaTeX блоки щоб не зіпсувати їх escape-ом
+  const mathBlocks = [];
+  let t = text;
+
+  // Display math: \[...\] або $$...$$
+  t = t.replace(/\\\[([\s\S]*?)\\\]/g, (_, m) => { mathBlocks.push({type:'block',tex:m}); return `%%MATH_BLOCK_${mathBlocks.length-1}%%`; });
+  t = t.replace(/\$\$([\s\S]*?)\$\$/g, (_, m) => { mathBlocks.push({type:'block',tex:m}); return `%%MATH_BLOCK_${mathBlocks.length-1}%%`; });
+  // Inline math: \(...\) або $...$
+  t = t.replace(/\\\(([\s\S]*?)\\\)/g, (_, m) => { mathBlocks.push({type:'inline',tex:m}); return `%%MATH_INLINE_${mathBlocks.length-1}%%`; });
+  t = t.replace(/\$([^\$\n]+)\$/g, (_, m) => { mathBlocks.push({type:'inline',tex:m}); return `%%MATH_INLINE_${mathBlocks.length-1}%%`; });
+
+  // 2. Тепер безпечно escapeємо HTML
+  t = t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
+  // 3. Markdown форматування
+  // Блоки коду
+  t = t.replace(/```(\w*)\n?([\s\S]*?)```/g, (_,lang,code) =>
+    '<pre style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px;overflow-x:auto;margin:8px 0;font-family:\'JetBrains Mono\',monospace;font-size:12px;line-height:1.5;">'+(lang?'<div style="font-size:9px;color:var(--accent);margin-bottom:6px;text-transform:uppercase;letter-spacing:1px;">'+lang+'</div>':'')+code+'</pre>');
+  // Інлайн код
+  t = t.replace(/`([^`\n]+)`/g,'<code style="background:var(--bg3);border:1px solid var(--border);border-radius:4px;padding:1px 6px;font-family:\'JetBrains Mono\',monospace;font-size:12px;">$1</code>');
+  // Заголовки
+  t = t.replace(/^### (.+)$/gm,'<div style="font-size:14px;font-weight:700;margin:10px 0 4px;color:var(--accent);">$1</div>');
+  t = t.replace(/^## (.+)$/gm,'<div style="font-size:16px;font-weight:800;margin:12px 0 5px;border-bottom:1px solid var(--border);padding-bottom:4px;">$1</div>');
+  t = t.replace(/^# (.+)$/gm,'<div style="font-size:18px;font-weight:800;margin:14px 0 6px;">$1</div>');
+  // Жирний та курсив
+  t = t.replace(/\*\*(.+?)\*\*/g,'<strong style="font-weight:700;">$1</strong>');
+  t = t.replace(/\*([^*\n]+)\*/g,'<em>$1</em>');
+  // Горизонтальна лінія
+  t = t.replace(/^---+$/gm,'<hr style="border:none;border-top:1px solid var(--border);margin:10px 0;">');
+  // Списки
+  t = t.replace(/^[\-\*] (.+)$/gm,'<li style="margin:4px 0;">$1</li>');
+  t = t.replace(/^\d+\. (.+)$/gm,'<li style="margin:4px 0;">$1</li>');
+  t = t.replace(/(<li[^>]*>[\s\S]*?<\/li>\n?)+/g, m => '<ul style="margin:8px 0;padding-left:22px;">'+m+'</ul>');
+  // Параграфи
+  t = t.replace(/\n\n+/g,'</p><p style="margin:8px 0;">');
+  t = t.replace(/\n/g,'<br>');
+  t = '<p style="margin:0;">'+t+'</p>';
+
+  // 4. Повертаємо LaTeX назад — рендеримо через KaTeX
+  t = t.replace(/%%MATH_BLOCK_(\d+)%%/g, (_, i) => {
+    try {
+      return '<div style="overflow-x:auto;margin:10px 0;padding:8px 0;text-align:center;">'+
+        window.katex.renderToString(mathBlocks[i].tex, {displayMode:true, throwOnError:false})+'</div>';
+    } catch(e) { return '<code>'+mathBlocks[i].tex+'</code>'; }
+  });
+  t = t.replace(/%%MATH_INLINE_(\d+)%%/g, (_, i) => {
+    try {
+      return window.katex.renderToString(mathBlocks[i].tex, {displayMode:false, throwOnError:false});
+    } catch(e) { return '<code>'+mathBlocks[i].tex+'</code>'; }
+  });
+
+  return t;
+}
+
+function appendAIMsg(side, text, imgSrc) {
+  const el = document.getElementById('ai-msgs');
+  const div = document.createElement('div');
+  div.className = 'msg ' + side;
+  const isAI = side === 'other';
+  const imgHtml = imgSrc ? '<img src="'+imgSrc+'" style="max-width:100%;width:auto;max-height:260px;border-radius:8px;display:block;margin-bottom:8px;border:1px solid var(--border);">' : '';
+  const content = isAI ? renderMarkdown(text) : '<p style="margin:0;">'+escHtml(text).replace(/\n/g,'<br>')+'</p>';
+  div.innerHTML = '<div class="msg-bubble ai-bubble" style="max-width:88%;font-size:14px;line-height:1.65;">'+imgHtml+content+'</div>';
+  el.appendChild(div);
+  el.scrollTop = 99999;
+}
+
+// ═══ NOTIFICATIONS ═══
+let notifList = [], notifUnsub = null;
+
+function loadNotifications() {
+  // Load from localStorage
+  const raw = localStorage.getItem('sh_notifs_' + String(userData.userid||'local'));
+  notifList = raw ? JSON.parse(raw) : [];
+  renderNotifs();
+}
+
+function addNotif(type, title, body) {
+  const n = { id: Date.now().toString(36), type, title, body, ts: Date.now(), read: false };
+  notifList.unshift(n);
+  notifList = notifList.slice(0, 50); // Keep last 50
+  localStorage.setItem('sh_notifs_'+String(userData.userid||'local'), JSON.stringify(notifList));
+  updateBellCount();
+  renderNotifs();
+  // Browser push if permission granted
+  if(Notification.permission === 'granted') {
+    new Notification('Student Hub — ' + title, { body, icon: '🎓' });
+  }
+}
+
+function updateBellCount() {
+  const unread = notifList.filter(n => !n.read).length;
+  const badge = document.getElementById('bell-count');
+  if(!badge) return;
+  if(unread > 0) { badge.textContent = unread; badge.style.display = ''; }
+  else { badge.style.display = 'none'; }
+}
+
+function markAllRead() {
+  notifList.forEach(n => n.read = true);
+  localStorage.setItem('sh_notifs_'+String(userData.userid||'local'), JSON.stringify(notifList));
+  updateBellCount();
+  renderNotifs();
+}
+
+function renderNotifs() {
+  const el = document.getElementById('notif-list');
+  if(!el) return;
+  if(!notifList.length) { el.innerHTML = '<div class="empty"><div class="emo">🔔</div><p>Немає сповіщень</p></div>'; return; }
+  el.innerHTML = notifList.map(n => {
+    const ico = n.type==='deadline'?'⏰':n.type==='file'?'📁':n.type==='chat'?'💬':'🔔';
+    const t = new Date(n.ts).toLocaleTimeString('uk-UA',{hour:'2-digit',minute:'2-digit'}) + ' ' + new Date(n.ts).toLocaleDateString('uk-UA');
+    return '<div class="notif-item'+(n.read?'':' unread')+'" onclick="markNotifRead(this.dataset.id)" data-id="'+escHtml(n.id)+'">' +
+      '<div class="notif-ico">'+ico+'</div>' +
+      '<div class="notif-body"><div class="notif-title">'+escHtml(n.title)+'</div><div class="notif-time">'+escHtml(n.body)+'<br>'+t+'</div></div>' +
+      '</div>';
+  }).join('');
+}
+
+function markNotifRead(id) {
+  const n = notifList.find(x=>x.id===id);
+  if(n) { n.read=true; localStorage.setItem('sh_notifs_'+String(userData.userid||'local'),JSON.stringify(notifList)); updateBellCount(); renderNotifs(); }
+}
+
+async function requestNotifPerms() {
+  if(!('Notification' in window)) { alert('Браузер не підтримує сповіщення'); return; }
+  const p = await Notification.requestPermission();
+  if(p === 'granted') { alert('Сповіщення увімкнено! ✅'); addNotif('system','Сповіщення увімкнено','Ви будете отримувати нагадування про дедлайни та нові файли'); }
+  else { alert('Доступ до сповіщень відхилено'); }
+}
+
+// Schedule deadline notifications
+function scheduleDeadlineNotifs() {
+  const now = Date.now()/1000;
+  const dlDel = typeof _dlDeleted!=='undefined'?_dlDeleted:[];
+  allDl.filter(d=>!d.past&&!dlDel.includes(String(d.id))).forEach(d=>{
+    const diff = d.due - now;
+    if(diff>0&&diff<=48*3600) {
+      const key = 'notif_sent_'+d.id+'_48';
+      if(!localStorage.getItem(key)) {
+        const hours = Math.round(diff/3600);
+        const msg = hours<=1?'Менше години!':'Через '+hours+' год';
+        addNotif('deadline','⏰ '+d.name, msg+' — '+d.course);
+        localStorage.setItem(key,'1');
+        if(Notification.permission==='granted') {
+          try { new Notification('⏰ '+d.name,{body:msg+'\n'+d.course,tag:'dl_'+d.id,requireInteraction:hours<=2}); }catch(e){}
+        }
+      }
+    }
+    if(diff>0&&diff<=24*3600) {
+      const key2='notif_sent_'+d.id+'_24';
+      if(!localStorage.getItem(key2)) {
+        const h2=Math.round(diff/3600);
+        addNotif('deadline','🔴 '+d.name,'Залишилось '+h2+'год! — '+d.course);
+        localStorage.setItem(key2,'1');
+        if(Notification.permission==='granted') {
+          try { new Notification('🔴 Термін! '+d.name,{body:'Залишилось '+h2+' год!',tag:'dl_urgent_'+d.id,requireInteraction:true}); }catch(e){}
+        }
+      }
+    }
+  });
+}
+
+// File notifications
+let prevFileCount = 0;
+function checkFileNotifs(files) {
+  if(prevFileCount > 0 && files.length > prevFileCount) {
+    const newFiles = files.slice(0, files.length - prevFileCount);
+    newFiles.forEach(f => addNotif('file', 'Новий файл у групі', f.name + ' — ' + (f.uploader||'?')));
+  }
+  prevFileCount = files.length;
+}
+
+// ═══ FILES SEARCH/PREVIEW ═══
+function renderFilesWithSearch(files, query = '') {
+  const filtered = query ? files.filter(f => (f.name||'').toLowerCase().includes(query.toLowerCase())) : files;
+  const el = document.getElementById('files-list');
+  if(!filtered.length) { el.innerHTML = '<div class="empty"><div class="emo">📂</div><p>'+(query?'Файлів не знайдено':'Файлів ще немає')+'</p></div>'; return; }
+  el.innerHTML = '<div class="file-list">'+filtered.map(f => {
+    const ext = (f.name||'').split('.').pop().toLowerCase();
+    const ec = ext==='pdf'?'ep':['doc','docx'].includes(ext)?'ed':['xls','xlsx'].includes(ext)?'ex':'eo';
+    const sz = f.size>1048576?(f.size/1048576).toFixed(1)+' МБ':Math.round(f.size/1024)+' КБ';
+    const isImg = ['jpg','jpeg','png','gif','webp'].includes(ext);
+    const previewBtn = isImg && f.dataUrl ? '<button class="btn" onclick="previewFile(this.dataset.id)" data-id="'+escHtml(f.id)+'">👁</button>' : '';
+    return '<div class="file-item">' +
+      (isImg && f.dataUrl ? '<img src="'+f.dataUrl+'" style="width:32px;height:32px;object-fit:cover;border-radius:7px;flex-shrink:0;cursor:pointer;" onclick="previewFile(this.dataset.id)" data-id="'+escHtml(f.id)+'">' : '<div class="file-ext '+ec+'">'+escHtml(ext.toUpperCase())+'</div>') +
+      '<div class="file-info"><div class="file-name">'+escHtml(f.name)+'</div><div class="file-meta">'+escHtml(f.uploader||'?')+' • '+new Date(f.createdAt).toLocaleDateString('uk-UA')+' • '+escHtml(sz)+'</div></div>' +
+      '<div class="file-actions">'+previewBtn+(f.dataUrl?'<button class="btn a" onclick="dlFile(this.dataset.id)" data-id="'+escHtml(f.id)+'">⬇</button>':'')+'<button class="btn d" onclick="rmFile(this.dataset.id)" data-id="'+escHtml(f.id)+'">🗑</button></div>' +
+      '</div>';
+  }).join('')+'</div>';
+}
+
+function previewFile(id) {
+  const f = cachedFiles.find(x=>x.id===id);
+  if(!f||!f.dataUrl) return;
+  document.getElementById('preview-img').src = f.dataUrl;
+  document.getElementById('preview-modal').classList.add('show');
+}
+
+let filesSearchQuery = '';
+
+// ── LOGOUT ──
+function doLogout() {
+  unsubs.forEach(u=>u());
+  if(chatUnsub) chatUnsub();
+  unsubs=[]; token=''; userData={}; allDl=[]; courses=[]; group={}; userRole='student'; cachedFiles=[]; cachedMats=[];
+  localStorage.removeItem('sh_token'); localStorage.removeItem('sh_gid');
+  document.getElementById('screen-app').classList.remove('active');
+  document.getElementById('screen-login').classList.add('active');
+}
+
+// ── AUTO LOGIN ──
+const sv=localStorage.getItem('sh_token'), sgid=localStorage.getItem('sh_gid');
+if(sv&&sgid) {
+  token=sv;
+  const tryAutoLogin = async () => {
+    if(!window._fb || !window._db) { setTimeout(tryAutoLogin, 300); return; }
+    const {doc,getDoc}=window._fb;
+    try {
+      // Validate token is still working
+      const testR = await fetch(MOODLE+'/webservice/rest/server.php?wstoken='+sv+'&wsfunction=core_webservice_get_site_info&moodlewsrestformat=json');
+      const testD = await testR.json();
+      if(testD.errorcode) { 
+        localStorage.removeItem('sh_token'); localStorage.removeItem('sh_gid'); 
+        return; 
+      }
+      const snap=await getDoc(doc(window._db,'groups',sgid));
+      if(snap.exists()){group={id:sgid,...snap.data()};await initApp();}
+      else {localStorage.removeItem('sh_token');localStorage.removeItem('sh_gid');}
+    } catch(e){ console.warn('Auto-login error:',e); }
+  };
+  setTimeout(tryAutoLogin, 500);
+}
+</script>
+
+<!-- NOTE EDITOR -->
+<div class="note-editor-overlay" id="note-editor-overlay">
+  <div class="note-editor">
+    <div class="note-editor-header">
+      <input class="note-title-inp" id="note-title" placeholder="Назва нотатки...">
+      <select class="tb-select" id="note-course-sel" style="font-size:11px;">
+        <option value="">Без курсу</option>
+      </select>
+      <button class="btn a" onclick="saveNote()">💾 Зберегти</button>
+      <button class="btn" onclick="closeNoteEditor()">✕</button>
+    </div>
+    <div class="note-editor-body">
+      <textarea class="note-md-inp" id="note-md" placeholder="# Заголовок&#10;&#10;Пишіть в **Markdown**...&#10;&#10;- Список&#10;- Елементів&#10;&#10;`код`" oninput="updateNotePreview()"></textarea>
+      <div class="note-preview" id="note-preview"><p style="color:var(--text2);font-size:12px;">Попередній перегляд...</p></div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- IMAGE PREVIEW -->
+<div class="preview-modal" id="preview-modal" onclick="this.classList.remove('show')">
+  <div class="preview-inner">
+    <button class="preview-close" onclick="document.getElementById('preview-modal').classList.remove('show')">✕</button>
+    <img id="preview-img" src="" alt="">
+  </div>
+</div>
+</body>
+</html>

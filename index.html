@@ -326,6 +326,20 @@ a{text-decoration:none;color:inherit;}
   .toolbar{flex-wrap:wrap;}
   .tb-input{min-width:0;flex:1;}
   .tb-select{font-size:12px;}
+
+  /* Chat inputs — prevents iOS auto-zoom */
+  .chat-input{font-size:16px !important;}
+  .chat-input-wrap{padding:8px 8px max(8px,env(safe-area-inset-bottom,8px)) !important;}
+
+  /* Chat images */
+  .msg-bubble img{max-width:min(240px,72vw) !important;max-height:200px !important;border-radius:8px;}
+
+  /* Deadline color settings */
+  #dl-settings{padding:12px !important;}
+  #dl-urgent-hours,#dl-warn-days{width:76px !important;padding:10px 8px !important;font-size:16px !important;}
+
+  /* Lightbox */
+  #lightbox-img{max-width:100vw !important;max-height:calc(100vh - 90px) !important;}
 }
 
 /* iOS safe area */
@@ -519,13 +533,13 @@ a{text-decoration:none;color:inherit;}
             <label style="display:flex;align-items:center;gap:8px;font-size:13px;">
               <span style="width:11px;height:11px;border-radius:50%;background:var(--accent2);flex-shrink:0;box-shadow:0 0 6px rgba(224,80,80,.5);"></span>
               Червоний менше
-              <input type="number" id="dl-urgent-hours" min="1" max="240" style="width:62px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:5px 8px;color:var(--text);font-size:13px;text-align:center;outline:none;" oninput="saveDlSettings()">
+              <input type="number" id="dl-urgent-hours" min="1" max="240" inputmode="numeric" pattern="[0-9]*" style="width:70px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:8px 10px;color:var(--text);font-size:16px;text-align:center;outline:none;-webkit-appearance:none;appearance:none;" oninput="saveDlSettings()">
               год
             </label>
             <label style="display:flex;align-items:center;gap:8px;font-size:13px;">
               <span style="width:11px;height:11px;border-radius:50%;background:var(--warning);flex-shrink:0;"></span>
               Жовтий менше
-              <input type="number" id="dl-warn-days" min="1" max="60" style="width:62px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:5px 8px;color:var(--text);font-size:13px;text-align:center;outline:none;" oninput="saveDlSettings()">
+              <input type="number" id="dl-warn-days" min="1" max="60" inputmode="numeric" pattern="[0-9]*" style="width:70px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:8px 10px;color:var(--text);font-size:16px;text-align:center;outline:none;-webkit-appearance:none;appearance:none;" oninput="saveDlSettings()">
               днів
             </label>
           </div>
@@ -1762,7 +1776,7 @@ function renderMessages(msgs) {
       'onmouseleave="this.querySelector(\'.msg-del\')&&(this.querySelector(\'.msg-del\').style.opacity=0)">'+
       (!isMe?'<div class="msg-author">'+escHtml(m.author)+'</div>':'')+
       '<div style="display:flex;align-items:flex-end;gap:4px;'+(isMe?'flex-direction:row-reverse':'')+'">'+
-        '<div class="msg-bubble">'+(m.text?escHtml(m.text):'')+(m.file?(m.file.type&&m.file.type.startsWith('image/')?'<br><img src="'+m.file.data+'" style="max-width:200px;max-height:200px;border-radius:8px;display:block;margin-top:4px;cursor:pointer;" onclick="window.open(this.src)">':'<br><a href="'+m.file.data+'" download="'+escHtml(m.file.name||'file')+'" style="display:inline-flex;align-items:center;gap:5px;padding:5px 9px;background:rgba(255,255,255,.07);border-radius:7px;font-size:11px;color:var(--text);text-decoration:none;margin-top:4px;">\u{1F4C4} '+escHtml(m.file.name||'Файл')+'</a>'):'')+'</div>'+
+        '<div class="msg-bubble">'+(m.text?escHtml(m.text):'')+(m.file?(m.file.type&&m.file.type.startsWith('image/')?'<br><img src="'+m.file.data+'" style="max-width:220px;max-height:220px;border-radius:10px;display:block;margin-top:6px;cursor:pointer;box-shadow:0 2px 12px rgba(0,0,0,.3);transition:transform .15s;" onclick="openLightbox(this.src,\''+escHtml(m.file.name||'photo')+'\')" onmouseover="this.style.transform=\'scale(1.02)\'" onmouseout="this.style.transform=\'scale(1)\'">':'<br><a href="'+m.file.data+'" download="'+escHtml(m.file.name||'file')+'" style="display:inline-flex;align-items:center;gap:5px;padding:5px 9px;background:rgba(255,255,255,.07);border-radius:7px;font-size:11px;color:var(--text);text-decoration:none;margin-top:4px;">\u{1F4C4} '+escHtml(m.file.name||'Файл')+'</a>'):'')+'</div>'+
         (canDel&&m.id?'<button class="msg-del" data-id="'+escHtml(m.id)+'" onclick="delMsg(this.dataset.id)" style="background:rgba(224,80,80,.15);border:1px solid rgba(224,80,80,.3);color:var(--accent2);border-radius:5px;padding:2px 5px;font-size:9px;cursor:pointer;opacity:0;transition:opacity .2s;flex-shrink:0">🗑</button>':'')+
       '</div>'+
       '<div class="msg-time">'+t+'</div></div>';
@@ -1799,41 +1813,74 @@ function handleChatPaste(e) {
   }
 }
 
-function openLightbox(src) {
-  const lb = document.getElementById('lightbox');
+// ── TELEGRAM-STYLE LIGHTBOX ──
+function _base64ToBlob(src) {
+  try {
+    const arr = src.split(','), mime = arr[0].match(/:(.*?);/)[1];
+    const bstr = atob(arr[1]);
+    const u8 = new Uint8Array(bstr.length);
+    for(let i=0;i<bstr.length;i++) u8[i] = bstr.charCodeAt(i);
+    return URL.createObjectURL(new Blob([u8], {type:mime}));
+  } catch(e) { return src; }
+}
+function openLightbox(src, filename) {
+  const lb  = document.getElementById('lightbox');
   const img = document.getElementById('lightbox-img');
+  const dl  = document.getElementById('lightbox-download');
+  const fn  = document.getElementById('lightbox-filename');
+  if(!lb || !img) return;
+
+  // Reset
   img.src = '';
-  // For iOS: convert base64 to blob URL to avoid white screen
-  if(src && src.startsWith('data:')) {
-    try {
-      const arr = src.split(','), mime = arr[0].match(/:(.*?);/)[1];
-      const bstr = atob(arr[1]);
-      const u8arr = new Uint8Array(bstr.length);
-      for(let i=0;i<bstr.length;i++) u8arr[i] = bstr.charCodeAt(i);
-      img.src = URL.createObjectURL(new Blob([u8arr], {type:mime}));
-    } catch(e) { img.src = src; }
-  } else {
-    img.src = src;
-  }
-  lb.style.display = 'flex';
+
+  // Convert base64 → blob (fixes iOS white screen)
+  const blobUrl = src && src.startsWith('data:') ? _base64ToBlob(src) : src;
+  img.src = blobUrl;
+
+  // Download button
+  if(dl) { dl.href = blobUrl; dl.download = filename || 'image'; }
+  if(fn) fn.textContent = filename || '';
+
+  // Show
+  lb.style.display = 'block';
+  lb.style.overflowY = 'auto';
   document.body.style.overflow = 'hidden';
   document.body.style.position = 'fixed';
   document.body.style.width = '100%';
   document.addEventListener('keydown', _lbKey);
-  // Touch/click to close (not on image itself)
-  lb.ontouchend = lb.onclick = function(e) {
-    if(e.target === lb) closeLightbox();
-  };
-  document.getElementById('lightbox-close').ontouchend =
-  document.getElementById('lightbox-close').onclick = function(e) {
-    e.stopPropagation(); closeLightbox();
-  };
+
+  // Close on backdrop tap
+  lb.onclick = function(e) { if(e.target===lb||e.target===lb.firstElementChild) closeLightbox(); };
+
+  const closeBtn = document.getElementById('lightbox-close');
+  if(closeBtn) {
+    closeBtn.onclick = closeBtn.ontouchend = function(e) {
+      e.stopPropagation(); closeLightbox();
+    };
+  }
+
+  // Pinch-to-zoom on mobile (simple scale)
+  let _lbScale = 1, _lbDist0 = 0;
+  img.addEventListener('touchstart', function(e) {
+    if(e.touches.length===2) {
+      _lbDist0 = Math.hypot(e.touches[0].clientX-e.touches[1].clientX, e.touches[0].clientY-e.touches[1].clientY);
+    }
+  }, {passive:true});
+  img.addEventListener('touchmove', function(e) {
+    if(e.touches.length===2) {
+      const d = Math.hypot(e.touches[0].clientX-e.touches[1].clientX, e.touches[0].clientY-e.touches[1].clientY);
+      if(_lbDist0) { _lbScale = Math.min(Math.max(_lbScale*(d/_lbDist0), 0.5), 4); img.style.transform='scale('+_lbScale+')'; _lbDist0=d; }
+    }
+  }, {passive:true});
+  img.ondblclick = function() { _lbScale=_lbScale>1?1:2; img.style.transform='scale('+_lbScale+')'; };
 }
 function closeLightbox() {
-  const lb = document.getElementById('lightbox');
+  const lb  = document.getElementById('lightbox');
   const img = document.getElementById('lightbox-img');
-  if(img.src.startsWith('blob:')) URL.revokeObjectURL(img.src);
+  if(!lb) return;
+  if(img.src && img.src.startsWith('blob:')) URL.revokeObjectURL(img.src);
   img.src = '';
+  img.style.transform = 'scale(1)';
   lb.style.display = 'none';
   document.body.style.overflow = '';
   document.body.style.position = '';
@@ -2743,9 +2790,18 @@ async function _offlineLogin(sgid) {
 </div>
 
 <!-- LIGHTBOX -->
-<div id="lightbox" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.95);z-index:9999;align-items:center;justify-content:center;">
-  <button id="lightbox-close" style="position:absolute;top:max(16px,env(safe-area-inset-top,16px));right:16px;background:rgba(255,255,255,.2);border:none;color:#fff;width:48px;height:48px;border-radius:50%;font-size:24px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:2;-webkit-tap-highlight-color:transparent;">✕</button>
-  <img id="lightbox-img" src="" style="max-width:94vw;max-height:88vh;object-fit:contain;border-radius:8px;display:block;">
+<div id="lightbox" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.96);z-index:9999;-webkit-overflow-scrolling:touch;">
+  <!-- Telegram-style lightbox -->
+  <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;">
+    <div style="position:absolute;top:0;left:0;right:0;display:flex;align-items:center;justify-content:space-between;padding:max(14px,env(safe-area-inset-top,14px)) 16px 14px;background:linear-gradient(to bottom,rgba(0,0,0,.6),transparent);z-index:2;">
+      <div id="lightbox-filename" style="color:rgba(255,255,255,.85);font-size:13px;font-weight:600;max-width:70%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <a id="lightbox-download" href="#" download style="background:rgba(255,255,255,.15);border:none;color:#fff;width:40px;height:40px;border-radius:50%;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;text-decoration:none;-webkit-tap-highlight-color:transparent;">⬇</a>
+        <button id="lightbox-close" style="background:rgba(255,255,255,.15);border:none;color:#fff;width:40px;height:40px;border-radius:50%;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent;">✕</button>
+      </div>
+    </div>
+    <img id="lightbox-img" src="" alt="" style="max-width:100vw;max-height:calc(100vh - 80px);object-fit:contain;display:block;-webkit-user-drag:none;user-select:none;">
+  </div>
 </div>
 </body>
 </html>

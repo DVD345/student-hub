@@ -1219,7 +1219,7 @@ function renderDl(list, el) {
       '<div class="dl-right">'+
         '<div class="dl-date '+dtc+'">'+fmtDate(d.due)+'</div>'+
         tag+
-        '<button onclick="deleteDl(\''+escHtml(String(d.id))+\'',event)" title="Приховати" style="margin-top:4px;background:none;border:none;color:var(--text2);font-size:13px;cursor:pointer;opacity:.5;padding:1px 4px;border-radius:4px;transition:opacity .15s;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=.5">✕</button>'+
+        '<button onclick="event.stopPropagation();deleteDl(this.dataset.id,event)" data-id="'+escHtml(String(d.id))+'" title="Приховати" style="background:none;border:none;color:var(--text2);font-size:13px;cursor:pointer;opacity:.4;padding:2px 5px;border-radius:4px;line-height:1;transition:opacity .15s;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=.4">✕</button>'+
       '</div></div>';
   }).join('')+'</div>';
 }
@@ -1673,13 +1673,13 @@ function renderCalendar() {
     // Day number + add button
     html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:2px;">';
     html += '<div class="cal-day-num">'+d+'</div>';
-    html += '<button onclick="openCalNoteModal(''+dateStr+'',event)" title="Додати нотатку" style="background:none;border:none;color:var(--text2);font-size:11px;cursor:pointer;padding:0 2px;opacity:.4;line-height:1;transition:opacity .15s;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=.4">＋</button>';
+    html += '<button onclick="openCalNoteModal(this.dataset.date,event)" data-date="'+dateStr+'" title="Додати нотатку" style="background:none;border:none;color:var(--text2);font-size:11px;cursor:pointer;padding:0 2px;opacity:.4;line-height:1;transition:opacity .15s;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=.4">＋</button>';
     html += '</div>';
 
     // User note (shown first, in accent color)
     if(userNote) {
       const notePreview = userNote.length > 30 ? userNote.slice(0,30)+'…' : userNote;
-      html += '<div class="cal-event" onclick="openCalNoteModal(''+dateStr+'',event)" style="background:rgba(240,192,64,.15);color:var(--accent);border:1px solid rgba(240,192,64,.3);cursor:pointer;" title="'+escHtml(userNote)+'">✏️ '+escHtml(notePreview)+'</div>';
+      html += '<div class="cal-event" onclick="openCalNoteModal(this.dataset.date,event)" data-date="'+dateStr+'" style="background:rgba(240,192,64,.15);color:var(--accent);border:1px solid rgba(240,192,64,.3);cursor:pointer;" title="'+escHtml(userNote)+'">✏️ '+escHtml(notePreview)+'</div>';
     }
 
     // Deadlines
@@ -1687,7 +1687,7 @@ function renderCalendar() {
       const diff = dl.due - nowTs;
       const isPast = dl.due < nowTs;
       const cls = isPast ? 'cal-ev-past' : diff < _dlUrgentH*3600 ? 'cal-ev-urgent' : diff < _dlWarnD*86400 ? 'cal-ev-soon' : 'cal-ev-ok';
-      const onclk = dl.url && dl.url !== '#' ? 'onclick="window.open(''+escHtml(dl.url)+'')"' : '';
+      const onclk = dl.url && dl.url !== '#' ? 'onclick="window.open(this.dataset.url)" data-url="'+escHtml(dl.url)+'"' : '';
       html += '<div class="cal-event '+cls+'" '+onclk+' title="'+escHtml(dl.name)+'">'+escHtml(dl.name)+'</div>';
     });
     if(dayDl.length > 2) {
@@ -1696,7 +1696,7 @@ function renderCalendar() {
         const diff2 = dl.due - nowTs;
         const isPast2 = dl.due < nowTs;
         const cls2 = isPast2 ? 'cal-ev-past' : diff2 < _dlUrgentH*3600 ? 'cal-ev-urgent' : diff2 < _dlWarnD*86400 ? 'cal-ev-soon' : 'cal-ev-ok';
-        const onclk2 = dl.url && dl.url !== '#' ? 'onclick="window.open(''+escHtml(dl.url)+'')"' : '';
+        const onclk2 = dl.url && dl.url !== '#' ? 'onclick="window.open(this.dataset.url)" data-url="'+escHtml(dl.url)+'"' : '';
         html += '<div class="cal-event '+cls2+' cal-hidden" '+onclk2+' title="'+escHtml(dl.name)+'">'+escHtml(dl.name)+'</div>';
       });
     }

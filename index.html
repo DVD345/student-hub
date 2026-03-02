@@ -106,20 +106,20 @@ a{text-decoration:none;color:inherit;}
 
 /* DEADLINE */
 .dl-list{display:flex;flex-direction:column;gap:6px;}
-.dl-item{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:11px 14px;display:flex;align-items:center;gap:10px;transition:border-color .2s,background .2s;}
+.dl-item{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:12px 14px;display:flex;align-items:center;gap:10px;transition:border-color .2s,background .2s;}
 .dl-item.click{cursor:pointer;}
 .dl-item.click:hover{border-color:var(--accent);background:var(--bg3);}
-.dl-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
-.dot-u{background:var(--accent2);box-shadow:0 0 5px rgba(224,80,80,.5);}
+.dl-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.dot-u{background:var(--accent2);box-shadow:0 0 6px rgba(224,80,80,.6);}
 .dot-s{background:var(--warning);}
 .dot-o{background:var(--success);}
 .dl-info{flex:1;min-width:0;}
-.dl-name{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;}
-.dl-course{font-size:11px;color:var(--text2);}
-.dl-right{display:flex;align-items:center;gap:6px;flex-shrink:0;}
-.dl-date{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text2);}
-.dl-date.u{color:var(--accent2);}
-.dl-date.s{color:var(--warning);}
+.dl-name{font-size:14px;font-weight:600;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;line-height:1.35;}
+.dl-course{font-size:11px;color:var(--text2);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.dl-right{display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0;min-width:56px;}
+.dl-date{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text2);text-align:right;}
+.dl-date.u{color:var(--accent2);font-weight:700;}
+.dl-date.s{color:var(--warning);font-weight:600;}
 
 /* TOOLBAR */
 .toolbar{display:flex;align-items:center;gap:7px;margin-bottom:14px;flex-wrap:wrap;}
@@ -316,11 +316,16 @@ a{text-decoration:none;color:inherit;}
 
 @media(max-width:480px){
   .stats-grid{grid-template-columns:1fr 1fr;}
-  .dl-date{font-size:9px;}
+  .dl-date{font-size:10px;}
+  .dl-name{font-size:13px;}
+  .dl-item{padding:10px 11px;gap:8px;}
   .course-grid{grid-template-columns:1fr;}
   .page-header h2{font-size:18px;}
-  .content{padding:10px 10px 20px;}
+  .content{padding:10px 10px calc(72px + env(safe-area-inset-bottom));}
   .msg{max-width:88%;}
+  .toolbar{flex-wrap:wrap;}
+  .tb-input{min-width:0;flex:1;}
+  .tb-select{font-size:12px;}
 }
 
 /* iOS safe area */
@@ -955,10 +960,14 @@ async function initApp() {
   document.getElementById('gpill').textContent = '📌 ' + group.name;
   document.getElementById('files-lbl').textContent = 'Файли групи ' + group.name;
   document.getElementById('mats-lbl').textContent = 'Матеріали групи ' + group.name;
+
+  // Load cached data immediately (offline support)
+  _loadCachedData();
+
   await loadUserInfo();
   await loadUserRole();
   setupNav();
-  await startUserSettingsSync(); // ← Firestore sync для налаштувань і нотаток
+  await startUserSettingsSync();
   await syncMoodle();
   listenFiles(); listenMats(); setupChatRooms();
   if (canAdmin()) listenAdminData();
@@ -967,6 +976,72 @@ async function initApp() {
   renderCalendar();
   scheduleDeadlineNotifs();
   updateBellCount();
+}
+
+function _saveCache() {
+  try {
+    if(userData && userData.userid) {
+      localStorage.setItem('sh_cache_user', JSON.stringify(userData));
+    }
+    if(group && group.id) {
+      localStorage.setItem('sh_cache_group', JSON.stringify(group));
+    }
+    if(courses && courses.length) {
+      localStorage.setItem('sh_cache_courses', JSON.stringify(courses));
+    }
+    if(allDl && allDl.length) {
+      localStorage.setItem('sh_cache_dl', JSON.stringify(allDl));
+    }
+    localStorage.setItem('sh_cache_ts', Date.now());
+  } catch(e) { console.warn('Cache save error:', e); }
+}
+
+function _loadCachedData() {
+  try {
+    const cachedUser = localStorage.getItem('sh_cache_user');
+    const cachedGroup = localStorage.getItem('sh_cache_group');
+    const cachedCourses = localStorage.getItem('sh_cache_courses');
+    const cachedDl = localStorage.getItem('sh_cache_dl');
+    const cacheTs = localStorage.getItem('sh_cache_ts');
+
+    if(cachedUser) {
+      userData = JSON.parse(cachedUser);
+      const name = userData.fullname || 'Студент';
+      document.getElementById('uname').textContent = name;
+      document.getElementById('uav').textContent = name[0].toUpperCase();
+      const today = new Date().toLocaleDateString('uk-UA',{weekday:'long',day:'numeric',month:'long'});
+      document.getElementById('dash-sub').textContent = today + ' • ' + name;
+    }
+    if(cachedGroup) {
+      const cg = JSON.parse(cachedGroup);
+      if(!group.id) { group = cg; }
+    }
+    if(cachedCourses) {
+      courses = JSON.parse(cachedCourses);
+      renderCourses();
+    }
+    if(cachedDl) {
+      allDl = JSON.parse(cachedDl);
+      applyDlFilter(); renderDashDl(); renderCalendar();
+    }
+    if(cacheTs) {
+      const age = Math.round((Date.now() - parseInt(cacheTs)) / 60000);
+      if(age > 30) {
+        _showOfflineBanner('Дані з кешу (' + (age > 1440 ? Math.round(age/1440)+'д' : age+'хв') + ' тому)');
+      }
+    }
+  } catch(e) { console.warn('Cache load error:', e); }
+}
+
+function _showOfflineBanner(msg) {
+  let banner = document.getElementById('offline-banner');
+  if(!banner) {
+    banner = document.createElement('div');
+    banner.id = 'offline-banner';
+    banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:9000;background:rgba(240,160,48,.95);color:#0a0a0f;font-size:12px;font-weight:600;padding:7px 14px;text-align:center;display:flex;align-items:center;justify-content:center;gap:8px;';
+    banner.innerHTML = '⚡ ' + msg + ' <button onclick="syncMoodle();this.parentNode.remove()" style="background:rgba(0,0,0,.15);border:none;border-radius:4px;padding:2px 8px;cursor:pointer;font-size:11px;font-family:Inter,sans-serif;font-weight:700;">Оновити</button> <button onclick="this.parentNode.remove()" style="background:none;border:none;cursor:pointer;font-size:16px;line-height:1;margin-left:4px;">✕</button>';
+    document.body.prepend(banner);
+  }
 }
 
 async function loadUserInfo() {
@@ -986,7 +1061,10 @@ async function loadUserInfo() {
         moodleId: userData.userid, lastSeen: Date.now()
       }, { merge: true });
     }
-  } catch(e) {}
+    _saveCache();
+  } catch(e) {
+    // If Moodle fails, cached userData still set from _loadCachedData
+  }
 }
 
 async function loadUserRole() {
@@ -1197,6 +1275,7 @@ async function loadDeadlines() {
       return true;
     });
     
+    _saveCache();
     const urgent = allDl.filter(d=>!d.past&&(d.due-now)<60*60*48).length;
     const past = allDl.filter(d=>d.past).length;
     document.getElementById('s-urgent').textContent = urgent;
@@ -1723,31 +1802,43 @@ function handleChatPaste(e) {
 function openLightbox(src) {
   const lb = document.getElementById('lightbox');
   const img = document.getElementById('lightbox-img');
-  // For iOS: convert base64 to blob URL
-  if(src.startsWith('data:')) {
+  img.src = '';
+  // For iOS: convert base64 to blob URL to avoid white screen
+  if(src && src.startsWith('data:')) {
     try {
       const arr = src.split(','), mime = arr[0].match(/:(.*?);/)[1];
       const bstr = atob(arr[1]);
-      let n = bstr.length, u8arr = new Uint8Array(n);
-      while(n--) u8arr[n] = bstr.charCodeAt(n);
-      const blob = new Blob([u8arr], {type: mime});
-      img.src = URL.createObjectURL(blob);
+      const u8arr = new Uint8Array(bstr.length);
+      for(let i=0;i<bstr.length;i++) u8arr[i] = bstr.charCodeAt(i);
+      img.src = URL.createObjectURL(new Blob([u8arr], {type:mime}));
     } catch(e) { img.src = src; }
   } else {
     img.src = src;
   }
   lb.style.display = 'flex';
-  document.addEventListener('keydown', _lbKey);
-  // Prevent body scroll on iOS
   document.body.style.overflow = 'hidden';
+  document.body.style.position = 'fixed';
+  document.body.style.width = '100%';
+  document.addEventListener('keydown', _lbKey);
+  // Touch/click to close (not on image itself)
+  lb.ontouchend = lb.onclick = function(e) {
+    if(e.target === lb) closeLightbox();
+  };
+  document.getElementById('lightbox-close').ontouchend =
+  document.getElementById('lightbox-close').onclick = function(e) {
+    e.stopPropagation(); closeLightbox();
+  };
 }
 function closeLightbox() {
+  const lb = document.getElementById('lightbox');
   const img = document.getElementById('lightbox-img');
   if(img.src.startsWith('blob:')) URL.revokeObjectURL(img.src);
   img.src = '';
-  document.getElementById('lightbox').style.display = 'none';
-  document.removeEventListener('keydown', _lbKey);
+  lb.style.display = 'none';
   document.body.style.overflow = '';
+  document.body.style.position = '';
+  document.body.style.width = '';
+  document.removeEventListener('keydown', _lbKey);
 }
 function _lbKey(e) { if(e.key==='Escape') closeLightbox(); }
 
@@ -2562,20 +2653,65 @@ if(sv&&sgid) {
   const tryAutoLogin = async () => {
     if(!window._fb || !window._db) { setTimeout(tryAutoLogin, 300); return; }
     const {doc,getDoc}=window._fb;
+
+    // Try to load group from cache first (for instant offline login)
+    const cachedGroup = localStorage.getItem('sh_cache_group');
+    if(cachedGroup) {
+      try {
+        const cg = JSON.parse(cachedGroup);
+        if(cg.id === sgid) { group = cg; }
+      } catch(e) {}
+    }
+
+    // Try Moodle + Firestore online
     try {
-      // Validate token is still working
-      const testR = await fetch(MOODLE+'/webservice/rest/server.php?wstoken='+sv+'&wsfunction=core_webservice_get_site_info&moodlewsrestformat=json');
+      const ctrl = new AbortController();
+      const tid = setTimeout(() => ctrl.abort(), 5000); // 5s timeout
+      const testR = await fetch(MOODLE+'/webservice/rest/server.php?wstoken='+sv+'&wsfunction=core_webservice_get_site_info&moodlewsrestformat=json', {signal: ctrl.signal});
+      clearTimeout(tid);
       const testD = await testR.json();
-      if(testD.errorcode) { 
-        localStorage.removeItem('sh_token'); localStorage.removeItem('sh_gid'); 
-        return; 
+      if(testD.errorcode) {
+        // Token invalid - but only clear if we have no cache (maybe just expired session)
+        if(!cachedGroup) {
+          localStorage.removeItem('sh_token'); localStorage.removeItem('sh_gid');
+        } else {
+          // Enter offline mode with cached data
+          await _offlineLogin(sgid);
+        }
+        return;
       }
+      // Online: load group from Firestore
       const snap=await getDoc(doc(window._db,'groups',sgid));
       if(snap.exists()){group={id:sgid,...snap.data()};await initApp();}
+      else if(group.id) { await initApp(); } // use cached group
       else {localStorage.removeItem('sh_token');localStorage.removeItem('sh_gid');}
-    } catch(e){ console.warn('Auto-login error:',e); }
+    } catch(e){
+      console.warn('Auto-login error (offline mode):', e);
+      // Moodle/network unavailable - try offline login
+      if(group.id || cachedGroup) {
+        await _offlineLogin(sgid);
+      }
+    }
   };
   setTimeout(tryAutoLogin, 500);
+}
+
+async function _offlineLogin(sgid) {
+  const cachedGroup = localStorage.getItem('sh_cache_group');
+  if(!cachedGroup) return;
+  try {
+    group = JSON.parse(cachedGroup);
+    // Try Firestore for group (might work even if Moodle is down)
+    if(window._fb && window._db) {
+      try {
+        const {doc,getDoc}=window._fb;
+        const snap = await getDoc(doc(window._db,'groups',sgid));
+        if(snap.exists()) group = {id:sgid,...snap.data()};
+      } catch(e) {}
+    }
+    await initApp();
+    _showOfflineBanner('Moodle недоступний — показуємо збережені дані');
+  } catch(e) { console.warn('Offline login failed:', e); }
 }
 </script>
 
@@ -2607,9 +2743,9 @@ if(sv&&sgid) {
 </div>
 
 <!-- LIGHTBOX -->
-<div id="lightbox" onclick="closeLightbox()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:9999;align-items:center;justify-content:center;cursor:zoom-out;animation:fadeIn .15s ease;">
-  <button onclick="closeLightbox()" style="position:absolute;top:16px;right:16px;background:rgba(255,255,255,.15);border:none;color:#fff;width:40px;height:40px;border-radius:50%;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:1;">✕</button>
-  <img id="lightbox-img" src="" style="max-width:90vw;max-height:90vh;object-fit:contain;border-radius:8px;cursor:default;" onclick="event.stopPropagation()">
+<div id="lightbox" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.95);z-index:9999;align-items:center;justify-content:center;">
+  <button id="lightbox-close" style="position:absolute;top:max(16px,env(safe-area-inset-top,16px));right:16px;background:rgba(255,255,255,.2);border:none;color:#fff;width:48px;height:48px;border-radius:50%;font-size:24px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:2;-webkit-tap-highlight-color:transparent;">✕</button>
+  <img id="lightbox-img" src="" style="max-width:94vw;max-height:88vh;object-fit:contain;border-radius:8px;display:block;">
 </div>
 </body>
 </html>

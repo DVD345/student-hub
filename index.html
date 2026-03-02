@@ -1644,6 +1644,19 @@ function handleChatPaste(e) {
   }
 }
 
+function openLightbox(src) {
+  const lb = document.getElementById('lightbox');
+  document.getElementById('lightbox-img').src = src;
+  lb.style.display = 'flex';
+  document.addEventListener('keydown', _lbKey);
+}
+function closeLightbox() {
+  document.getElementById('lightbox').style.display = 'none';
+  document.getElementById('lightbox-img').src = '';
+  document.removeEventListener('keydown', _lbKey);
+}
+function _lbKey(e) { if(e.key==='Escape') closeLightbox(); }
+
 function clearChatFile() {
   _chatFile = null;
   document.getElementById('chat-file-preview').style.display = 'none';
@@ -2491,6 +2504,12 @@ if(sv&&sgid) {
     <button class="preview-close" onclick="document.getElementById('preview-modal').classList.remove('show')">✕</button>
     <img id="preview-img" src="" alt="">
   </div>
+</div>
+
+<!-- LIGHTBOX -->
+<div id="lightbox" onclick="closeLightbox()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:9999;align-items:center;justify-content:center;cursor:zoom-out;animation:fadeIn .15s ease;">
+  <button onclick="closeLightbox()" style="position:absolute;top:16px;right:16px;background:rgba(255,255,255,.15);border:none;color:#fff;width:40px;height:40px;border-radius:50%;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:1;">✕</button>
+  <img id="lightbox-img" src="" style="max-width:90vw;max-height:90vh;object-fit:contain;border-radius:8px;cursor:default;" onclick="event.stopPropagation()">
 </div>
 </body>
 </html>

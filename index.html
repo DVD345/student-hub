@@ -245,31 +245,84 @@ a{text-decoration:none;color:inherit;}
 .modal-actions{display:flex;gap:7px;justify-content:flex-end;margin-top:16px;}
 
 /* ═══ MOBILE ═══ */
+/* ═══ BOTTOM NAV (mobile) ═══ */
+.bottom-nav{display:none;position:fixed;bottom:0;left:0;right:0;background:var(--bg2);border-top:1px solid var(--border);z-index:150;padding:6px 0 max(6px,env(safe-area-inset-bottom));height:auto;}
+.bottom-nav-inner{display:flex;justify-content:space-around;align-items:center;}
+.bnav-item{display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 10px;cursor:pointer;border:none;background:none;color:var(--text2);font-size:9px;font-weight:600;font-family:'Inter',sans-serif;border-radius:8px;transition:color .2s;position:relative;min-width:52px;}
+.bnav-item.active{color:var(--accent);}
+.bnav-ico{font-size:20px;line-height:1;}
+.bnav-badge{position:absolute;top:4px;right:8px;background:var(--accent2);color:#fff;font-size:7px;font-weight:700;padding:1px 4px;border-radius:10px;min-width:14px;text-align:center;}
+
 @media(max-width:768px){
   :root{--sidebar:0px;}
-  .sidebar{transform:translateX(-240px);width:240px;}
+  .sidebar{transform:translateX(-260px);width:260px;}
   .sidebar.open{transform:translateX(0);}
-  .main{margin-left:0;}
+  .main{margin-left:0;padding-bottom:64px;}
   .topbar{display:flex;}
   .close-sidebar{display:block;}
-  .content{padding:16px;}
-  .stats-grid{grid-template-columns:repeat(2,1fr);gap:8px;}
+  .content{padding:14px 14px 20px;}
+  .stats-grid{grid-template-columns:1fr 1fr;gap:8px;}
   .stat-card{padding:11px;}
   .stat-val{font-size:18px;}
-  .chat-wrap{flex-direction:column;height:auto;}
-  .chat-sidebar{width:100%;flex-direction:row;overflow-x:auto;overflow-y:visible;padding-bottom:2px;}
-  .chat-room{min-width:120px;flex-shrink:0;}
-  .chat-main{height:400px;}
+
+  /* Chat - full screen on mobile */
+  .chat-wrap{flex-direction:column;height:calc(100vh - 130px);gap:0;}
+  .chat-sidebar{width:100%;flex-direction:row;overflow-x:auto;overflow-y:visible;padding:0 0 6px;gap:6px;flex-shrink:0;max-height:none;}
+  .chat-room{min-width:110px;flex-shrink:0;padding:8px 10px;}
+  .chat-main{flex:1;min-height:0;border-radius:var(--r);overflow:hidden;}
+  .chat-messages{-webkit-overflow-scrolling:touch;}
+  .chat-input-wrap{padding:8px;}
+  .msg-bubble{font-size:14px;padding:9px 12px;}
+
+  /* Admin */
   .admin-grid{grid-template-columns:1fr;}
-  .auth-box{padding:28px 22px;}
+  .auth-box{padding:24px 18px;}
+
+  /* Toolbar */
   .toolbar{gap:5px;}
-  .tb-input{min-width:120px;}
+  .tb-input{min-width:100px;flex:1;}
+
+  /* Page header */
+  .page-header{margin-bottom:14px;}
+  .page-header h2{font-size:20px;}
+
+  /* Files */
+  .file-actions .btn span{display:none;}
+
+  /* Deadline settings */
+  #dl-settings > div:nth-child(2){flex-direction:column;gap:10px;}
+  #dl-settings label{width:100%;}
+
+  /* Notes */
+  .note-card{width:100%;}
+  #notes-container{flex-direction:column;}
+  .note-editor-body{grid-template-columns:1fr;grid-template-rows:1fr 1fr;}
+  .note-md-inp{border-right:none;border-bottom:1px solid var(--border);}
+
+  /* Calendar */
+  .cal-cell{height:56px;padding:3px;}
+  .cal-event{font-size:8px;padding:1px 3px;}
+  .cal-header-cell{font-size:9px;padding:5px 2px;}
+
+  /* Bottom nav visible */
+  .bottom-nav{display:block;}
+
+  /* Hide topbar icons on small screens */
+  .topbar .icon-btn{font-size:16px;}
 }
+
 @media(max-width:480px){
   .stats-grid{grid-template-columns:1fr 1fr;}
-  .dl-date{display:none;}
+  .dl-date{font-size:9px;}
   .course-grid{grid-template-columns:1fr;}
   .page-header h2{font-size:18px;}
+  .content{padding:10px 10px 20px;}
+  .msg{max-width:88%;}
+}
+
+/* iOS safe area */
+@supports(padding:max(0px)){
+  .main{padding-bottom:max(64px, calc(64px + env(safe-area-inset-bottom)));}
 }
 
 /* ═══ CALENDAR ═══ */
@@ -391,9 +444,31 @@ a{text-decoration:none;color:inherit;}
     <div class="topbar" id="topbar">
       <button class="topbar-menu" onclick="openSidebar()">☰</button>
       <h2 id="topbar-title">Головна</h2>
-      <button class="icon-btn" onclick="toggleTheme()">🌓</button>
+      <button class="icon-btn" id="theme-btn-top" onclick="toggleTheme()">🌙</button>
       <button class="icon-btn" id="bell-btn" onclick="go('notifications')" style="position:relative">🔔<span id="bell-count" style="display:none;position:absolute;top:-2px;right:-2px;background:var(--accent2);color:#fff;font-size:8px;font-weight:700;padding:1px 4px;border-radius:10px;min-width:14px;text-align:center"></span></button>
     </div>
+
+    <!-- BOTTOM NAV (mobile only) -->
+    <nav class="bottom-nav" id="bottom-nav">
+      <div class="bottom-nav-inner">
+        <button class="bnav-item active" id="bn-dashboard" onclick="go('dashboard');setBnav('dashboard')">
+          <span class="bnav-ico">🏠</span><span>Головна</span>
+        </button>
+        <button class="bnav-item" id="bn-deadlines" onclick="go('deadlines');setBnav('deadlines')">
+          <span class="bnav-ico">⏰</span><span>Дедлайни</span>
+        </button>
+        <button class="bnav-item" id="bn-courses" onclick="go('courses');setBnav('courses')">
+          <span class="bnav-ico">📚</span><span>Курси</span>
+        </button>
+        <button class="bnav-item" id="bn-chat" onclick="go('chat');setBnav('chat')" style="position:relative">
+          <span class="bnav-ico">💬</span><span>Чат</span>
+          <span class="bnav-badge" id="bnav-chat-badge" style="display:none">0</span>
+        </button>
+        <button class="bnav-item" id="bn-more" onclick="openSidebar()">
+          <span class="bnav-ico">☰</span><span>Меню</span>
+        </button>
+      </div>
+    </nav>
 
     <div class="content">
       <!-- DASHBOARD -->
@@ -1607,7 +1682,7 @@ function renderMessages(msgs) {
       'onmouseleave="this.querySelector(\'.msg-del\')&&(this.querySelector(\'.msg-del\').style.opacity=0)">'+
       (!isMe?'<div class="msg-author">'+escHtml(m.author)+'</div>':'')+
       '<div style="display:flex;align-items:flex-end;gap:4px;'+(isMe?'flex-direction:row-reverse':'')+'">'+
-        '<div class="msg-bubble">'+(m.text?escHtml(m.text):'')+(m.file?(m.file.type&&m.file.type.startsWith('image/')?'<br><img src="'+m.file.data+'" style="max-width:200px;max-height:200px;border-radius:8px;display:block;margin-top:4px;cursor:pointer;" onclick="openLightbox(this.src)">':'<br><a href="'+m.file.data+'" download="'+escHtml(m.file.name||'file')+'" style="display:inline-flex;align-items:center;gap:5px;padding:5px 9px;background:rgba(255,255,255,.07);border-radius:7px;font-size:11px;color:var(--text);text-decoration:none;margin-top:4px;">\u{1F4C4} '+escHtml(m.file.name||'Файл')+'</a>'):'')+'</div>'+
+        '<div class="msg-bubble">'+(m.text?escHtml(m.text):'')+(m.file?(m.file.type&&m.file.type.startsWith('image/')?'<br><img src="'+m.file.data+'" style="max-width:200px;max-height:200px;border-radius:8px;display:block;margin-top:4px;cursor:pointer;" onclick="window.open(this.src)">':'<br><a href="'+m.file.data+'" download="'+escHtml(m.file.name||'file')+'" style="display:inline-flex;align-items:center;gap:5px;padding:5px 9px;background:rgba(255,255,255,.07);border-radius:7px;font-size:11px;color:var(--text);text-decoration:none;margin-top:4px;">\u{1F4C4} '+escHtml(m.file.name||'Файл')+'</a>'):'')+'</div>'+
         (canDel&&m.id?'<button class="msg-del" data-id="'+escHtml(m.id)+'" onclick="delMsg(this.dataset.id)" style="background:rgba(224,80,80,.15);border:1px solid rgba(224,80,80,.3);color:var(--accent2);border-radius:5px;padding:2px 5px;font-size:9px;cursor:pointer;opacity:0;transition:opacity .2s;flex-shrink:0">🗑</button>':'')+
       '</div>'+
       '<div class="msg-time">'+t+'</div></div>';
@@ -1646,14 +1721,32 @@ function handleChatPaste(e) {
 
 function openLightbox(src) {
   const lb = document.getElementById('lightbox');
-  document.getElementById('lightbox-img').src = src;
+  const img = document.getElementById('lightbox-img');
+  // For iOS: convert base64 to blob URL
+  if(src.startsWith('data:')) {
+    try {
+      const arr = src.split(','), mime = arr[0].match(/:(.*?);/)[1];
+      const bstr = atob(arr[1]);
+      let n = bstr.length, u8arr = new Uint8Array(n);
+      while(n--) u8arr[n] = bstr.charCodeAt(n);
+      const blob = new Blob([u8arr], {type: mime});
+      img.src = URL.createObjectURL(blob);
+    } catch(e) { img.src = src; }
+  } else {
+    img.src = src;
+  }
   lb.style.display = 'flex';
   document.addEventListener('keydown', _lbKey);
+  // Prevent body scroll on iOS
+  document.body.style.overflow = 'hidden';
 }
 function closeLightbox() {
+  const img = document.getElementById('lightbox-img');
+  if(img.src.startsWith('blob:')) URL.revokeObjectURL(img.src);
+  img.src = '';
   document.getElementById('lightbox').style.display = 'none';
-  document.getElementById('lightbox-img').src = '';
   document.removeEventListener('keydown', _lbKey);
+  document.body.style.overflow = '';
 }
 function _lbKey(e) { if(e.key==='Escape') closeLightbox(); }
 
@@ -1812,6 +1905,12 @@ function go(name) {
 }
 
 // ── MOBILE SIDEBAR ──
+function setBnav(name) {
+  document.querySelectorAll('.bnav-item').forEach(b => b.classList.remove('active'));
+  const el = document.getElementById('bn-'+name);
+  if(el) el.classList.add('active');
+}
+
 function openSidebar() { document.getElementById('sidebar').classList.add('open'); document.getElementById('sov').classList.add('show'); }
 function closeSidebar() { document.getElementById('sidebar').classList.remove('open'); document.getElementById('sov').classList.remove('show'); }
 

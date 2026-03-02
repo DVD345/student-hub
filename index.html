@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>Student Hub — УкрДУЗТ</title>
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 :root {
   --bg:#0a0a0f;--bg2:#111118;--bg3:#1a1a24;--border:#2a2a3a;
@@ -15,7 +15,7 @@
 html { font-size: 16px; }
 [data-theme="light"]{--bg:#f4f4f8;--bg2:#fff;--bg3:#ebebf3;--border:#d0d0e0;--text:#1a1a2e;--text2:#606088;--card:#fff;}
 *{box-sizing:border-box;margin:0;padding:0;}
-body{font-family:'Syne',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;transition:background .3s,color .3s;-webkit-tap-highlight-color:transparent;font-size:15px;}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;transition:background .3s,color .3s;-webkit-tap-highlight-color:transparent;font-size:15px;}
 a{text-decoration:none;color:inherit;}
 
 /* ═══ SCREENS ═══ */
@@ -38,9 +38,9 @@ a{text-decoration:none;color:inherit;}
 .sep::before,.sep::after{content:'';flex:1;height:1px;background:var(--border);}
 .field{margin-bottom:11px;}
 .field label{display:block;font-size:10px;font-weight:700;color:var(--text2);margin-bottom:4px;letter-spacing:.5px;text-transform:uppercase;}
-.field input,.field select{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:11px 13px;color:var(--text);font-family:'Syne',sans-serif;font-size:13px;outline:none;transition:border-color .2s;-webkit-appearance:none;}
+.field input,.field select{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:11px 13px;color:var(--text);font-family:'Inter',sans-serif;font-size:13px;outline:none;transition:border-color .2s;-webkit-appearance:none;}
 .field input:focus,.field select:focus{border-color:var(--accent);}
-.btn-primary{width:100%;background:var(--accent);color:#0a0a0f;border:none;border-radius:var(--r);padding:13px;font-family:'Syne',sans-serif;font-size:14px;font-weight:700;cursor:pointer;transition:opacity .2s,transform .1s;margin-top:6px;}
+.btn-primary{width:100%;background:var(--accent);color:#0a0a0f;border:none;border-radius:var(--r);padding:13px;font-family:'Inter',sans-serif;font-size:14px;font-weight:700;cursor:pointer;transition:opacity .2s,transform .1s;margin-top:6px;}
 .btn-primary:hover{opacity:.9;transform:translateY(-1px);}
 .btn-primary:active{transform:translateY(0);}
 .btn-primary:disabled{opacity:.5;cursor:not-allowed;transform:none;}
@@ -57,7 +57,7 @@ a{text-decoration:none;color:inherit;}
 .sidebar-header h1{font-size:13px;font-weight:800;}
 .sidebar-header span{color:var(--accent);}
 .close-sidebar{display:none;margin-left:auto;background:none;border:none;color:var(--text2);font-size:18px;cursor:pointer;padding:4px;}
-.group-pill{padding:5px 16px;background:rgba(240,192,64,.07);border-bottom:1px solid var(--border);font-size:10px;color:var(--accent);font-family:'JetBrains Mono',monospace;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.group-pill{padding:4px 12px;background:rgba(240,192,64,.07);border-bottom:1px solid var(--border);font-size:10px;color:var(--accent);font-family:'JetBrains Mono',monospace;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.4;}
 .nav{padding:10px 8px;flex:1;overflow-y:auto;}
 .nav-section{font-size:9px;font-weight:700;color:var(--text2);letter-spacing:1px;text-transform:uppercase;padding:8px 8px 4px;}
 .nav-item{display:flex;align-items:center;gap:9px;padding:10px 10px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;color:var(--text2);transition:all .15s;margin-bottom:1px;user-select:none;}
@@ -123,9 +123,9 @@ a{text-decoration:none;color:inherit;}
 
 /* TOOLBAR */
 .toolbar{display:flex;align-items:center;gap:7px;margin-bottom:14px;flex-wrap:wrap;}
-.tb-input{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:8px 12px;color:var(--text);font-family:'Syne',sans-serif;font-size:12px;outline:none;flex:1;min-width:140px;max-width:220px;transition:border-color .2s;}
+.tb-input{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:8px 12px;color:var(--text);font-family:'Inter',sans-serif;font-size:12px;outline:none;flex:1;min-width:140px;max-width:220px;transition:border-color .2s;}
 .tb-input:focus{border-color:var(--accent);}
-.tb-select{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:7px 10px;color:var(--text);font-family:'Syne',sans-serif;font-size:11px;outline:none;-webkit-appearance:none;}
+.tb-select{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:7px 10px;color:var(--text);font-family:'Inter',sans-serif;font-size:11px;outline:none;-webkit-appearance:none;}
 .tb-right{margin-left:auto;display:flex;gap:5px;align-items:center;}
 .section-title{font-size:9px;font-weight:700;color:var(--text2);letter-spacing:1px;text-transform:uppercase;margin:18px 0 8px;}
 
@@ -149,7 +149,7 @@ a{text-decoration:none;color:inherit;}
 .file-actions{display:flex;gap:4px;flex-shrink:0;}
 
 /* BUTTONS */
-.btn{background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:5px 10px;font-size:11px;font-weight:600;color:var(--text2);cursor:pointer;transition:all .15s;font-family:'Syne',sans-serif;white-space:nowrap;}
+.btn{background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:5px 10px;font-size:11px;font-weight:600;color:var(--text2);cursor:pointer;transition:all .15s;font-family:'Inter',sans-serif;white-space:nowrap;}
 .btn:hover{border-color:var(--accent);color:var(--accent);}
 .btn.a{background:var(--accent);border-color:var(--accent);color:#0a0a0f;}
 .btn.a:hover{opacity:.85;color:#0a0a0f;}
@@ -168,7 +168,7 @@ a{text-decoration:none;color:inherit;}
 .c-name{font-size:12px;font-weight:700;line-height:1.3;flex:1;}
 .c-meta{font-size:10px;color:var(--text2);margin-top:2px;}
 .lv .c-meta{display:none;}
-.ftab{padding:4px 10px;border-radius:20px;font-size:10px;font-weight:600;border:1px solid var(--border);background:var(--card);color:var(--text2);cursor:pointer;transition:all .15s;font-family:'Syne',sans-serif;}
+.ftab{padding:4px 10px;border-radius:20px;font-size:10px;font-weight:600;border:1px solid var(--border);background:var(--card);color:var(--text2);cursor:pointer;transition:all .15s;font-family:'Inter',sans-serif;}
 .ftab:hover{border-color:var(--accent);color:var(--accent);}
 .ftab.on{background:var(--accent);border-color:var(--accent);color:#0a0a0f;}
 .vbtn{width:26px;height:26px;border-radius:5px;border:1px solid var(--border);background:var(--card);color:var(--text2);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:11px;transition:all .15s;}
@@ -186,14 +186,21 @@ a{text-decoration:none;color:inherit;}
 .chat-messages{flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:8px;}
 .msg{max-width:75%;display:flex;flex-direction:column;gap:2px;}
 .msg.me{align-self:flex-end;align-items:flex-end;}
-.msg.other{align-self:flex-start;}
+.msg.other{align-self:flex-start;max-width:90%;}
 .msg-author{font-size:9px;color:var(--text2);font-weight:600;margin-bottom:1px;}
-.msg-bubble{background:var(--bg3);border-radius:10px;padding:8px 11px;font-size:12px;line-height:1.4;word-break:break-word;}
+.msg-bubble{background:var(--bg3);border-radius:10px;padding:10px 14px;font-size:14px;line-height:1.65;word-break:break-word;overflow:hidden;}
 .msg.me .msg-bubble{background:rgba(240,192,64,.15);border-radius:10px 10px 2px 10px;}
 .msg.other .msg-bubble{border-radius:10px 10px 10px 2px;}
+.ai-bubble strong{color:var(--text);font-weight:700;}
+.ai-bubble em{color:var(--text2);}
+.ai-bubble p{margin:5px 0;}
+.ai-bubble p:first-child{margin-top:0;}
+.ai-bubble p:last-child{margin-bottom:0;}
+.katex{color:var(--text);font-size:1.05em;}
+.katex-display{overflow-x:auto;overflow-y:hidden;padding:4px 0;}
 .msg-time{font-size:9px;color:var(--text2);font-family:'JetBrains Mono',monospace;}
 .chat-input-wrap{padding:10px;border-top:1px solid var(--border);display:flex;gap:7px;}
-.chat-input{flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:9px 12px;color:var(--text);font-family:'Syne',sans-serif;font-size:12px;outline:none;resize:none;}
+.chat-input{flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:9px 12px;color:var(--text);font-family:'Inter',sans-serif;font-size:12px;outline:none;resize:none;}
 .chat-input:focus{border-color:var(--accent);}
 
 /* ADMIN */
@@ -209,7 +216,7 @@ a{text-decoration:none;color:inherit;}
 .user-row:last-child{border-bottom:none;}
 .user-row .uav{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#0a0a0f;flex-shrink:0;}
 .user-row .uname{flex:1;font-weight:600;}
-.role-sel{background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:3px 7px;color:var(--text);font-family:'Syne',sans-serif;font-size:10px;outline:none;}
+.role-sel{background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:3px 7px;color:var(--text);font-family:'Inter',sans-serif;font-size:10px;outline:none;}
 
 /* TAGS */
 .tag{display:inline-block;padding:2px 6px;border-radius:20px;font-size:9px;font-weight:600;background:var(--bg3);color:var(--text2);border:1px solid var(--border);}
@@ -275,9 +282,6 @@ a{text-decoration:none;color:inherit;}
 .cal-cell.has-events{background:var(--bg3);}
 .cal-day-num{font-size:11px;font-weight:700;color:var(--text2);margin-bottom:2px;font-family:'JetBrains Mono',monospace;}
 .cal-cell.today .cal-day-num{color:var(--accent);font-size:13px;}
-/* Calendar note modal backdrop click to close */
-#cal-note-modal { cursor: default; }
-#cal-note-modal > div { cursor: default; }
 .cal-event{font-size:9px;padding:2px 5px;border-radius:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;line-height:1.3;}
 .cal-ev-urgent{background:#c0392b;color:#fff;}
 .cal-ev-soon{background:#e67e22;color:#fff;}
@@ -305,7 +309,7 @@ a{text-decoration:none;color:inherit;}
 .note-editor-overlay.show{display:flex;}
 .note-editor{flex:1;background:var(--bg2);display:flex;flex-direction:column;margin:16px;border-radius:16px;overflow:hidden;border:1px solid var(--border);}
 .note-editor-header{display:flex;align-items:center;gap:8px;padding:12px 16px;border-bottom:1px solid var(--border);background:var(--bg3);flex-wrap:wrap;}
-.note-title-inp{flex:1;min-width:200px;background:transparent;border:none;color:var(--text);font-family:'Syne',sans-serif;font-size:16px;font-weight:700;outline:none;}
+.note-title-inp{flex:1;min-width:200px;background:transparent;border:none;color:var(--text);font-family:'Inter',sans-serif;font-size:16px;font-weight:700;outline:none;}
 .note-editor-body{flex:1;display:grid;grid-template-columns:1fr 1fr;gap:0;overflow:hidden;}
 .note-md-inp{background:var(--bg);border:none;border-right:1px solid var(--border);color:var(--text);font-family:'JetBrains Mono',monospace;font-size:13px;padding:16px;resize:none;outline:none;line-height:1.6;}
 .note-preview{padding:16px;overflow-y:auto;font-size:13px;line-height:1.6;}
@@ -316,6 +320,9 @@ a{text-decoration:none;color:inherit;}
 .note-preview blockquote{border-left:3px solid var(--accent);padding-left:10px;color:var(--text2);}
 .note-preview li{margin-left:16px;}
 </style>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"></script>
 </head>
 <body>
 
@@ -383,7 +390,7 @@ a{text-decoration:none;color:inherit;}
       <button class="topbar-menu" onclick="openSidebar()">☰</button>
       <h2 id="topbar-title">Головна</h2>
       <button class="icon-btn" onclick="toggleTheme()">🌓</button>
-      <button class="icon-btn" id="bell-btn" onclick="go('notifications')" title="Сповіщення" style="position:relative;font-size:16px;width:34px;height:34px;display:flex;align-items:center;justify-content:center;">🔔<span id="bell-count" style="display:none;position:absolute;top:-1px;right:-1px;background:var(--accent2);color:#fff;font-size:8px;font-weight:700;padding:1px 5px;border-radius:10px;min-width:16px;text-align:center;line-height:14px;"></span></button>
+      <button class="icon-btn" id="bell-btn" onclick="go('notifications')" style="position:relative">🔔<span id="bell-count" style="display:none;position:absolute;top:-2px;right:-2px;background:var(--accent2);color:#fff;font-size:8px;font-weight:700;padding:1px 4px;border-radius:10px;min-width:14px;text-align:center"></span></button>
     </div>
 
     <div class="content">
@@ -419,28 +426,27 @@ a{text-decoration:none;color:inherit;}
             <option value="past">Минулі</option>
           </select>
           <div class="tb-right">
-            <button class="btn" onclick="toggleDlSettings()" title="Налаштування кольорів">🎨 Кольори</button>
+            <button class="btn" onclick="toggleDlSettings()" title="Налаштування кольорів">🎨</button>
             <button class="btn a" onclick="syncMoodle()">🔄</button>
           </div>
         </div>
-        <!-- Панель налаштувань -->
         <div id="dl-settings" style="display:none;background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:16px;margin-bottom:14px;animation:fadeUp .2s ease;">
-          <div style="font-size:11px;font-weight:700;color:var(--text2);letter-spacing:.5px;text-transform:uppercase;margin-bottom:12px;">🎨 Налаштування кольорів дедлайнів</div>
+          <div style="font-size:11px;font-weight:700;color:var(--text2);letter-spacing:.5px;text-transform:uppercase;margin-bottom:12px;">🎨 Налаштування кольорів</div>
           <div style="display:flex;flex-wrap:wrap;gap:16px;align-items:center;">
             <label style="display:flex;align-items:center;gap:8px;font-size:13px;">
               <span style="width:11px;height:11px;border-radius:50%;background:var(--accent2);flex-shrink:0;box-shadow:0 0 6px rgba(224,80,80,.5);"></span>
-              Червоний якщо менше
+              Червоний менше
               <input type="number" id="dl-urgent-hours" min="1" max="240" style="width:62px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:5px 8px;color:var(--text);font-size:13px;text-align:center;outline:none;" oninput="saveDlSettings()">
               год
             </label>
             <label style="display:flex;align-items:center;gap:8px;font-size:13px;">
               <span style="width:11px;height:11px;border-radius:50%;background:var(--warning);flex-shrink:0;"></span>
-              Жовтий якщо менше
+              Жовтий менше
               <input type="number" id="dl-warn-days" min="1" max="60" style="width:62px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:5px 8px;color:var(--text);font-size:13px;text-align:center;outline:none;" oninput="saveDlSettings()">
               днів
             </label>
           </div>
-          <div style="font-size:11px;color:var(--text2);margin-top:8px;">💾 Зберігається автоматично для вашого акаунту</div>
+          <div style="font-size:11px;color:var(--text2);margin-top:8px;">💾 Зберігається автоматично</div>
         </div>
         <div id="dl-list"><div class="loading"><div class="spinner"></div>Завантаження...</div></div>
       </div>
@@ -512,14 +518,13 @@ a{text-decoration:none;color:inherit;}
           <button class="btn a" onclick="calToday()">Сьогодні</button>
         </div>
         <div id="cal-grid"></div>
-        <!-- Модальне вікно нотатки дня -->
         <div id="cal-note-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:1000;align-items:center;justify-content:center;padding:16px;">
           <div style="background:var(--card);border:1px solid var(--border);border-radius:16px;width:100%;max-width:440px;padding:20px;animation:fadeUp .2s ease;">
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
               <div id="cal-note-date-lbl" style="font-size:15px;font-weight:700;"></div>
               <button onclick="closeCalNoteModal()" style="background:none;border:none;color:var(--text2);font-size:20px;cursor:pointer;line-height:1;">✕</button>
             </div>
-            <textarea id="cal-note-inp" placeholder="Введіть нотатку для цього дня..." style="width:100%;min-height:120px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:10px 13px;color:var(--text);font-family:'Inter',sans-serif;font-size:14px;resize:vertical;outline:none;line-height:1.6;"></textarea>
+            <textarea id="cal-note-inp" placeholder="Нотатка для цього дня..." style="width:100%;min-height:120px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:10px 13px;color:var(--text);font-family:'Inter',sans-serif;font-size:14px;resize:vertical;outline:none;line-height:1.6;"></textarea>
             <div style="display:flex;gap:8px;margin-top:12px;justify-content:flex-end;">
               <button class="btn" onclick="deleteCalNote()" id="cal-note-del" style="color:var(--accent2);">🗑 Видалити</button>
               <button class="btn a" onclick="saveCalNote()">💾 Зберегти</button>
@@ -545,17 +550,15 @@ a{text-decoration:none;color:inherit;}
           <div id="ai-msgs" style="flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:10px;">
             <div class="msg other"><div class="msg-bubble">Привіт! Я твій навчальний асистент 🎓<br>Можу допомогти з поясненням матеріалу, підготовкою до іспитів, написанням конспектів та іншим. Що тебе цікавить?</div></div>
           </div>
-          <div style="padding:10px;border-top:1px solid var(--border);display:flex;gap:8px;">
-            <div style="flex:1;display:flex;flex-direction:column;gap:5px;">
-              <div id="ai-img-preview" style="display:none;position:relative;width:60px;">
-                <img id="ai-img-thumb" style="width:60px;height:60px;object-fit:cover;border-radius:8px;border:1px solid var(--border);">
-                <button onclick="clearAIImg()" style="position:absolute;top:-6px;right:-6px;width:18px;height:18px;border-radius:50%;background:var(--accent2);border:none;color:#fff;font-size:10px;cursor:pointer;line-height:1;">✕</button>
-              </div>
-              <textarea id="ai-inp" style="flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:9px 12px;color:var(--text);font-family:'Syne',sans-serif;font-size:12px;outline:none;resize:none;" rows="2" placeholder="Запитай або вставте фото (Ctrl+V)..." onkeydown="aiKey(event)" onpaste="handleAIPaste(event)"></textarea>
+          <div style="padding:12px;border-top:1px solid var(--border);display:flex;flex-direction:column;gap:8px;">
+            <div id="ai-img-preview" style="display:none;position:relative;width:64px;">
+              <img id="ai-img-thumb" style="width:64px;height:64px;object-fit:cover;border-radius:8px;border:1px solid var(--border);">
+              <button onclick="clearAIImg()" style="position:absolute;top:-6px;right:-6px;width:20px;height:20px;border-radius:50%;background:var(--accent2);border:none;color:#fff;font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;">✕</button>
             </div>
-            <div style="display:flex;flex-direction:column;gap:5px;">
-              <button class="btn" onclick="document.getElementById('ai-img-input').click()" title="Додати фото">📎</button>
-              <button class="btn a" onclick="sendAI()" id="ai-send">→</button>
+            <div style="display:flex;gap:8px;align-items:flex-end;">
+              <textarea id="ai-inp" style="flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:10px 14px;color:var(--text);font-family:'Inter',sans-serif;font-size:14px;outline:none;resize:none;min-height:46px;max-height:140px;line-height:1.5;transition:border-color .2s;" rows="2" placeholder="Запитай або вставте фото (Ctrl+V)..." onkeydown="aiKey(event)" onpaste="handleAIPaste(event)"></textarea>
+              <button onclick="document.getElementById('ai-img-input').click()" title="Додати фото" style="width:46px;height:46px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);font-size:20px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:border-color .2s;">📎</button>
+              <button onclick="sendAI()" id="ai-send" style="width:46px;height:46px;background:var(--accent);border:none;border-radius:var(--r);color:#0a0a0f;font-size:22px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:opacity .2s;font-weight:700;">➤</button>
             </div>
             <input type="file" id="ai-img-input" accept="image/*" style="display:none" onchange="handleAIImg(this)">
           </div>
@@ -566,7 +569,7 @@ a{text-decoration:none;color:inherit;}
       <div class="page" id="page-notifications">
         <div class="page-header"><h2>🔔 Сповіщення</h2><p>Нові файли, повідомлення та нагадування</p></div>
         <div style="display:flex;gap:8px;margin-bottom:14px;">
-          <button class="btn a" id="notif-perm-btn" onclick="requestNotifPerms()">🔔 Увімкнути push-сповіщення</button>
+          <button class="btn a" onclick="requestNotifPerms()">🔔 Увімкнути push-сповіщення</button>
           <button class="btn" onclick="markAllRead()">✓ Всі прочитані</button>
         </div>
         <div id="notif-list"><div class="empty"><div class="emo">🔔</div><p>Немає нових сповіщень</p></div></div>
@@ -827,7 +830,7 @@ async function showGroupFallback(tok, siteData) {
     sel = document.createElement('select');
     sel.id = 'lg-fallback';
     sel.className = 'field';
-    sel.style.cssText = 'width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:11px 13px;color:var(--text);font-family:Syne,sans-serif;font-size:13px;outline:none;margin-top:8px;-webkit-appearance:none;';
+    sel.style.cssText = 'width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:11px 13px;color:var(--text);font-family:Inter,sans-serif;font-size:13px;outline:none;margin-top:8px;-webkit-appearance:none;';
     sel.innerHTML = '<option value="">— Оберіть групу —</option>';
     // Завантажити групи
     const { collection, getDocs } = window._fb;
@@ -874,21 +877,9 @@ async function initApp() {
   if (canAdmin()) listenAdminData();
   loadNotes();
   loadNotifications();
-  loadDlSettings();
   renderCalendar();
   scheduleDeadlineNotifs();
   updateBellCount();
-  // Auto-request desktop notifications if not yet decided
-  if(Notification.permission === 'default') {
-    setTimeout(() => {
-      const btn = document.getElementById('notif-perm-btn');
-      if(btn) btn.style.animation = 'pulse 1.5s 3';
-    }, 3000);
-  }
-  if(Notification.permission === 'granted') {
-    const btn = document.getElementById('notif-perm-btn');
-    if(btn) { btn.textContent = '✅ Push-сповіщення увімкнені'; btn.disabled = true; }
-  }
 }
 
 async function loadUserInfo() {
@@ -1160,11 +1151,11 @@ function saveDlSettings() {
 }
 function toggleDlSettings() {
   const el = document.getElementById('dl-settings');
-  el.style.display = el.style.display === 'none' ? 'block' : 'none';
-  if(el.style.display !== 'none') loadDlSettings();
+  el.style.display = el.style.display==='none' ? 'block' : 'none';
+  if(el.style.display!=='none') loadDlSettings();
 }
 function deleteDl(id, e) {
-  e.stopPropagation();
+  if(e) e.stopPropagation();
   if(!confirm('Приховати цей дедлайн?')) return;
   _dlDeleted.push(String(id));
   localStorage.setItem('dl_deleted', JSON.stringify(_dlDeleted));
@@ -1174,15 +1165,15 @@ function deleteDl(id, e) {
 function dlDot(d) {
   if(d.past) return 'dot-u';
   const diff = d.due - Date.now()/1000;
-  if(diff < _dlUrgentH * 3600) return 'dot-u';
-  if(diff < _dlWarnD * 86400)  return 'dot-s';
+  if(diff < _dlUrgentH*3600) return 'dot-u';
+  if(diff < _dlWarnD*86400)  return 'dot-s';
   return 'dot-o';
 }
 function dlDateCls(d) {
   if(d.past) return 'u';
   const diff = d.due - Date.now()/1000;
-  if(diff < _dlUrgentH * 3600) return 'u';
-  if(diff < _dlWarnD * 86400)  return 's';
+  if(diff < _dlUrgentH*3600) return 'u';
+  if(diff < _dlWarnD*86400)  return 's';
   return '';
 }
 function fmtDate(ts) { return new Date(ts*1000).toLocaleDateString('uk-UA',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}); }
@@ -1208,25 +1199,25 @@ function renderDl(list, el) {
     const diff = d.due - now;
     let tag = '';
     if(d.past) tag='<span class="tag r">Минув</span>';
-    else if(diff < _dlUrgentH*3600) tag='<span class="tag r" style="background:rgba(224,80,80,.15);color:var(--accent2);">🔴 Термін!</span>';
+    else if(diff < _dlUrgentH*3600) tag='<span class="tag r">🔴 Термін!</span>';
     else if(diff < 86400*2) tag='<span class="tag y">Завтра</span>';
-    return '<div class="dl-item">'+
+    return '<div class="dl-item'+(hasUrl?' click':'')+'"'+
+      (hasUrl?' onclick="window.open(this.dataset.url)" data-url="'+escHtml(d.url)+'"':'')+(d.past?' style="opacity:.6"':'')+'>'+
       '<div class="dl-dot '+dc+'"></div>'+
-      '<div class="dl-info" style="cursor:'+( hasUrl?'pointer':'default')+'"'+(hasUrl?' onclick="window.open(this.closest(\'.dl-item\').dataset.url)" data-url="'+escHtml(d.url)+ '"':'')+(d.past?' style="opacity:.6"':'')+ '>'+
-        '<div class="dl-name">'+escHtml(d.name)+(hasUrl?' <span style="opacity:.35;font-size:9px">↗</span>':'')+ '</div>'+
-        '<div class="dl-course">'+escHtml(d.course)+'</div>'+
-      '</div>'+
+      '<div class="dl-info"><div class="dl-name">'+escHtml(d.name)+(hasUrl?' <span style="opacity:.35;font-size:9px">↗</span>':'')+'</div>'+
+      '<div class="dl-course">'+escHtml(d.course)+'</div></div>'+
       '<div class="dl-right">'+
         '<div class="dl-date '+dtc+'">'+fmtDate(d.due)+'</div>'+
         tag+
-        '<button onclick="event.stopPropagation();deleteDl(this.dataset.id,event)" data-id="'+escHtml(String(d.id))+'" title="Приховати" style="background:none;border:none;color:var(--text2);font-size:13px;cursor:pointer;opacity:.4;padding:2px 5px;border-radius:4px;line-height:1;transition:opacity .15s;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=.4">✕</button>'+
+        '<button onclick="event.stopPropagation();deleteDl(this.dataset.dlid,event)" data-dlid="'+escHtml(String(d.id))+'" title="Приховати" style="background:none;border:none;color:var(--text2);font-size:12px;cursor:pointer;opacity:.4;padding:2px 4px;border-radius:4px;transition:opacity .15s;margin-top:2px;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=.4">✕</button>'+
       '</div></div>';
   }).join('')+'</div>';
 }
 
 function renderDashDl() {
   const el=document.getElementById('dash-dl');
-  const top=allDl.filter(d=>!d.past).slice(0,5);
+  const dlDel=typeof _dlDeleted!=='undefined'?_dlDeleted:[];
+  const top=allDl.filter(d=>!d.past&&!dlDel.includes(String(d.id))).slice(0,5);
   if(!top.length){el.innerHTML='<div class="empty"><div class="emo">🎉</div><p>Немає активних дедлайнів!</p></div>';return;}
   renderDl(top,el);
 }
@@ -1603,113 +1594,99 @@ const CAL_DAYS = ['Пн','Вт','Ср','Чт','Пт','Сб','Нд'];
 const CAL_MONTHS = ['Січень','Лютий','Березень','Квітень','Травень','Червень','Липень','Серпень','Вересень','Жовтень','Листопад','Грудень'];
 
 // ── CALENDAR USER NOTES ──
-function getCalNoteKey(dateStr) { return 'cal_note_'+(userData.userid||'local')+'_'+dateStr; }
-function getCalNote(dateStr) { return localStorage.getItem(getCalNoteKey(dateStr)) || ''; }
+function getCalNoteKey(ds) { return 'cal_note_'+(typeof userData!=='undefined'&&userData.userid||'local')+'_'+ds; }
+function getCalNote(ds) { return localStorage.getItem(getCalNoteKey(ds))||''; }
 function saveCalNote() {
   const txt = document.getElementById('cal-note-inp').value.trim();
   const key = getCalNoteKey(window._calNoteDate);
-  if(txt) localStorage.setItem(key, txt);
-  else localStorage.removeItem(key);
-  closeCalNoteModal();
-  renderCalendar();
+  if(txt) localStorage.setItem(key, txt); else localStorage.removeItem(key);
+  closeCalNoteModal(); renderCalendar();
 }
 function deleteCalNote() {
   localStorage.removeItem(getCalNoteKey(window._calNoteDate));
-  closeCalNoteModal();
-  renderCalendar();
+  closeCalNoteModal(); renderCalendar();
 }
-function openCalNoteModal(dateStr, e) {
-  e.stopPropagation();
-  window._calNoteDate = dateStr;
-  const d = new Date(dateStr);
-  document.getElementById('cal-note-date-lbl').textContent =
-    d.toLocaleDateString('uk-UA',{weekday:'long',day:'numeric',month:'long'});
-  document.getElementById('cal-note-inp').value = getCalNote(dateStr);
+function openCalNoteModal(ds, e) {
+  if(e) e.stopPropagation();
+  window._calNoteDate = ds;
+  const d = new Date(ds);
+  document.getElementById('cal-note-date-lbl').textContent = d.toLocaleDateString('uk-UA',{weekday:'long',day:'numeric',month:'long'});
+  document.getElementById('cal-note-inp').value = getCalNote(ds);
   const modal = document.getElementById('cal-note-modal');
   modal.style.display = 'flex';
-  setTimeout(()=>document.getElementById('cal-note-inp').focus(), 50);
+  setTimeout(()=>document.getElementById('cal-note-inp').focus(),50);
   const del = document.getElementById('cal-note-del');
-  del.style.display = getCalNote(dateStr) ? '' : 'none';
+  if(del) del.style.display = getCalNote(ds)?'':'none';
 }
-function closeCalNoteModal() {
-  document.getElementById('cal-note-modal').style.display = 'none';
-}
-document.addEventListener('keydown', e => {
+function closeCalNoteModal() { document.getElementById('cal-note-modal').style.display='none'; }
+document.addEventListener('keydown', e=>{
   if(e.key==='Escape') closeCalNoteModal();
-  if(e.key==='Enter' && e.ctrlKey && document.getElementById('cal-note-modal').style.display!=='none') saveCalNote();
+  if(e.key==='Enter'&&e.ctrlKey&&document.getElementById('cal-note-modal').style.display!=='none') saveCalNote();
 });
 
 function renderCalendar() {
   const year = calDate.getFullYear(), month = calDate.getMonth();
   document.getElementById('cal-title').textContent = CAL_MONTHS[month] + ' ' + year;
   const firstDay = new Date(year, month, 1);
-  const lastDay = new Date(year, month + 1, 0);
-  let startDow = (firstDay.getDay() + 6) % 7;
-  const today = new Date();
-  today.setHours(0,0,0,0);
+  const lastDay = new Date(year, month+1, 0);
+  let startDow = (firstDay.getDay()+6)%7;
+  const today = new Date(); today.setHours(0,0,0,0);
   const nowTs = Date.now()/1000;
+  const dlDeleted = typeof _dlDeleted!=='undefined' ? _dlDeleted : [];
 
   let html = '<div class="cal-grid">';
   CAL_DAYS.forEach(d => html += '<div class="cal-header-cell">'+d+'</div>');
 
-  for(let i = 0; i < startDow; i++) {
-    const prevDate = new Date(year, month, -startDow + i + 1);
-    html += '<div class="cal-cell other-month"><div class="cal-day-num">'+prevDate.getDate()+'</div></div>';
+  for(let i=0;i<startDow;i++) {
+    const pDate = new Date(year,month,-startDow+i+1);
+    html += '<div class="cal-cell other-month"><div class="cal-day-num">'+pDate.getDate()+'</div></div>';
   }
 
-  for(let d = 1; d <= lastDay.getDate(); d++) {
-    const cellDate = new Date(year, month, d);
-    cellDate.setHours(0,0,0,0);
-    const isToday = cellDate.getTime() === today.getTime();
+  for(let d=1;d<=lastDay.getDate();d++) {
+    const cellDate = new Date(year,month,d); cellDate.setHours(0,0,0,0);
+    const isToday = cellDate.getTime()===today.getTime();
     const dateStr = year+'-'+String(month+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');
-
-    const dayStart = cellDate.getTime() / 1000;
-    const dayEnd = dayStart + 86400;
-    const dayDl = allDl.filter(dl => !_dlDeleted.includes(String(dl.id)) && dl.due >= dayStart && dl.due < dayEnd);
+    const dayStart = cellDate.getTime()/1000;
+    const dayEnd = dayStart+86400;
+    const urgH = typeof _dlUrgentH!=='undefined'?_dlUrgentH:48;
+    const warnD = typeof _dlWarnD!=='undefined'?_dlWarnD:7;
+    const dayDl = allDl.filter(dl=>!dlDeleted.includes(String(dl.id))&&dl.due>=dayStart&&dl.due<dayEnd);
     const userNote = getCalNote(dateStr);
-    const hasAny = dayDl.length > 0 || !!userNote;
+    const hasAny = dayDl.length>0||!!userNote;
 
     html += '<div class="cal-cell'+(isToday?' today':'')+(hasAny?' has-events':'')+'">';
-    // Day number + add button
     html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:2px;">';
     html += '<div class="cal-day-num">'+d+'</div>';
-    html += '<button onclick="openCalNoteModal(this.dataset.date,event)" data-date="'+dateStr+'" title="Додати нотатку" style="background:none;border:none;color:var(--text2);font-size:11px;cursor:pointer;padding:0 2px;opacity:.4;line-height:1;transition:opacity .15s;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=.4">＋</button>';
+    html += '<button data-date="'+dateStr+'" onclick="openCalNoteModal(this.dataset.date,event)" title="Нотатка" style="background:none;border:none;color:var(--text2);font-size:11px;cursor:pointer;padding:0 2px;opacity:.4;line-height:1;transition:opacity .15s;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=.4">＋</button>';
     html += '</div>';
 
-    // User note (shown first, in accent color)
     if(userNote) {
-      const notePreview = userNote.length > 30 ? userNote.slice(0,30)+'…' : userNote;
-      html += '<div class="cal-event" onclick="openCalNoteModal(this.dataset.date,event)" data-date="'+dateStr+'" style="background:rgba(240,192,64,.15);color:var(--accent);border:1px solid rgba(240,192,64,.3);cursor:pointer;" title="'+escHtml(userNote)+'">✏️ '+escHtml(notePreview)+'</div>';
+      const prev = userNote.length>28?userNote.slice(0,28)+'…':userNote;
+      html += '<div class="cal-event" data-date="'+dateStr+'" onclick="openCalNoteModal(this.dataset.date,event)" style="background:rgba(240,192,64,.15);color:var(--accent);border:1px solid rgba(240,192,64,.25);cursor:pointer;" title="'+escHtml(userNote)+'">✏️ '+escHtml(prev)+'</div>';
     }
 
-    // Deadlines
-    dayDl.slice(0,2).forEach(dl => {
-      const diff = dl.due - nowTs;
-      const isPast = dl.due < nowTs;
-      const cls = isPast ? 'cal-ev-past' : diff < _dlUrgentH*3600 ? 'cal-ev-urgent' : diff < _dlWarnD*86400 ? 'cal-ev-soon' : 'cal-ev-ok';
-      const onclk = dl.url && dl.url !== '#' ? 'onclick="window.open(this.dataset.url)" data-url="'+escHtml(dl.url)+'"' : '';
-      html += '<div class="cal-event '+cls+'" '+onclk+' title="'+escHtml(dl.name)+'">'+escHtml(dl.name)+'</div>';
+    dayDl.slice(0,2).forEach(dl=>{
+      const diff=dl.due-nowTs, isPast=dl.due<nowTs;
+      const cls=isPast?'cal-ev-past':diff<urgH*3600?'cal-ev-urgent':diff<warnD*86400?'cal-ev-soon':'cal-ev-ok';
+      const onclk=dl.url&&dl.url!=='#'?'onclick="window.open(this.dataset.url)" data-url="'+escHtml(dl.url)+'"':'';
+      html+='<div class="cal-event '+cls+'" '+onclk+' title="'+escHtml(dl.name)+'">'+escHtml(dl.name)+'</div>';
     });
-    if(dayDl.length > 2) {
-      html += '<div class="cal-more" onclick="expandCalCell(this,event)" data-count="'+(dayDl.length-2)+'">+'+(dayDl.length-2)+' ще</div>';
-      dayDl.slice(2).forEach(dl => {
-        const diff2 = dl.due - nowTs;
-        const isPast2 = dl.due < nowTs;
-        const cls2 = isPast2 ? 'cal-ev-past' : diff2 < _dlUrgentH*3600 ? 'cal-ev-urgent' : diff2 < _dlWarnD*86400 ? 'cal-ev-soon' : 'cal-ev-ok';
-        const onclk2 = dl.url && dl.url !== '#' ? 'onclick="window.open(this.dataset.url)" data-url="'+escHtml(dl.url)+'"' : '';
-        html += '<div class="cal-event '+cls2+' cal-hidden" '+onclk2+' title="'+escHtml(dl.name)+'">'+escHtml(dl.name)+'</div>';
+    if(dayDl.length>2){
+      html+='<div class="cal-more" onclick="expandCalCell(this,event)" data-count="'+(dayDl.length-2)+'">+'+(dayDl.length-2)+' ще</div>';
+      dayDl.slice(2).forEach(dl=>{
+        const diff2=dl.due-nowTs,isPast2=dl.due<nowTs;
+        const cls2=isPast2?'cal-ev-past':diff2<urgH*3600?'cal-ev-urgent':diff2<warnD*86400?'cal-ev-soon':'cal-ev-ok';
+        const onclk2=dl.url&&dl.url!=='#'?'onclick="window.open(this.dataset.url)" data-url="'+escHtml(dl.url)+'"':'';
+        html+='<div class="cal-event '+cls2+' cal-hidden" '+onclk2+' title="'+escHtml(dl.name)+'">'+escHtml(dl.name)+'</div>';
       });
     }
-
-    html += '</div>';
+    html+='</div>';
   }
 
-  const totalCells = startDow + lastDay.getDate();
-  const rem = totalCells % 7;
-  if(rem > 0) for(let i = 1; i <= 7-rem; i++) html += '<div class="cal-cell other-month"><div class="cal-day-num">'+i+'</div></div>';
-
-  html += '</div>';
-  document.getElementById('cal-grid').innerHTML = html;
+  const rem=(startDow+lastDay.getDate())%7;
+  if(rem>0) for(let i=1;i<=7-rem;i++) html+='<div class="cal-cell other-month"><div class="cal-day-num">'+i+'</div></div>';
+  html+='</div>';
+  document.getElementById('cal-grid').innerHTML=html;
 }
 
 function expandCalCell(btn, e) {
@@ -1968,60 +1945,75 @@ function aiKey(e) { if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendAI()
 async function sendAI() {
   const inp = document.getElementById('ai-inp');
   const text = inp.value.trim();
-  if(!text) return;
+  const hasImage = !!aiImageBase64;
+  if(!text && !hasImage) return;
   inp.value = '';
-  
-  // Add user message
-  aiHistory.push({ role:'user', content: text });
-  appendAIMsg('me', text);
-  
-  // Show thinking
+
+  // Показати повідомлення користувача
+  appendAIMsg('me', text || '📷 Фото', hasImage ? ('data:'+aiImageMime+';base64,'+aiImageBase64) : null);
+
+  // Будуємо вміст для API
+  let userContent;
+  if(hasImage) {
+    userContent = [
+      { type:'text', text: text || 'Що зображено? Поясни детально.' },
+      { type:'image_url', image_url:{ url:'data:'+aiImageMime+';base64,'+aiImageBase64 } }
+    ];
+  } else {
+    userContent = text;
+  }
+  aiHistory.push({ role:'user', content: userContent });
+  clearAIImg();
+
+  // Анімація "думає"
   const thinkingDiv = document.createElement('div');
   thinkingDiv.className = 'msg other';
   thinkingDiv.innerHTML = '<div class="msg-bubble"><div class="ai-thinking"><span></span><span></span><span></span></div></div>';
   document.getElementById('ai-msgs').appendChild(thinkingDiv);
   document.getElementById('ai-msgs').scrollTop = 99999;
-  
   document.getElementById('ai-send').disabled = true;
-  
-  try {
-    // Build context from current data
-    const contextParts = [];
-    if(courses.length) contextParts.push('Курси студента: ' + courses.slice(0,10).map(c=>c.fullname||c.shortname).join(', '));
-    const upcomingDl = allDl.filter(d=>!d.past).slice(0,5);
-    if(upcomingDl.length) contextParts.push('Найближчі дедлайни: ' + upcomingDl.map(d=>d.name+' ('+fmtDate(d.due)+')').join(', '));
-    
-    const systemPrompt = `Ти навчальний асистент для студентів університету УкрДУЗТ (Українського державного університету залізничного транспорту).
 
+  try {
+    const contextParts = [];
+    if(typeof courses !== 'undefined' && courses.length) contextParts.push('Курси студента: ' + courses.slice(0,10).map(c=>c.fullname||c.shortname).join(', '));
+    if(typeof allDl !== 'undefined') {
+      const upcomingDl = allDl.filter(d=>!d.past).slice(0,5);
+      if(upcomingDl.length) contextParts.push('Найближчі дедлайни: ' + upcomingDl.map(d=>d.name+' ('+fmtDate(d.due)+')').join(', '));
+    }
+
+    const systemPrompt = `Ти навчальний асистент для студентів університету УкрДУЗТ.
 ПРАВИЛА:
 - Відповідай ЗАВЖДИ українською мовою
 - Давай ТОЧНІ та ПОВНІ відповіді — не обривай на середині
-- Якщо задача — розв'яжи покроково з кінцевою відповіддю
+- Якщо на фото задача або інтеграл — розв'яжи ПОВНІСТЮ покроково, покажи всі дії
 - Якщо питання теоретичне — дай чітке пояснення з прикладами
-- НЕ пиши зайвого тексту, тільки корисну інформацію
-- В кінці ЗАВЖДИ підводь підсумок або давай кінцеву відповідь
-${contextParts.length ? 'Контекст студента: ' + contextParts.join('. ') : ''}`;
-    
+- Використовуй markdown: **жирний**, ## заголовки, - списки, \`код\`
+- При математичних розрахунках показуй кожен крок окремо
+- В кінці ЗАВЖДИ давай чітку фінальну відповідь
+${contextParts.length ? '\nКонтекст студента: ' + contextParts.join('. ') : ''}`;
+
+    // Для зображень — Llama 4 Maverick (краще розпізнає математику/текст на фото)
+    const model = hasImage ? 'meta-llama/llama-4-maverick-17b-128e-instruct' : 'llama-3.3-70b-versatile';
+
+    // В history прибираємо старі base64 зображення (занадто великі)
+    const historyForAPI = aiHistory.slice(-12).map((m, i, arr) => {
+      if(i < arr.length - 1 && Array.isArray(m.content)) {
+        const textOnly = m.content.filter(p=>p.type==='text').map(p=>p.text).join(' ');
+        return { role: m.role, content: textOnly || '[зображення]' };
+      }
+      return m;
+    });
+
     const resp = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
-      headers: { 
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer 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'
-      },
-      body: JSON.stringify({
-        model: 'deepseek-r1-distill-llama-70b',
-        max_tokens: 4096,
-        messages: [
-          { role: 'system', content: systemPrompt },
-          ...aiHistory.slice(-10)
-        ]
-      })
+      headers: { 'Content-Type':'application/json', 'Authorization':'Bearer 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' },
+      body: JSON.stringify({ model, max_tokens:4096, messages:[{role:'system',content:systemPrompt},...historyForAPI] })
     });
-    
+
     const data = await resp.json();
     if(data.error) {
       thinkingDiv.remove();
-      appendAIMsg('other', '⚠️ Помилка: ' + (data.error.message || 'Невідома помилка'));
+      appendAIMsg('other', '⚠️ Помилка: ' + (data.error.message || JSON.stringify(data.error)));
       document.getElementById('ai-send').disabled = false;
       return;
     }
@@ -2031,19 +2023,74 @@ ${contextParts.length ? 'Контекст студента: ' + contextParts.joi
     appendAIMsg('other', reply);
   } catch(e) {
     thinkingDiv.remove();
-    appendAIMsg('other', '⚠️ Помилка: ' + e.message);
+    appendAIMsg('other', '⚠️ Помилка з\'єднання: ' + e.message);
   }
-  
   document.getElementById('ai-send').disabled = false;
 }
 
-function appendAIMsg(side, text) {
+function renderMarkdown(text) {
+  // 1. Спочатку витягуємо LaTeX блоки щоб не зіпсувати їх escape-ом
+  const mathBlocks = [];
+  let t = text;
+
+  // Display math: \[...\] або $$...$$
+  t = t.replace(/\\\[([\s\S]*?)\\\]/g, (_, m) => { mathBlocks.push({type:'block',tex:m}); return `%%MATH_BLOCK_${mathBlocks.length-1}%%`; });
+  t = t.replace(/\$\$([\s\S]*?)\$\$/g, (_, m) => { mathBlocks.push({type:'block',tex:m}); return `%%MATH_BLOCK_${mathBlocks.length-1}%%`; });
+  // Inline math: \(...\) або $...$
+  t = t.replace(/\\\(([\s\S]*?)\\\)/g, (_, m) => { mathBlocks.push({type:'inline',tex:m}); return `%%MATH_INLINE_${mathBlocks.length-1}%%`; });
+  t = t.replace(/\$([^\$\n]+)\$/g, (_, m) => { mathBlocks.push({type:'inline',tex:m}); return `%%MATH_INLINE_${mathBlocks.length-1}%%`; });
+
+  // 2. Тепер безпечно escapeємо HTML
+  t = t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
+  // 3. Markdown форматування
+  // Блоки коду
+  t = t.replace(/```(\w*)\n?([\s\S]*?)```/g, (_,lang,code) =>
+    '<pre style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px;overflow-x:auto;margin:8px 0;font-family:\'JetBrains Mono\',monospace;font-size:12px;line-height:1.5;">'+(lang?'<div style="font-size:9px;color:var(--accent);margin-bottom:6px;text-transform:uppercase;letter-spacing:1px;">'+lang+'</div>':'')+code+'</pre>');
+  // Інлайн код
+  t = t.replace(/`([^`\n]+)`/g,'<code style="background:var(--bg3);border:1px solid var(--border);border-radius:4px;padding:1px 6px;font-family:\'JetBrains Mono\',monospace;font-size:12px;">$1</code>');
+  // Заголовки
+  t = t.replace(/^### (.+)$/gm,'<div style="font-size:14px;font-weight:700;margin:10px 0 4px;color:var(--accent);">$1</div>');
+  t = t.replace(/^## (.+)$/gm,'<div style="font-size:16px;font-weight:800;margin:12px 0 5px;border-bottom:1px solid var(--border);padding-bottom:4px;">$1</div>');
+  t = t.replace(/^# (.+)$/gm,'<div style="font-size:18px;font-weight:800;margin:14px 0 6px;">$1</div>');
+  // Жирний та курсив
+  t = t.replace(/\*\*(.+?)\*\*/g,'<strong style="font-weight:700;">$1</strong>');
+  t = t.replace(/\*([^*\n]+)\*/g,'<em>$1</em>');
+  // Горизонтальна лінія
+  t = t.replace(/^---+$/gm,'<hr style="border:none;border-top:1px solid var(--border);margin:10px 0;">');
+  // Списки
+  t = t.replace(/^[\-\*] (.+)$/gm,'<li style="margin:4px 0;">$1</li>');
+  t = t.replace(/^\d+\. (.+)$/gm,'<li style="margin:4px 0;">$1</li>');
+  t = t.replace(/(<li[^>]*>[\s\S]*?<\/li>\n?)+/g, m => '<ul style="margin:8px 0;padding-left:22px;">'+m+'</ul>');
+  // Параграфи
+  t = t.replace(/\n\n+/g,'</p><p style="margin:8px 0;">');
+  t = t.replace(/\n/g,'<br>');
+  t = '<p style="margin:0;">'+t+'</p>';
+
+  // 4. Повертаємо LaTeX назад — рендеримо через KaTeX
+  t = t.replace(/%%MATH_BLOCK_(\d+)%%/g, (_, i) => {
+    try {
+      return '<div style="overflow-x:auto;margin:10px 0;padding:8px 0;text-align:center;">'+
+        window.katex.renderToString(mathBlocks[i].tex, {displayMode:true, throwOnError:false})+'</div>';
+    } catch(e) { return '<code>'+mathBlocks[i].tex+'</code>'; }
+  });
+  t = t.replace(/%%MATH_INLINE_(\d+)%%/g, (_, i) => {
+    try {
+      return window.katex.renderToString(mathBlocks[i].tex, {displayMode:false, throwOnError:false});
+    } catch(e) { return '<code>'+mathBlocks[i].tex+'</code>'; }
+  });
+
+  return t;
+}
+
+function appendAIMsg(side, text, imgSrc) {
   const el = document.getElementById('ai-msgs');
   const div = document.createElement('div');
   div.className = 'msg ' + side;
-  // Simple link detection in AI responses
-  const safe = escHtml(text).replace(/\n/g,'<br>');
-  div.innerHTML = '<div class="msg-bubble" style="white-space:pre-wrap;max-width:85%;">'+safe+'</div>';
+  const isAI = side === 'other';
+  const imgHtml = imgSrc ? '<img src="'+imgSrc+'" style="max-width:100%;width:auto;max-height:260px;border-radius:8px;display:block;margin-bottom:8px;border:1px solid var(--border);">' : '';
+  const content = isAI ? renderMarkdown(text) : '<p style="margin:0;">'+escHtml(text).replace(/\n/g,'<br>')+'</p>';
+  div.innerHTML = '<div class="msg-bubble ai-bubble" style="max-width:88%;font-size:14px;line-height:1.65;">'+imgHtml+content+'</div>';
   el.appendChild(div);
   el.scrollTop = 99999;
 }
@@ -2112,47 +2159,32 @@ async function requestNotifPerms() {
   else { alert('Доступ до сповіщень відхилено'); }
 }
 
-// Schedule deadline notifications — desktop + mobile
+// Schedule deadline notifications
 function scheduleDeadlineNotifs() {
   const now = Date.now()/1000;
-  allDl.filter(d => !d.past && !_dlDeleted.includes(String(d.id))).forEach(d => {
+  const dlDel = typeof _dlDeleted!=='undefined'?_dlDeleted:[];
+  allDl.filter(d=>!d.past&&!dlDel.includes(String(d.id))).forEach(d=>{
     const diff = d.due - now;
-    // 48h warning
-    if(diff > 0 && diff <= 48*3600) {
-      const hours = Math.round(diff/3600);
+    if(diff>0&&diff<=48*3600) {
       const key = 'notif_sent_'+d.id+'_48';
       if(!localStorage.getItem(key)) {
-        const msg = hours <= 1 ? 'Менше години!' : 'Через '+hours+' год';
-        addNotif('deadline', '⏰ ' + d.name, msg+' — '+d.course);
-        localStorage.setItem(key, '1');
-        // Desktop push notification
-        if(Notification.permission === 'granted') {
-          try {
-            new Notification('⏰ Дедлайн: ' + d.name, {
-              body: msg + '\n' + d.course,
-              icon: 'https://do.kart.edu.ua/theme/image.php/boost/core/1/favicon',
-              tag: 'dl_'+d.id,
-              requireInteraction: hours <= 2
-            });
-          } catch(e) {}
+        const hours = Math.round(diff/3600);
+        const msg = hours<=1?'Менше години!':'Через '+hours+' год';
+        addNotif('deadline','⏰ '+d.name, msg+' — '+d.course);
+        localStorage.setItem(key,'1');
+        if(Notification.permission==='granted') {
+          try { new Notification('⏰ '+d.name,{body:msg+'\n'+d.course,tag:'dl_'+d.id,requireInteraction:hours<=2}); }catch(e){}
         }
       }
     }
-    // 24h warning (second reminder)
-    if(diff > 0 && diff <= 24*3600) {
-      const key2 = 'notif_sent_'+d.id+'_24';
+    if(diff>0&&diff<=24*3600) {
+      const key2='notif_sent_'+d.id+'_24';
       if(!localStorage.getItem(key2)) {
-        const hours2 = Math.round(diff/3600);
-        addNotif('deadline', '🔴 ' + d.name, 'Залишилось '+hours2+'год! — '+d.course);
-        localStorage.setItem(key2, '1');
-        if(Notification.permission === 'granted') {
-          try {
-            new Notification('🔴 Термінові: ' + d.name, {
-              body: 'Залишилось ' + hours2 + ' год!',
-              tag: 'dl_urgent_'+d.id,
-              requireInteraction: true
-            });
-          } catch(e) {}
+        const h2=Math.round(diff/3600);
+        addNotif('deadline','🔴 '+d.name,'Залишилось '+h2+'год! — '+d.course);
+        localStorage.setItem(key2,'1');
+        if(Notification.permission==='granted') {
+          try { new Notification('🔴 Термін! '+d.name,{body:'Залишилось '+h2+' год!',tag:'dl_urgent_'+d.id,requireInteraction:true}); }catch(e){}
         }
       }
     }

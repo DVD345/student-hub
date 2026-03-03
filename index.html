@@ -270,6 +270,7 @@ a { text-decoration: none; color: inherit; }
 .page { display:none; animation: pageIn .28s cubic-bezier(.4,0,.2,1); }
 .page.active { display:block; }
 #page-chat.active { display:flex; flex-direction:column; }
+#page-assistant.active { display:flex; flex-direction:column; }
 @keyframes pageIn { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
 
 .page-header { margin-bottom:18px; }
@@ -1013,9 +1014,9 @@ a { text-decoration: none; color: inherit; }
       </div>
 
       <!-- ASSISTANT -->
-      <div class="page" id="page-assistant">
+      <div class="page" id="page-assistant" style="display:none;">
         <div class="page-header"><h2>🤖 Асистент</h2><p>AI-помічник для навчання — безкоштовно</p></div>
-        <div style="display:flex;flex-direction:column;height:calc(100vh - 200px);min-height:400px;background:var(--card);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;">
+        <div style="display:flex;flex-direction:column;height:clamp(320px, calc(100vh - 160px), 900px);background:var(--card);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;">
           <div id="ai-msgs" style="flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:10px;">
             <div class="msg other"><div class="msg-bubble">Привіт! Я твій навчальний асистент 🎓<br>Можу допомогти з поясненням матеріалу, підготовкою до іспитів, написанням конспектів та іншим. Що тебе цікавить?</div></div>
           </div>
@@ -1893,33 +1894,47 @@ function _renderCalNotesInDeadlines() {
 }
 
 function _buildNoteRows(notes, today, showPast) {
-  const rows = notes.map(([ds, raw]) => {
-    const arr = Array.isArray(raw) ? raw : [{text: raw, time:'', title:''}];
-    const txt = arr.map(n=>(n.time?n.time+' ':'')+( n.title||(n.text||'')).slice(0,60)).join(' · ');
+  // Розгортаємо: кожна нотатка — окремий рядок (сортуємо по дню, потім по часу)
+  const flat = [];
+  notes.forEach(([ds, raw]) => {
+    const arr = Array.isArray(raw) ? raw : (raw ? [{id:'m0',time:'',title:'',text:String(raw)}] : []);
     const d = new Date(ds+'T12:00:00');
     const isPast = d < today;
-    if(isPast && !showPast) return '';
-    const isToday = d.toDateString()===today.toDateString();
+    if(isPast && !showPast) return;
+    arr.slice().sort((a,b)=>(a.time||'').localeCompare(b.time||'')).forEach(n => {
+      flat.push({ds, d, isPast, n});
+    });
+  });
+  if(!flat.length) return '';
+
+  const rows = flat.map(({ds, d, isPast, n}) => {
+    const isToday    = d.toDateString()===today.toDateString();
     const isTomorrow = d.toDateString()===new Date(today.getTime()+86400000).toDateString();
-    const label = isToday ? '<span class="tag r">Сьогодні</span>' :
-                  isTomorrow ? '<span class="tag y">Завтра</span>' :
-                  isPast ? '<span class="tag" style="background:var(--bg3);color:var(--text2);">Минуло</span>' : '';
+    const label = isToday    ? '<span class="tag r">Сьогодні</span>' :
+                  isTomorrow ? '<span class="tag y">Завтра</span>'   :
+                  isPast     ? '<span class="tag" style="background:var(--bg3);color:var(--text2);">Минуло</span>' : '';
     const dateStr = d.toLocaleDateString('uk-UA',{day:'numeric',month:'short'});
-    return `<div class="dl-item" onclick="openCalNoteModal('${escHtml(ds)}',event)" style="${isPast?'opacity:.5':''}">
-      <div class="dl-dot" style="background:var(--accent);box-shadow:0 0 5px rgba(240,192,64,.4);"></div>
-      <div class="dl-info">
-        <div class="dl-name">✏️ ${escHtml(txt.length>70?txt.slice(0,70)+'…':txt)}</div>
-        <div class="dl-course">Нотатка в календарі</div>
-      </div>
-      <div class="dl-right">
-        <div class="dl-date">${dateStr}</div>${label}
-      </div>
-    </div>`;
+    // Час як badge (як у телеграмі)
+    const timeBadge = n.time
+      ? '<span style="font-family:JetBrains Mono,monospace;font-size:10px;background:rgba(240,192,64,.15);color:var(--accent);padding:1px 6px;border-radius:4px;margin-right:5px;flex-shrink:0;">'+escHtml(n.time)+'</span>'
+      : '';
+    // Назва: title або перші 60 символів тексту
+    const display = (n.title || n.text || 'Нотатка').slice(0, 65) + ((n.title||n.text||'').length > 65 ? '…' : '');
+    return '<div class="dl-item" onclick="openCalNoteModal(this.dataset.ds,event)" data-ds="'+escHtml(ds)+'" style="'+(isPast?'opacity:.55':'')+'">'+
+      '<div class="dl-dot" style="background:var(--accent);box-shadow:0 0 5px rgba(240,192,64,.4);"></div>'+
+      '<div class="dl-info">'+
+        '<div class="dl-name" style="display:flex;align-items:center;flex-wrap:wrap;gap:2px;">'+timeBadge+'✏️ '+escHtml(display)+'</div>'+
+        (n.title && n.text ? '<div class="dl-course" style="margin-top:2px;">'+escHtml(n.text.slice(0,60))+'</div>' : '<div class="dl-course">Нотатка в календарі</div>')+
+      '</div>'+
+      '<div class="dl-right">'+
+        '<div class="dl-date">'+dateStr+'</div>'+label+
+      '</div>'+
+    '</div>';
   }).join('');
-  if(!rows.trim()) return '';
-  return `<div style="font-size:10px;font-weight:700;color:var(--text2);letter-spacing:.5px;text-transform:uppercase;margin-bottom:6px;">📅 Нотатки з календаря</div>
-    <div class="dl-list" style="margin-bottom:8px;">${rows}</div>
-    <div style="height:1px;background:var(--border);margin-bottom:12px;"></div>`;
+
+  return '<div style="font-size:10px;font-weight:700;color:var(--text2);letter-spacing:.5px;text-transform:uppercase;margin-bottom:6px;">📅 Нотатки з календаря</div>'+
+    '<div class="dl-list" style="margin-bottom:8px;">'+rows+'</div>'+
+    '<div style="height:1px;background:var(--border);margin-bottom:12px;"></div>';
 }
 
 function dlDot(d) {
@@ -2435,13 +2450,14 @@ function go(name) {
   const pg = document.getElementById('page-'+name);
   if(!pg) return;
   pg.classList.add('active');
+  // Reset scroll position on every page change
+  const content = document.querySelector('.content');
+  if(content) content.scrollTop = 0;
   const labels={dashboard:'Голов',deadlines:'Дедл',courses:'Курс',files:'Файл',materials:'Матер',chat:'Чат',admin:'Адмін',calendar:'Календ',notes:'Нотат',assistant:'Асист',notifications:'Сповіщ'};
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.toggle('active',n.textContent.trim().startsWith(labels[name]||'_')));
   document.getElementById('topbar-title').textContent=PAGE_TITLES[name]||name;
-  // grades removed
   if(name==='calendar') renderCalendar();
   if(name==='notes') loadNotes();
-  // assistant page
   if(name==='notifications') { markAllRead(); }
   closeSidebar();
 }

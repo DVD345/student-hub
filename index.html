@@ -256,7 +256,6 @@ a { text-decoration: none; color: inherit; }
 .content {
   padding: 14px 14px calc(72px + env(safe-area-inset-bottom,0px));
   flex:1; overflow-y:auto; overflow-x:hidden;
-  /* mobile: safe scrolling */
   -webkit-overflow-scrolling: touch;
 }
 
@@ -267,10 +266,10 @@ a { text-decoration: none; color: inherit; }
 /* ════════════════════════
    PAGES
 ════════════════════════ */
-.page { display:none; animation: pageIn .28s cubic-bezier(.4,0,.2,1); }
+.page { display:none; animation: pageIn .28s cubic-bezier(.4,0,.2,1); width:100%; }
 .page.active { display:block; }
-#page-chat.active { display:flex; flex-direction:column; }
-#page-assistant.active { display:flex; flex-direction:column; }
+/* Chat needs to fill the content area height */
+#page-chat.active { display:flex !important; flex-direction:column; height:100%; overflow:hidden; padding:0 !important; }
 @keyframes pageIn { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
 
 .page-header { margin-bottom:18px; }
@@ -578,7 +577,7 @@ a { text-decoration: none; color: inherit; }
   .bottom-nav { display:none !important; }
 
   .content {
-    padding: 24px 32px;
+    padding: 24px 32px 32px;
   }
 
   .page-header h2 { font-size:26px; }
@@ -589,7 +588,7 @@ a { text-decoration: none; color: inherit; }
   .chat-wrap { flex-direction:row; flex:1; min-height:0; gap:14px; }
   #page-chat.active { flex:1; overflow:hidden; padding-bottom:0; display:flex; flex-direction:column; min-height:0; }
   /* When chat is active, content itself shouldn't scroll — chat-messages does */
-  .content:has(#page-chat.active) { overflow:hidden; padding-bottom:0; }
+  .content:has(#page-chat.active) { overflow:hidden !important; padding:0 !important; }
   .chat-sidebar { width:220px; flex-direction:column; overflow-y:auto; overflow-x:hidden; padding:0 0 8px; flex-shrink:0; gap:6px; }
   .chat-room { min-width:unset; }
   .chat-messages { -webkit-overflow-scrolling:touch; }
@@ -619,7 +618,7 @@ a { text-decoration: none; color: inherit; }
 /* lg: desktop (≥1100px) */
 @media(min-width:1100px){
   html { font-size:16px; }
-  .content { padding:28px 40px; }
+  .content { padding:28px 40px 40px; }
   .page-header h2 { font-size:28px; }
   .stat-val { font-size:24px; }
   .course-grid { grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); }
@@ -635,7 +634,7 @@ a { text-decoration: none; color: inherit; }
   .stat-val { font-size:26px; }
   .stats-grid { gap:14px; }
   .dl-list { gap:8px; }
-  .content { padding:32px 48px; }
+  .content { padding:32px 48px 48px; }
 }
 
 /* Mobile-only overrides (< 768px) */
@@ -1014,7 +1013,7 @@ a { text-decoration: none; color: inherit; }
       </div>
 
       <!-- ASSISTANT -->
-      <div class="page" id="page-assistant" style="display:none;">
+      <div class="page" id="page-assistant">
         <div class="page-header"><h2>🤖 Асистент</h2><p>AI-помічник для навчання — безкоштовно</p></div>
         <div style="display:flex;flex-direction:column;height:clamp(320px, calc(100vh - 160px), 900px);background:var(--card);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;">
           <div id="ai-msgs" style="flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:10px;">

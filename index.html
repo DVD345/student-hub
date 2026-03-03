@@ -18,7 +18,6 @@
 
 /* ── TOKENS ── */
 :root {
-  /* Colors */
   --bg:    #08080f;
   --bg2:   #0d0d1a;
   --bg3:   #141420;
@@ -31,7 +30,6 @@
   --success:#38d07a;
   --warning:#f0a030;
 
-  /* Gradients */
   --g-accent: linear-gradient(135deg,#f0c040 0%,#ff9000 100%);
   --g-danger: linear-gradient(135deg,#e05050 0%,#b02020 100%);
   --g-glass:  linear-gradient(135deg,rgba(255,255,255,.04) 0%,rgba(255,255,255,.0) 100%);
@@ -39,7 +37,6 @@
               radial-gradient(ellipse at 10% 90%,rgba(224,80,80,.07) 0%,transparent 55%),
               #08080f;
 
-  /* Shadows */
   --sh-xs: 0 1px 4px rgba(0,0,0,.4);
   --sh-sm: 0 4px 16px rgba(0,0,0,.45);
   --sh-md: 0 8px 28px rgba(0,0,0,.55);
@@ -47,16 +44,12 @@
   --sh-accent: 0 6px 24px rgba(240,192,64,.25);
   --sh-glow:   0 0 16px rgba(240,192,64,.35);
 
-  /* Layout */
   --r:     13px;
   --r-sm:  8px;
   --sidebar: 256px;
-
-  /* Touch */
   --touch: 44px;
 }
 
-/* Light theme */
 [data-theme="light"] {
   --bg:#f0f1f8; --bg2:#fafaff; --bg3:#e4e5f0; --border:#d0d0e8;
   --text:#14142a; --text2:#5858a0; --card:#fff;
@@ -69,10 +62,8 @@
   --sh-glow: 0 0 16px rgba(240,192,64,.4);
 }
 
-/* ── RESET ── */
 *, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
 
-/* ── BASE — mobile first ── */
 html {
   font-size: 15px;
   -webkit-text-size-adjust: 100%;
@@ -85,20 +76,16 @@ body {
   color: var(--text);
   min-height: 100vh;
   min-height: 100dvh;
-  overflow: hidden; /* single scroll inside .content */
+  overflow: hidden;
   -webkit-tap-highlight-color: transparent;
   transition: background .3s, color .3s;
 }
 
 a { text-decoration: none; color: inherit; }
 
-/* ── SCREENS ── */
 .screen { display:none; height:100vh; height:100dvh; }
 .screen.active { display:flex; }
 
-/* ════════════════════════
-   LOGIN
-════════════════════════ */
 #screen-login {
   align-items:center; justify-content:center;
   background: var(--g-login);
@@ -146,7 +133,7 @@ a { text-decoration: none; color: inherit; }
   width:100%; background:var(--bg3); border:1px solid var(--border);
   border-radius:var(--r); padding:12px 14px;
   color:var(--text); font-family:'Inter',sans-serif;
-  font-size:16px; /* prevents iOS zoom */
+  font-size:16px;
   outline:none; transition:border-color .2s, box-shadow .2s;
   -webkit-appearance:none;
 }
@@ -175,12 +162,8 @@ a { text-decoration: none; color: inherit; }
 .err-box { background:rgba(224,80,80,.1); border:1px solid rgba(224,80,80,.3); border-radius:var(--r); padding:10px 13px; font-size:12px; color:var(--accent2); margin-top:10px; display:none; }
 .login-info { font-size:10px; color:var(--text2); text-align:center; margin-top:12px; line-height:1.5; }
 
-/* ════════════════════════
-   APP LAYOUT
-════════════════════════ */
 #screen-app { flex-direction:row; }
 
-/* SIDEBAR */
 .sidebar {
   width: var(--sidebar);
   min-height: 100vh;
@@ -236,7 +219,6 @@ a { text-decoration: none; color: inherit; }
 .icon-btn { background:none; border:none; color:var(--text2); cursor:pointer; font-size:13px; padding:5px; border-radius:6px; transition:color .2s, background .2s; flex-shrink:0; }
 .icon-btn:hover { color:var(--text); background:var(--bg3); }
 
-/* MAIN AREA */
 .main { margin-left:var(--sidebar); height:100vh; height:100dvh; flex:1; display:flex; flex-direction:column; overflow:hidden; }
 
 .topbar {
@@ -252,21 +234,15 @@ a { text-decoration: none; color: inherit; }
 #topbar-title { font-size:15px; font-weight:800; flex:1; letter-spacing:-.2px; }
 .topbar-menu { background:none; border:none; color:var(--text); font-size:21px; cursor:pointer; padding:4px; }
 
-/* CONTENT — single scroll container */
 .content {
   padding: 14px 14px calc(72px + env(safe-area-inset-bottom,0px));
   flex:1; overflow-y:auto; overflow-x:hidden;
-  /* mobile: safe scrolling */
   -webkit-overflow-scrolling: touch;
 }
 
-/* OVERLAY */
 .sidebar-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.6); z-index:198; backdrop-filter:blur(2px); }
 .sidebar-overlay.show { display:block; }
 
-/* ════════════════════════
-   PAGES
-════════════════════════ */
 .page { display:none; animation: pageIn .28s cubic-bezier(.4,0,.2,1); }
 .page.active { display:block; }
 #page-chat.active { display:flex; flex-direction:column; }
@@ -276,9 +252,6 @@ a { text-decoration: none; color: inherit; }
 .page-header h2 { font-size:22px; font-weight:800; margin-bottom:3px; letter-spacing:-.4px; }
 .page-header p { color:var(--text2); font-size:13px; }
 
-/* ════════════════════════
-   STATS GRID
-════════════════════════ */
 .stats-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:18px; }
 
 .stat-card {
@@ -302,9 +275,6 @@ a { text-decoration: none; color: inherit; }
 .stat-val { font-size:20px; font-weight:800; font-family:'JetBrains Mono',monospace; line-height:1; }
 .stat-lbl { font-size:10px; color:var(--text2); margin-top:2px; }
 
-/* ════════════════════════
-   DEADLINES
-════════════════════════ */
 .dl-list { display:flex; flex-direction:column; gap:6px; }
 .dl-item {
   background:var(--card); border:1px solid var(--border);
@@ -327,9 +297,6 @@ a { text-decoration: none; color: inherit; }
 .dl-date.u { color:var(--accent2); font-weight:700; }
 .dl-date.s { color:var(--warning); font-weight:600; }
 
-/* ════════════════════════
-   TOOLBAR
-════════════════════════ */
 .toolbar { display:flex; align-items:center; gap:7px; margin-bottom:14px; flex-wrap:wrap; }
 .tb-input {
   background:var(--card); border:1px solid var(--border); border-radius:var(--r);
@@ -347,9 +314,6 @@ a { text-decoration: none; color: inherit; }
 .tb-right { margin-left:auto; display:flex; gap:5px; align-items:center; }
 .section-title { font-size:9px; font-weight:700; color:var(--text2); letter-spacing:1px; text-transform:uppercase; margin:18px 0 8px; }
 
-/* ════════════════════════
-   BUTTONS
-════════════════════════ */
 .btn {
   background:var(--bg3); border:1px solid var(--border);
   border-radius:var(--r-sm); padding:8px 13px;
@@ -365,9 +329,6 @@ a { text-decoration: none; color: inherit; }
 .btn.d:hover { border-color:var(--accent2); color:var(--accent2); }
 .btn.r { background:rgba(224,80,80,.1); border-color:rgba(224,80,80,.3); color:var(--accent2); }
 
-/* ════════════════════════
-   FILES
-════════════════════════ */
 .upload-zone { border:2px dashed var(--border); border-radius:var(--r); padding:24px; text-align:center; cursor:pointer; transition:border-color .2s,background .2s; margin-bottom:14px; }
 .upload-zone:hover, .upload-zone.drag { border-color:var(--accent); background:rgba(240,192,64,.04); }
 .upload-zone .ui { font-size:26px; margin-bottom:7px; }
@@ -391,9 +352,7 @@ a { text-decoration: none; color: inherit; }
 .file-meta { font-size:11px; color:var(--text2); margin-top:1px; }
 .file-actions { display:flex; gap:4px; flex-shrink:0; }
 
-/* ════════════════════════
-   COURSES
-════════════════════════ */
+/* COURSES */
 .course-grid { display:grid; grid-template-columns:1fr; gap:9px; }
 .course-grid.lv { grid-template-columns:1fr; }
 
@@ -403,10 +362,22 @@ a { text-decoration: none; color: inherit; }
   padding:14px; cursor:pointer; display:block; color:var(--text);
   box-shadow: var(--sh-sm);
   transition: border-color .25s, transform .25s, box-shadow .25s;
+  position: relative;
 }
 .course-card:hover { border-color:var(--accent); transform:translateY(-4px); box-shadow:var(--sh-md), var(--sh-glow); }
 .lv .course-card { display:flex; align-items:center; gap:11px; padding:10px 13px; }
 .lv .course-card:hover { transform:none; box-shadow:0 3px 12px rgba(240,192,64,.15); }
+
+.hide-course-btn {
+  position:absolute; top:6px; right:6px;
+  background:rgba(224,80,80,.15); border:1px solid rgba(224,80,80,.3);
+  color:var(--accent2); border-radius:6px;
+  padding:3px 7px; font-size:10px; cursor:pointer;
+  opacity:0; transition:opacity .15s;
+  font-family:'Inter',sans-serif; font-weight:600;
+  z-index:2;
+}
+.course-card:hover .hide-course-btn { opacity:1; }
 
 .c-num { font-family:'JetBrains Mono',monospace; font-size:9px; color:var(--accent); font-weight:500; margin-bottom:4px; flex-shrink:0; }
 .lv .c-num { margin-bottom:0; }
@@ -419,17 +390,7 @@ a { text-decoration: none; color: inherit; }
 .vbtn { width:28px; height:28px; border-radius:6px; border:1px solid var(--border); background:var(--card); color:var(--text2); cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:12px; transition:all .15s; }
 .vbtn.on { background:var(--accent); border-color:var(--accent); color:#07070f; }
 
-/* ════════════════════════
-   CHAT
-════════════════════════ */
-/* ════ CHAT — Telegram/Discord style ════
-   Mobile: sidebar = горизонтальні вкладки зверху
-   Desktop (≥768px): sidebar = вертикально зліва
-   Ключ: NO fixed heights, тільки flex+min-height:0
-   Єдиний scroll — chat-messages
-═══════════════════════════════════════ */
-
-/* chat page — flex column, заповнює весь .content */
+/* CHAT */
 #page-chat.active {
   display: flex !important;
   flex-direction: column;
@@ -438,7 +399,6 @@ a { text-decoration: none; color: inherit; }
   padding: 0 !important;
 }
 
-/* Wrap = вся доступна висота */
 .chat-wrap {
   display: flex;
   flex-direction: column;
@@ -447,7 +407,6 @@ a { text-decoration: none; color: inherit; }
   overflow: hidden;
 }
 
-/* ─ Mobile sidebar: горизонтальні вкладки ─ */
 .chat-sidebar {
   display: flex;
   flex-direction: row;
@@ -476,7 +435,6 @@ a { text-decoration: none; color: inherit; }
 .chat-room.active { border-color: var(--accent); background: rgba(240,192,64,.1); box-shadow: 0 2px 12px rgba(240,192,64,.2); }
 .chat-room-sub { font-size:10px; color:var(--text2); font-weight:400; margin-top:2px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 
-/* ─ Main chat panel ─ */
 .chat-main {
   flex: 1;
   min-height: 0;
@@ -494,7 +452,6 @@ a { text-decoration: none; color: inherit; }
   background: var(--card);
 }
 
-/* ─ Messages: ЄДИНИЙ scroll ─ */
 .chat-messages {
   flex: 1;
   min-height: 0;
@@ -508,7 +465,6 @@ a { text-decoration: none; color: inherit; }
   overscroll-behavior: contain;
 }
 
-/* ─ Input: поза scroll, завжди внизу ─ */
 .chat-input-wrap {
   flex-shrink: 0;
   padding: 8px 10px;
@@ -528,7 +484,7 @@ a { text-decoration: none; color: inherit; }
   padding: 9px 13px;
   color: var(--text);
   font-family: 'Inter', sans-serif;
-  font-size: 16px; /* обов'язково 16px — без auto-zoom на iOS */
+  font-size: 16px;
   line-height: 1.5;
   outline: none;
   resize: none;
@@ -539,7 +495,6 @@ a { text-decoration: none; color: inherit; }
 }
 .chat-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(240,192,64,.1); }
 
-/* ─ Messages ─ */
 .msg {
   max-width: 78%;
   display: flex;
@@ -572,7 +527,6 @@ a { text-decoration: none; color: inherit; }
 
 .msg-time { font-size:9px; color:var(--text2); font-family:'JetBrains Mono',monospace; padding: 0 2px; }
 
-/* AI bubble */
 .ai-bubble strong { color:var(--text); font-weight:700; }
 .ai-bubble em { color:var(--text2); }
 .ai-bubble p { margin:5px 0; }
@@ -581,9 +535,6 @@ a { text-decoration: none; color: inherit; }
 .katex { color:var(--text); font-size:1.05em; }
 .katex-display { overflow-x:auto; overflow-y:hidden; padding:4px 0; }
 
-/* ════════════════════════
-   ADMIN
-════════════════════════ */
 .admin-grid { display:grid; grid-template-columns:1fr; gap:12px; }
 .admin-card {
   background:var(--card); background-image:var(--g-glass);
@@ -602,9 +553,6 @@ a { text-decoration: none; color: inherit; }
 .user-row .uname { flex:1; font-weight:600; }
 .role-sel { background:var(--bg3); border:1px solid var(--border); border-radius:6px; padding:4px 8px; color:var(--text); font-family:'Inter',sans-serif; font-size:10px; outline:none; }
 
-/* ════════════════════════
-   TAGS / BADGES
-════════════════════════ */
 .tag { display:inline-block; padding:2px 7px; border-radius:20px; font-size:9px; font-weight:700; background:var(--bg3); color:var(--text2); border:1px solid var(--border); }
 .tag.g { background:rgba(56,208,122,.12); color:var(--success); border-color:rgba(56,208,122,.2); }
 .tag.y { background:rgba(240,192,64,.12); color:var(--accent); border-color:rgba(240,192,64,.2); }
@@ -614,9 +562,6 @@ a { text-decoration: none; color: inherit; }
 .sync-dot { width:5px; height:5px; background:var(--success); border-radius:50%; animation:pulse 2s infinite; }
 @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
 
-/* ════════════════════════
-   STATES
-════════════════════════ */
 .loading { display:flex; align-items:center; gap:8px; color:var(--text2); font-size:12px; padding:16px 0; }
 .spinner { width:14px; height:14px; border:2px solid var(--border); border-top-color:var(--accent); border-radius:50%; animation:spin .7s linear infinite; }
 @keyframes spin { to{transform:rotate(360deg)} }
@@ -624,9 +569,6 @@ a { text-decoration: none; color: inherit; }
 .empty .emo { font-size:30px; margin-bottom:8px; }
 .empty p { font-size:12px; }
 
-/* ════════════════════════
-   MODAL
-════════════════════════ */
 .modal-ov { position:fixed; inset:0; background:rgba(0,0,0,.75); display:none; align-items:center; justify-content:center; z-index:999; padding:16px; backdrop-filter:blur(4px); }
 .modal-ov.show { display:flex; }
 .modal {
@@ -640,9 +582,6 @@ a { text-decoration: none; color: inherit; }
 .modal h3 { font-size:16px; font-weight:800; margin-bottom:16px; letter-spacing:-.2px; }
 .modal-actions { display:flex; gap:7px; justify-content:flex-end; margin-top:16px; }
 
-/* ════════════════════════
-   BOTTOM NAV (mobile)
-════════════════════════ */
 .bottom-nav {
   display:none; position:fixed; bottom:0; left:0; right:0;
   background: rgba(10,10,22,.85);
@@ -667,16 +606,6 @@ a { text-decoration: none; color: inherit; }
 .bnav-ico { font-size:21px; line-height:1; }
 .bnav-badge { position:absolute; top:3px; right:6px; background:var(--accent2); color:#fff; font-size:7px; font-weight:700; padding:1px 4px; border-radius:10px; min-width:14px; text-align:center; }
 
-/* ════════════════════════════════════════
-   RESPONSIVE — MOBILE-FIRST
-   Base: all screens (mobile default)
-   sm:  min 480px  (large phones)
-   md:  min 768px  (tablets / small desktop)
-   lg:  min 1100px (desktop)
-   xl:  min 1440px (wide desktop)
-════════════════════════════════════════ */
-
-/* sm: large phones (≥480px) */
 @media(min-width:480px){
   .stats-grid { gap:10px; }
   .stat-val { font-size:22px; }
@@ -684,25 +613,17 @@ a { text-decoration: none; color: inherit; }
   .admin-grid { grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); }
 }
 
-/* md: tablet/desktop (≥768px) — sidebar visible */
 @media(min-width:768px){
   html { font-size:15.5px; }
-
-  .sidebar { transform:none !important; } /* always visible */
+  .sidebar { transform:none !important; }
   .close-sidebar { display:none !important; }
   .topbar { display:none !important; }
   .bottom-nav { display:none !important; }
-
-  .content {
-    padding: 24px 32px;
-  }
-
+  .content { padding: 24px 32px; }
   .page-header h2 { font-size:26px; }
   .stats-grid { grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:22px; }
   .stat-card { padding:16px; }
   .stat-val { font-size:22px; }
-
-  /* Desktop chat — Discord style: sidebar зліва вертикально */
   .chat-wrap { flex-direction: row; gap: 0; }
   .chat-sidebar {
     width: 230px; flex-shrink: 0;
@@ -716,30 +637,19 @@ a { text-decoration: none; color: inherit; }
   .chat-room { min-width: unset; }
   .chat-main { border-radius: 0; border: none; border-left: none; }
   .chat-input-wrap { padding: 10px 14px; }
-
   .note-card { width:230px; }
   #notes-container { flex-direction:row; flex-wrap:wrap; gap:16px; align-content:flex-start; }
-
   .admin-grid { grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); }
-  /* Chat page desktop */
   #page-chat .page-header { margin-bottom:12px; }
   #page-chat .page-header h2 { font-size:22px; }
-
-  /* Files page desktop */
   #page-files .upload-zone { max-width:600px; }
-
-  /* Better empty states on desktop */
   .empty { padding:48px 24px; }
   .empty .emo { font-size:36px; }
   .empty p { font-size:14px; }
-
-  /* Deadline list max-width on wide screens */
   .dl-list { max-width:900px; }
   #cal-notes-in-dl, #cal-notes-in-dash { max-width:900px; }
+}
 
-}}
-
-/* lg: desktop (≥1100px) */
 @media(min-width:1100px){
   html { font-size:16px; }
   .content { padding:28px 40px; }
@@ -751,7 +661,6 @@ a { text-decoration: none; color: inherit; }
   .note-md-inp { border-right:1px solid var(--border); border-bottom:none; }
 }
 
-/* xl: wide desktop (≥1440px) */
 @media(min-width:1440px){
   html { font-size:17px; }
   .page-header h2 { font-size:32px; }
@@ -761,7 +670,6 @@ a { text-decoration: none; color: inherit; }
   .content { padding:32px 48px; }
 }
 
-/* Mobile-only overrides (< 768px) */
 @media(max-width:767px){
   :root { --sidebar:0px; }
   .sidebar { transform:translateX(-270px); width:270px; box-shadow:var(--sh-lg); }
@@ -771,8 +679,6 @@ a { text-decoration: none; color: inherit; }
   .topbar-menu { display:none; }
   .close-sidebar { display:block; }
   .bottom-nav { display:block; }
-
-  /* Deadline settings */
   #dl-settings > div:nth-child(2) { flex-direction:column; gap:12px; }
   #dl-settings label { justify-content:space-between; }
   #dl-urgent-hours, #dl-warn-days {
@@ -780,31 +686,18 @@ a { text-decoration: none; color: inherit; }
     font-size:16px !important;
     -webkit-appearance:none; appearance:none;
   }
-
-  /* Notes editor */
   .note-editor-body { grid-template-columns:1fr; grid-template-rows:1fr 1fr; }
   .note-md-inp { border-right:none; border-bottom:1px solid var(--border); }
   .note-card { width:100%; }
   #notes-container { flex-direction:column; }
-
-  /* Files */
   .file-actions .btn span { display:none; }
-
-  /* Auth */
   .auth-box { padding:26px 20px; }
-
-  /* Toolbar */
   .tb-input { min-width:0; flex:1; max-width:none; }
-
-  /* Msgs */
   .msg { max-width:90%; }
   .msg-bubble img { max-width:min(240px,72vw) !important; max-height:200px !important; }
-
-  /* Lightbox */
   #lightbox-img { max-width:100vw !important; max-height:calc(100svh - 80px) !important; }
 }
 
-/* tiny phones (< 380px) */
 @media(max-width:380px){
   .content { padding:10px 10px calc(70px + env(safe-area-inset-bottom,0px)); }
   .stat-val { font-size:18px; }
@@ -815,9 +708,7 @@ a { text-decoration: none; color: inherit; }
   .bnav-ico { font-size:19px; }
 }
 
-/* ════════════════════════
-   CALENDAR
-════════════════════════ */
+/* CALENDAR */
 .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;background:var(--border);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;}
 .cal-header-cell{background:var(--bg3);text-align:center;font-size:11px;font-weight:700;color:var(--text2);padding:8px 4px;letter-spacing:.5px;text-transform:uppercase;}
 .cal-cell{background:var(--card);padding:5px;height:80px;display:flex;flex-direction:column;gap:2px;position:relative;overflow:hidden;}
@@ -842,16 +733,13 @@ a { text-decoration: none; color: inherit; }
 .cal-more:hover{background:rgba(240,192,64,.15);}
 .cal-hidden{display:none;}
 
-/* cal mobile */
 @media(max-width:767px){
   .cal-cell{height:52px;padding:3px;}
   .cal-event{font-size:7.5px;padding:1px 3px;}
   .cal-header-cell{font-size:9px;padding:5px 2px;}
 }
 
-/* ════════════════════════
-   NOTES
-════════════════════════ */
+/* NOTES */
 .note-card{background:var(--card);background-image:var(--g-glass);border:1px solid var(--border);border-radius:var(--r);padding:14px;width:240px;cursor:pointer;transition:border-color .25s,transform .25s,box-shadow .25s;position:relative;display:flex;flex-direction:column;gap:6px;box-shadow:var(--sh-sm);}
 .note-card:hover{border-color:var(--accent);transform:translateY(-4px);box-shadow:var(--sh-md),var(--sh-glow);}
 .note-card-del{position:absolute;top:8px;right:8px;opacity:0;transition:opacity .2s;}
@@ -874,6 +762,20 @@ a { text-decoration: none; color: inherit; }
 .note-preview code{background:var(--bg3);padding:2px 5px;border-radius:4px;font-family:'JetBrains Mono',monospace;font-size:11px;}
 .note-preview blockquote{border-left:3px solid var(--accent);padding-left:10px;color:var(--text2);}
 .note-preview li{margin-left:16px;}
+
+/* Cal notes list in modal */
+.cal-note-item {
+  display:flex; align-items:flex-start; gap:8px;
+  padding:8px 10px; background:var(--bg3);
+  border:1px solid var(--border); border-radius:8px;
+  margin-bottom:6px; cursor:pointer;
+  transition:border-color .15s;
+}
+.cal-note-item:hover { border-color:var(--accent); }
+.cal-note-item-time { font-size:10px; color:var(--accent); font-family:'JetBrains Mono',monospace; font-weight:600; flex-shrink:0; margin-top:1px; }
+.cal-note-item-text { flex:1; font-size:12px; line-height:1.4; overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; }
+.cal-note-item-del { background:none; border:none; color:var(--accent2); cursor:pointer; font-size:14px; padding:0 2px; flex-shrink:0; opacity:.5; transition:opacity .15s; }
+.cal-note-item-del:hover { opacity:1; }
 </style>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
 <script defer src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
@@ -902,7 +804,6 @@ a { text-decoration: none; color: inherit; }
 <div id="screen-app" class="screen">
   <div class="sidebar-overlay" id="sov" onclick="closeSidebar()"></div>
 
-  <!-- SIDEBAR -->
   <nav class="sidebar" id="sidebar">
     <div class="sidebar-header">
       <div class="ico">🎓</div>
@@ -938,9 +839,7 @@ a { text-decoration: none; color: inherit; }
     </div>
   </nav>
 
-  <!-- MAIN -->
   <div class="main">
-    <!-- TOPBAR (mobile) -->
     <div class="topbar" id="topbar">
       <button class="topbar-menu" onclick="openSidebar()">☰</button>
       <h2 id="topbar-title">Головна</h2>
@@ -948,7 +847,6 @@ a { text-decoration: none; color: inherit; }
       <button class="icon-btn" id="bell-btn" onclick="go('notifications')" style="position:relative">🔔<span id="bell-count" style="display:none;position:absolute;top:-2px;right:-2px;background:var(--accent2);color:#fff;font-size:8px;font-weight:700;padding:1px 4px;border-radius:10px;min-width:14px;text-align:center"></span></button>
     </div>
 
-    <!-- BOTTOM NAV (mobile only) -->
     <nav class="bottom-nav" id="bottom-nav">
       <div class="bottom-nav-inner">
         <button class="bnav-item active" id="bn-dashboard" onclick="go('dashboard');setBnav('dashboard')">
@@ -1092,7 +990,6 @@ a { text-decoration: none; color: inherit; }
         </div>
       </div>
 
-
       <!-- CALENDAR -->
       <div class="page" id="page-calendar">
         <div class="page-header"><h2>📅 Календар</h2><p>Дедлайни та власні нотатки по днях</p></div>
@@ -1103,24 +1000,37 @@ a { text-decoration: none; color: inherit; }
           <button class="btn a" onclick="calToday()">Сьогодні</button>
         </div>
         <div id="cal-grid"></div>
+
+        <!-- Calendar Note Modal -->
         <div id="cal-note-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:1000;align-items:center;justify-content:center;padding:16px;">
-          <div style="background:var(--card);border:1px solid var(--border);border-radius:16px;width:100%;max-width:440px;padding:20px;animation:fadeUp .2s ease;">
+          <div style="background:var(--card);border:1px solid var(--border);border-radius:16px;width:100%;max-width:480px;max-height:90dvh;overflow-y:auto;padding:20px;animation:fadeUp .2s ease;">
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
               <div id="cal-note-date-lbl" style="font-size:15px;font-weight:700;"></div>
               <button onclick="closeCalNoteModal()" style="background:none;border:none;color:var(--text2);font-size:20px;cursor:pointer;line-height:1;">✕</button>
             </div>
-            <textarea id="cal-note-inp" placeholder="Нотатка для цього дня..." style="width:100%;min-height:120px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:10px 13px;color:var(--text);font-family:'Inter',sans-serif;font-size:14px;resize:vertical;outline:none;line-height:1.6;"></textarea>
-            <div style="display:flex;gap:8px;margin-top:12px;justify-content:flex-end;">
-              <button class="btn" onclick="deleteCalNote()" id="cal-note-del" style="color:var(--accent2);">🗑 Видалити</button>
-              <button class="btn a" onclick="saveCalNote()">💾 Зберегти</button>
+            <!-- Existing notes list -->
+            <div id="cal-notes-list-existing"></div>
+            <!-- New/Edit note form -->
+            <div id="cal-note-form">
+              <div style="font-size:10px;font-weight:700;color:var(--text2);letter-spacing:.5px;text-transform:uppercase;margin-bottom:8px;" id="cal-note-form-label">➕ Нова нотатка</div>
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+                <label style="font-size:11px;color:var(--text2);flex-shrink:0;">⏰ Час:</label>
+                <input type="time" id="cal-note-time" style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:6px 10px;color:var(--text);font-family:'Inter',sans-serif;font-size:14px;outline:none;width:126px;">
+              </div>
+              <textarea id="cal-note-inp" placeholder="Нотатка для цього дня..." style="width:100%;min-height:80px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:10px 13px;color:var(--text);font-family:'Inter',sans-serif;font-size:14px;resize:vertical;outline:none;line-height:1.6;"></textarea>
+              <div style="display:flex;gap:8px;margin-top:10px;justify-content:flex-end;flex-wrap:wrap;">
+                <button class="btn" onclick="newCalNote()" id="cal-note-new-btn" style="display:none;">+ Нова</button>
+                <button class="btn" onclick="deleteCalNote()" id="cal-note-del" style="color:var(--accent2);display:none;">🗑 Видалити</button>
+                <button class="btn a" onclick="saveCalNote()">💾 Зберегти</button>
+              </div>
             </div>
           </div>
         </div>
       </div>
 
-            <!-- NOTES -->
+      <!-- NOTES — FIX 1: removed subtitle "Особисті конспекти з Markdown підтримкою" -->
       <div class="page" id="page-notes">
-        <div class="page-header"><h2>✍️ Нотатки</h2><p>Особисті конспекти з Markdown підтримкою</p></div>
+        <div class="page-header"><h2>✍️ Нотатки</h2></div>
         <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;align-items:center;">
           <button class="btn a" onclick="showNewNote()">+ Нова нотатка</button>
           <input class="tb-input" placeholder="🔍 Пошук..." oninput="searchNotes(this.value)" style="flex:1;max-width:260px;">
@@ -1159,23 +1069,21 @@ a { text-decoration: none; color: inherit; }
         </div>
         <div id="notif-list"><div class="empty"><div class="emo">🔔</div><p>Немає нових сповіщень</p></div></div>
       </div>
+
       <!-- ADMIN -->
       <div class="page" id="page-admin">
         <div class="page-header"><h2>⚙️ Адмін-панель</h2><p>Управління групами та користувачами</p></div>
         <div class="admin-grid">
-          <!-- Groups -->
           <div class="admin-card">
             <h3>🏫 Групи</h3>
             <div id="admin-groups-list"><div class="loading"><div class="spinner"></div></div></div>
             <button class="btn a" style="width:100%;margin-top:10px;" onclick="showModal('add-group')">+ Створити групу</button>
           </div>
-          <!-- Users -->
           <div class="admin-card">
             <h3>👥 Користувачі</h3>
             <input class="tb-input" id="users-search" placeholder="🔍 Пошук по імені..." oninput="filterAdminUsers(this.value)" style="width:100%;margin-bottom:10px;max-width:100%;">
             <div id="admin-users-list"><div class="loading"><div class="spinner"></div></div></div>
           </div>
-          <!-- Stats -->
           <div class="admin-card">
             <h3>📊 Статистика</h3>
             <div id="admin-stats"><div class="loading"><div class="spinner"></div></div></div>
@@ -1235,7 +1143,6 @@ const db = getFirestore(app);
 window._db = db;
 window._fb = { collection, addDoc, deleteDoc, doc, query, where, orderBy, onSnapshot, getDocs, setDoc, getDoc, updateDoc, serverTimestamp, limit };
 
-// loadGroupsForLogin залишаємо для fallback у випадку коли Moodle не визначив групу
 async function loadGroupsForLogin() {
   try {
     const snap = await getDocs(collection(db, 'groups'));
@@ -1282,17 +1189,14 @@ async function doLogin() {
   if (!username||!password) { showErr('Введіть логін та пароль'); return; }
   btn.disabled=true; btn.textContent='Входимо...';
   try {
-    // 1. Отримати токен
     const r = await fetch(MOODLE+'/login/token.php?username='+encodeURIComponent(username)+'&password='+encodeURIComponent(password)+'&service=moodle_mobile_app');
     const d = await r.json();
     if (!d.token) { showErr(d.error || 'Невірний логін або пароль'); btn.disabled=false; btn.textContent='Увійти'; return; }
     token = d.token;
 
-    // 2. Отримати інфо про користувача
     btn.textContent='Визначаємо групу...';
     const siteData = await moodleCall('core_webservice_get_site_info');
 
-    // 3. Перевірка — не викладач
     const roles = Array.isArray(siteData.roles) ? siteData.roles : [];
     const teacherShortnames = ['teacher','editingteacher','coursecreator','manager'];
     const isTeacher = roles.some(r =>
@@ -1304,25 +1208,19 @@ async function doLogin() {
       btn.disabled=false; btn.textContent='Увійти'; return;
     }
 
-    // 4. Спробувати отримати когорти (групу) студента
     const userId = siteData.userid;
     let moodleGroupName = null;
     let moodleFaculty = null;
 
-    // Метод А: когорти через core_cohort_get_user_cohorts (якщо є доступ)
     try {
       const cohorts = await moodleCall('core_cohort_get_user_cohorts', { userid: userId });
       if(Array.isArray(cohorts) && cohorts.length) {
-        // Беремо першу когорту — це зазвичай і є група
         moodleGroupName = cohorts[0].name || cohorts[0].idnumber;
         moodleFaculty = cohorts[0].description || cohorts[0].theme || null;
-        // Очищаємо HTML теги з faculty якщо є
         if(moodleFaculty) moodleFaculty = moodleFaculty.replace(/<[^>]*>/g,'').trim() || null;
-        console.log('Cohort found:', moodleGroupName, moodleFaculty);
       }
-    } catch(e) { console.warn('Cohort API failed:', e); }
+    } catch(e) {}
 
-    // Метод Б: групи в курсах через core_group_get_course_user_groups
     if(!moodleGroupName) {
       try {
         const enrolledCourses = await moodleCall('core_enrol_get_users_courses', { userid: userId });
@@ -1332,21 +1230,18 @@ async function doLogin() {
               const grps = await moodleCall('core_group_get_course_user_groups', { courseid: course.id, userid: userId });
               if(grps && Array.isArray(grps.groups) && grps.groups.length) {
                 moodleGroupName = grps.groups[0].name;
-                console.log('Group from course found:', moodleGroupName);
                 break;
               }
             } catch(e2) {}
           }
         }
-      } catch(e) { console.warn('Course groups API failed:', e); }
+      } catch(e) {}
     }
 
-    // Метод В: витягнути групу з назви курсу (pattern: "ГрупаХХХ" або "ХХХ-ХХ")
     if(!moodleGroupName) {
       try {
         const enrolledCourses = await moodleCall('core_enrol_get_users_courses', { userid: userId });
         if(Array.isArray(enrolledCourses) && enrolledCourses.length) {
-          // Шукаємо патерн групи в назві курсу: XXX-XXX-X або схоже
           for(const c of enrolledCourses) {
             const match = (c.fullname||'').match(/\b([А-ЯІЇЄA-Z]{1,5}-?\d{2,4}[А-ЯA-Z]?\d{0,2})\b/i);
             if(match) { moodleGroupName = match[1]; break; }
@@ -1355,19 +1250,14 @@ async function doLogin() {
       } catch(e) {}
     }
 
-    // 5. Якщо групу не знайдено — показати ручний вибір
     if(!moodleGroupName) {
-      console.warn('Could not detect group from Moodle, falling back to manual selection');
       await showGroupFallback(token, siteData);
       btn.disabled=false; btn.textContent='Увійти';
       return;
     }
 
-    // 6. Знайти або створити групу в Firestore
     btn.textContent='Синхронізація...';
     group = await findOrCreateGroup(moodleGroupName, moodleFaculty);
-
-    // 7. Зайти
     localStorage.setItem('sh_token', token);
     localStorage.setItem('sh_gid', group.id);
     await initApp();
@@ -1376,20 +1266,15 @@ async function doLogin() {
   btn.disabled=false; btn.textContent='Увійти';
 }
 
-// Знайти групу в Firestore або створити нову
 async function findOrCreateGroup(name, faculty) {
-  const { collection, getDocs, addDoc, query, where } = window._fb;
-  // Шукаємо по назві (регістронезалежно)
+  const { collection, getDocs, addDoc } = window._fb;
   const snap = await getDocs(collection(window._db, 'groups'));
   const existing = snap.docs.map(d=>({id:d.id,...d.data()}))
     .find(g => (g.name||'').toLowerCase().trim() === name.toLowerCase().trim());
-  if(existing) { console.log('Found existing group:', existing.name); return existing; }
+  if(existing) return existing;
 
-  // Не знайдено — створюємо автоматично
-  console.log('Creating new group:', name, faculty);
   const now2 = new Date();
   const acadYear = now2.getMonth() >= 7 ? now2.getFullYear() : now2.getFullYear() - 1;
-  // Спробуємо витягти курс з назви групи (напр. "103-ОПУТ-Д24" → рік 24 → курс)
   let course = 1, entryYear = null, manualCourse = null;
   const yearMatch = name.match(/[ДД]?(\d{2})$/i) || name.match(/(\d{4})/);
   if(yearMatch) {
@@ -1406,10 +1291,8 @@ async function findOrCreateGroup(name, faculty) {
   return { id: newDoc.id, name, faculty: faculty||'', course, entryYear };
 }
 
-// Якщо автовизначення не вдалося — показати кнопку ручного вибору
 async function showGroupFallback(tok, siteData) {
   showErr('Не вдалося визначити групу автоматично. Оберіть групу вручну:');
-  // Показати select якщо він ще не існує
   let sel = document.getElementById('lg-fallback');
   if(!sel) {
     sel = document.createElement('select');
@@ -1417,13 +1300,11 @@ async function showGroupFallback(tok, siteData) {
     sel.className = 'field';
     sel.style.cssText = 'width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:11px 13px;color:var(--text);font-family:Inter,sans-serif;font-size:13px;outline:none;margin-top:8px;-webkit-appearance:none;';
     sel.innerHTML = '<option value="">— Оберіть групу —</option>';
-    // Завантажити групи
     const { collection, getDocs } = window._fb;
     const gsnap = await getDocs(collection(window._db,'groups'));
     const groups = gsnap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(a.name||'').localeCompare(b.name||''));
     groups.forEach(g => { sel.innerHTML += '<option value="'+escHtml(g.id)+'">'+escHtml(g.name)+'</option>'; });
     document.getElementById('lerr').after(sel);
-    // Кнопка підтвердження
     const confirmBtn = document.createElement('button');
     confirmBtn.className = 'btn-primary';
     confirmBtn.style.marginTop = '8px';
@@ -1455,7 +1336,6 @@ async function initApp() {
   document.getElementById('files-lbl').textContent = 'Файли групи ' + group.name;
   document.getElementById('mats-lbl').textContent = 'Матеріали групи ' + group.name;
 
-  // Load cached data immediately (offline support)
   _loadCachedData();
 
   await loadUserInfo();
@@ -1474,20 +1354,12 @@ async function initApp() {
 
 function _saveCache() {
   try {
-    if(userData && userData.userid) {
-      localStorage.setItem('sh_cache_user', JSON.stringify(userData));
-    }
-    if(group && group.id) {
-      localStorage.setItem('sh_cache_group', JSON.stringify(group));
-    }
-    if(courses && courses.length) {
-      localStorage.setItem('sh_cache_courses', JSON.stringify(courses));
-    }
-    if(allDl && allDl.length) {
-      localStorage.setItem('sh_cache_dl', JSON.stringify(allDl));
-    }
+    if(userData && userData.userid) localStorage.setItem('sh_cache_user', JSON.stringify(userData));
+    if(group && group.id) localStorage.setItem('sh_cache_group', JSON.stringify(group));
+    if(courses && courses.length) localStorage.setItem('sh_cache_courses', JSON.stringify(courses));
+    if(allDl && allDl.length) localStorage.setItem('sh_cache_dl', JSON.stringify(allDl));
     localStorage.setItem('sh_cache_ts', Date.now());
-  } catch(e) { console.warn('Cache save error:', e); }
+  } catch(e) {}
 }
 
 function _loadCachedData() {
@@ -1506,25 +1378,14 @@ function _loadCachedData() {
       const today = new Date().toLocaleDateString('uk-UA',{weekday:'long',day:'numeric',month:'long'});
       document.getElementById('dash-sub').textContent = today + ' • ' + name;
     }
-    if(cachedGroup) {
-      const cg = JSON.parse(cachedGroup);
-      if(!group.id) { group = cg; }
-    }
-    if(cachedCourses) {
-      courses = JSON.parse(cachedCourses);
-      renderCourses();
-    }
-    if(cachedDl) {
-      allDl = JSON.parse(cachedDl);
-      applyDlFilter(); renderDashDl(); renderCalendar();
-    }
+    if(cachedGroup) { const cg = JSON.parse(cachedGroup); if(!group.id) group = cg; }
+    if(cachedCourses) { courses = JSON.parse(cachedCourses); renderCourses(); }
+    if(cachedDl) { allDl = JSON.parse(cachedDl); applyDlFilter(); renderDashDl(); renderCalendar(); }
     if(cacheTs) {
       const age = Math.round((Date.now() - parseInt(cacheTs)) / 60000);
-      if(age > 30) {
-        _showOfflineBanner('Дані з кешу (' + (age > 1440 ? Math.round(age/1440)+'д' : age+'хв') + ' тому)');
-      }
+      if(age > 30) _showOfflineBanner('Дані з кешу (' + (age > 1440 ? Math.round(age/1440)+'д' : age+'хв') + ' тому)');
     }
-  } catch(e) { console.warn('Cache load error:', e); }
+  } catch(e) {}
 }
 
 function _showOfflineBanner(msg) {
@@ -1547,7 +1408,6 @@ async function loadUserInfo() {
     document.getElementById('uav').textContent = name[0].toUpperCase();
     const today = new Date().toLocaleDateString('uk-UA',{weekday:'long',day:'numeric',month:'long'});
     document.getElementById('dash-sub').textContent = today + ' • ' + name;
-    // Save/update user in Firestore
     if (window._db && userData.userid) {
       const { doc, setDoc } = window._fb;
       await setDoc(doc(window._db,'users',String(userData.userid)), {
@@ -1556,9 +1416,7 @@ async function loadUserInfo() {
       }, { merge: true });
     }
     _saveCache();
-  } catch(e) {
-    // If Moodle fails, cached userData still set from _loadCachedData
-  }
+  } catch(e) {}
 }
 
 async function loadUserRole() {
@@ -1566,9 +1424,8 @@ async function loadUserRole() {
   const { doc, getDoc } = window._fb;
   try {
     const snap = await getDoc(doc(window._db,'users',String(userData.userid)));
-    if (snap.exists() && snap.data().role) {
-      userRole = snap.data().role;
-    } else { userRole = 'student'; }
+    if (snap.exists() && snap.data().role) userRole = snap.data().role;
+    else userRole = 'student';
   } catch(e) { userRole = 'student'; }
   document.getElementById('urole').textContent = ROLES[userRole] || 'Студент';
   document.getElementById('uav').style.background = ROLE_COLORS[userRole] || '#f0c040';
@@ -1587,10 +1444,41 @@ async function moodleCall(fn, params={}) {
   return r.json();
 }
 
-// ── SYNC ──
 async function syncMoodle() { await loadCourses(); await loadDeadlines(); }
 
-// ── COURSES ──
+// ── COURSES — FIX 4: hidden courses ──
+let _hiddenCourses = [];
+
+function _loadHiddenCourses() {
+  try {
+    const key = 'sh_hc_' + (userData.userid || 'local');
+    _hiddenCourses = JSON.parse(localStorage.getItem(key) || '[]');
+  } catch(e) { _hiddenCourses = []; }
+}
+
+function _saveHiddenCourses() {
+  try {
+    const key = 'sh_hc_' + (userData.userid || 'local');
+    localStorage.setItem(key, JSON.stringify(_hiddenCourses));
+  } catch(e) {}
+}
+
+function hideCourse(id, e) {
+  if(e) e.stopPropagation();
+  const sid = String(id);
+  if(!_hiddenCourses.includes(sid)) {
+    _hiddenCourses.push(sid);
+    _saveHiddenCourses();
+    filterCourses();
+  }
+}
+
+function restoreAllCourses() {
+  _hiddenCourses = [];
+  _saveHiddenCourses();
+  filterCourses();
+}
+
 async function loadCourses() {
   document.getElementById('courses-list').innerHTML='<div class="loading"><div class="spinner"></div>Завантаження курсів...</div>';
   if(!token){ document.getElementById('courses-list').innerHTML='<div class="empty"><div class="emo">⚠️</div><p>Немає токену. Вийдіть і увійдіть знову.</p></div>'; return; }
@@ -1602,21 +1490,36 @@ async function loadCourses() {
     filterCourses();
   } catch(e) { courses=[]; }
 }
+
+function renderCourses() { filterCourses(); }
+
 function setCV(v) { cvMode=v; document.getElementById('vg').classList.toggle('on',v==='grid'); document.getElementById('vl').classList.toggle('on',v==='list'); filterCourses(); }
 function setCS(s) { csMode=s; document.getElementById('cs-n').classList.toggle('on',s==='name'); document.getElementById('cs-num').classList.toggle('on',s==='num'); filterCourses(); }
+
 function filterCourses() {
+  _loadHiddenCourses();
   const q=(document.getElementById('c-q')||{value:''}).value.toLowerCase();
-  let list=courses.filter(c=>!q||(c.fullname||c.shortname||'').toLowerCase().includes(q));
+  let list = courses.filter(c => !_hiddenCourses.includes(String(c.id)));
+  list = list.filter(c => !q || (c.fullname||c.shortname||'').toLowerCase().includes(q));
   if(csMode==='name') list=list.slice().sort((a,b)=>(a.fullname||a.shortname).localeCompare(b.fullname||b.shortname));
   const el=document.getElementById('courses-list');
-  if(!list.length){el.innerHTML='<div class="empty"><div class="emo">📚</div><p>Курси не знайдено</p></div>';return;}
+  if(!list.length) {
+    const hasHidden = _hiddenCourses.length > 0;
+    el.innerHTML='<div class="empty"><div class="emo">📚</div><p>Курси не знайдено</p>'+(hasHidden?'<button class="btn" onclick="restoreAllCourses()" style="margin-top:10px;">↩ Відновити '+_hiddenCourses.length+' прихованих</button>':'')+'</div>';
+    return;
+  }
   const cls=cvMode==='list'?'course-grid lv':'course-grid';
   el.innerHTML='<div class="'+cls+'">'+list.map((c,i)=>
-    '<a class="course-card" href="https://do.kart.edu.ua/course/view.php?id='+encodeURIComponent(c.id)+'" target="_blank" rel="noopener noreferrer">'+
+    '<div class="course-card" onclick="window.open(\'https://do.kart.edu.ua/course/view.php?id='+encodeURIComponent(c.id)+'\',\'_blank\',\'noopener,noreferrer\')">' +
+    '<button class="hide-course-btn" data-cid="'+escHtml(String(c.id))+'" onclick="hideCourse(this.dataset.cid,event)" title="Сховати курс">✕ Сховати</button>'+
     '<div class="c-num">№'+(i+1)+'</div>'+
     '<div class="c-name">'+escHtml(c.fullname||c.shortname)+'</div>'+
-    '<div class="c-meta">'+escHtml(c.shortname||'')+'</div></a>'
+    '<div class="c-meta">'+escHtml(c.shortname||'')+'</div></div>'
   ).join('')+'</div>';
+
+  if(_hiddenCourses.length > 0) {
+    el.innerHTML += '<div style="margin-top:10px;font-size:11px;color:var(--text2);display:flex;align-items:center;gap:8px;">🙈 Приховано '+_hiddenCourses.length+' курс(ів) <button class="btn" onclick="restoreAllCourses()" style="padding:4px 10px;font-size:10px;">↩ Відновити</button></div>';
+  }
 }
 
 // ── DEADLINES ──
@@ -1625,40 +1528,31 @@ async function loadDeadlines() {
   document.getElementById('dl-list').innerHTML='<div class="loading"><div class="spinner"></div>Завантаження з Moodle...</div>';
   document.getElementById('dash-dl').innerHTML='<div class="loading"><div class="spinner"></div>Завантаження...</div>';
   if(!token){ 
-    document.getElementById('dl-list').innerHTML='<div class="empty"><div class="emo">⚠️</div><p>Немає токену Moodle. Вийдіть і увійдіть знову.</p></div>';
+    document.getElementById('dl-list').innerHTML='<div class="empty"><div class="emo">⚠️</div><p>Немає токену Moodle.</p></div>';
     document.getElementById('dash-dl').innerHTML='<div class="empty"><div class="emo">⚠️</div><p>Немає токену</p></div>';
     return; 
   }
   try {
     let events = [];
     
-    // Method 1: Action events by timesort — без limitcourse щоб не блокувати
     try {
       const d1 = await moodleCall('core_calendar_get_action_events_by_timesort',{
         timesortfrom: now - 60*60*24*365*3,
         timesortto: now + 60*60*24*365,
         limitnum: 50
       });
-      console.log('Method 1 raw:', JSON.stringify(d1).slice(0,200));
       if(d1 && !d1.errorcode) {
         const evts = d1.events || d1.data?.events || [];
-        if(evts.length) { events = evts; console.log('Method 1:', evts.length); }
+        if(evts.length) events = evts;
       }
-    } catch(e1) { console.warn('Method 1 failed:', e1); }
-    
-    // Method 2 і 3 видалені — блокуються CORS університетського сервера
+    } catch(e1) {}
 
-    // Method 4 + 5: ЗАВЖДИ запускаємо паралельно — завдання (assign) і тести (quiz)
-    // Це ловить тести без duedate (тільки timeclose) та завдання яких немає в календарі
     if(courses.length) {
       try {
         const courseids = courses.slice(0,25).map((c,i)=>`courseids[${i}]=${c.id}`).join('&');
-        
         const d4 = await fetch(MOODLE+'/webservice/rest/server.php?wstoken='+token+'&wsfunction=mod_assign_get_assignments&moodlewsrestformat=json&'+courseids)
             .then(r=>r.json()).catch(()=>null);
-
         const extraEvents = [];
-
         if(d4 && d4.courses) {
           d4.courses.forEach(course => {
             (course.assignments||[]).forEach(a => {
@@ -1673,10 +1567,7 @@ async function loadDeadlines() {
               }
             });
           });
-          console.log('Method 4 (assign):', extraEvents.length);
         }
-
-        // Мержимо: дедуплікація по назві+курс+дата
         const existingKeys = new Set(events.map(e => {
           const cn = e.course ? (e.course.fullname||e.course.shortname||'') : '';
           return (e.name||'').toLowerCase().trim() + '|' + cn.toLowerCase().trim() + '|' + (e.timesort||0);
@@ -1684,26 +1575,15 @@ async function loadDeadlines() {
         extraEvents.forEach(e => {
           const cn = e.course ? (e.course.fullname||e.course.shortname||'') : '';
           const key = (e.name||'').toLowerCase().trim() + '|' + cn.toLowerCase().trim() + '|' + (e.timesort||0);
-          if(!existingKeys.has(key)) {
-            events.push(e);
-            existingKeys.add(key);
-          }
+          if(!existingKeys.has(key)) { events.push(e); existingKeys.add(key); }
         });
-        console.log('After merge total:', events.length);
-
-      } catch(e45) { console.warn('Method 4/5 failed:', e45); }
+      } catch(e45) {}
     }
-    
-    console.log('Total events found:', events.length);
-    
-    // Модулі які точно не є дедлайнами
+
     const IGNORE_MODULES = ['forum', 'chat', 'wiki', 'glossary'];
-    // Типи подій-відкриттів які треба ігнорувати
     const IGNORE_TYPES = ['open', 'opensubmission', 'expectcompletionon', 'gradingdue'];
-    // Типи які є дедлайнами
     const DEADLINE_TYPES = ['due', 'close', 'closingdate', 'duedate', 'timeclose'];
-    
-    // Final global dedup by id first
+
     const seenIds = new Set();
     events = events.filter(e => {
       const key = String(e.id);
@@ -1715,42 +1595,23 @@ async function loadDeadlines() {
     allDl = events.filter(e => {
       const t = e.timesort || e.timestart || e.timefinish || 0;
       if(t <= 0) return false;
-      
-      // Фільтруємо тільки якщо modname явно вказаний і є в списку ігнорування
       const modname = (e.modulename || e.modname || e.activitytype || '').toLowerCase();
       if(modname && IGNORE_MODULES.some(x => modname === x)) return false;
-      
       const etype = (e.eventtype || e.type || '').toLowerCase();
-      
-      // Ігноруємо події-відкриття
       if(etype && IGNORE_TYPES.some(x => etype === x)) return false;
-      
-      // Якщо тип явно дедлайновий — беремо
       if(etype && DEADLINE_TYPES.some(x => etype.includes(x))) return true;
-      
-      // Якщо є timesort — це action event, беремо
       if(e.timesort) return true;
-      
-      // Якщо тільки timestart без timesort і без timefinish — це "відкриття", ігноруємо
       if(!e.timesort && e.timestart && !e.timefinish) return false;
-      
       return true;
     }).map(e => {
       const due = e.timesort || e.timefinish || e.timestart;
-      const courseName = e.course ? (e.course.fullname || e.course.shortname || '—') : 
+      const courseName = e.course ? (e.course.fullname || e.course.shortname || '—') :
                         (e.coursename || (e.courseid ? 'Курс '+e.courseid : '—'));
-      
-      // Прибираємо службові префікси і суфікси з назви (укр та англ варіанти)
       let name = e.name || e.activityname || 'Завдання';
-      // Прибираємо префікси які Moodle додає автоматично
       name = name.replace(/^(строк\s+|термін\s+|дедлайн\s+|здача\s+)/i, '').trim();
-      // Прибираємо суфікси
       name = name.replace(/\s*(спливає|закрито|закривається|відкрито|відкривається|завершується|closes|due|open|is due|is closing|has closed|closed)\s*$/i, '').trim();
-      
       return {
-        id: e.id,
-        name,
-        // Normalize name for dedup: remove "Строк", "Завдання" prefixes
+        id: e.id, name,
         _normName: name.replace(/^(строк\s+|завдання\s+|тест\s+|здача\s+)/i,'').toLowerCase().trim(),
         course: courseName,
         due: due,
@@ -1759,16 +1620,15 @@ async function loadDeadlines() {
       };
     }).sort((a,b) => a.due - b.due);
 
-    // Final dedup: same normalized name + same course + same day = duplicate
     const seenFinal = new Set();
     allDl = allDl.filter(dl => {
-      const dayKey = Math.floor(dl.due / 86400); // group by day
+      const dayKey = Math.floor(dl.due / 86400);
       const key = dl._normName + '|' + dl.course.toLowerCase().trim() + '|' + dayKey;
       if(seenFinal.has(key)) return false;
       seenFinal.add(key);
       return true;
     });
-    
+
     _saveCache();
     const urgent = allDl.filter(d=>!d.past&&(d.due-now)<60*60*48).length;
     const past = allDl.filter(d=>d.past).length;
@@ -1783,21 +1643,21 @@ async function loadDeadlines() {
     console.error('Deadlines error:', e);
     const msg = e && e.message ? e.message : String(e);
     document.getElementById('dl-list').innerHTML='<div class="empty"><div class="emo">⚠️</div><p>Помилка дедлайнів: ' + escHtml(msg) + '</p></div>';
-    document.getElementById('dash-dl').innerHTML='<div class="empty"><div class="emo">⚠️</div><p>Помилка завантаження дедлайнів</p></div>';
+    document.getElementById('dash-dl').innerHTML='<div class="empty"><div class="emo">⚠️</div><p>Помилка завантаження</p></div>';
     document.getElementById('s-urgent').textContent='!';
     document.getElementById('s-done').textContent='!';
   }
 }
 
 // ══════════════════════════════════════════════
-// ── USER SETTINGS — Firestore sync ──
-// Зберігає: налаштування кольорів, видалені дедлайни
-// Колекція: userSettings/{userId}
+// USER SETTINGS — Firestore sync
+// _calNotes: { 'YYYY-MM-DD': [{id, text, time}] }  (масив нотаток на день)
+// Backward compat: legacy string value автоматично мігрує в масив
 // ══════════════════════════════════════════════
 let _dlUrgentH = 48;
 let _dlWarnD   = 7;
 let _dlDeleted = [];
-let _calNotes  = {}; // { 'YYYY-MM-DD': 'текст нотатки' }
+let _calNotes  = {};
 let _userSettingsUnsub = null;
 let _settingsLoaded = false;
 
@@ -1806,7 +1666,6 @@ function _userSettingsDoc() {
   return doc(window._db, 'userSettings', String(userData.userid));
 }
 
-// Завантажити і підписатись на realtime оновлення (між пристроями!)
 function startUserSettingsSync() {
   return new Promise(resolve => {
     if(!window._db || !userData.userid) { resolve(); return; }
@@ -1820,47 +1679,29 @@ function startUserSettingsSync() {
       _dlDeleted = Array.isArray(data.dlDeleted) ? data.dlDeleted : [];
       _calNotes  = (data.calNotes && typeof data.calNotes==='object') ? data.calNotes : {};
       _settingsLoaded = true;
-      // Оновити поля налаштувань якщо відкриті
       const uh = document.getElementById('dl-urgent-hours');
       const wd = document.getElementById('dl-warn-days');
       if(uh) uh.value = _dlUrgentH;
       if(wd) wd.value = _dlWarnD;
-      // Оновити UI (тільки якщо вже завантажені дедлайни)
-      if(allDl.length > 0) {
-        applyDlFilter();
-        renderDashDl();
-        renderCalendar();
-        _renderCalNotesInDeadlines();
-      }
+      if(allDl.length > 0) { applyDlFilter(); renderDashDl(); renderCalendar(); _renderCalNotesInDeadlines(); }
       if(firstLoad) { firstLoad = false; resolve(); }
-    }, err => {
-      console.warn('userSettings sync error:', err.code, err.message);
-      // Якщо доступ заборонений — просто продовжуємо без синхронізації
-      resolve();
-    });
+    }, err => { console.warn('userSettings sync error:', err.code); resolve(); });
   });
 }
 
 let _saveSettingsTimer = null;
 async function _saveUserSettings() {
   if(!window._db || !userData.userid) return;
-  // Debounce — не зберігати частіше ніж раз на 800мс
   clearTimeout(_saveSettingsTimer);
   _saveSettingsTimer = setTimeout(async () => {
     const { setDoc } = window._fb;
     try {
       await setDoc(_userSettingsDoc(), {
-        dlUrgentH: _dlUrgentH,
-        dlWarnD:   _dlWarnD,
-        dlDeleted: _dlDeleted,
-        calNotes:  _calNotes,
-        updatedAt: Date.now(),
-        userId: String(userData.userid)
+        dlUrgentH: _dlUrgentH, dlWarnD: _dlWarnD,
+        dlDeleted: _dlDeleted, calNotes: _calNotes,
+        updatedAt: Date.now(), userId: String(userData.userid)
       });
-      console.log('✅ Settings saved to Firestore');
     } catch(e) {
-      console.warn('❌ saveUserSettings error:', e.code, e.message);
-      // Fallback: localStorage
       localStorage.setItem('ush_'+userData.userid, JSON.stringify({
         dlUrgentH:_dlUrgentH, dlWarnD:_dlWarnD, dlDeleted:_dlDeleted, calNotes:_calNotes
       }));
@@ -1897,54 +1738,190 @@ function deleteDl(id, e) {
   _saveUserSettings();
 }
 
-// ── CALENDAR NOTES — Firestore sync ──
-function getCalNote(ds) { return _calNotes[ds] || ''; }
+// ── CALENDAR NOTES — FIX 2 & 3: multiple notes per day + time field ──
 
+// Повертає масив нотаток для дня (міграція старих рядків)
+function getCalNotes(ds) {
+  const val = _calNotes[ds];
+  if(!val) return [];
+  // Legacy: рядок → масив
+  if(typeof val === 'string') return val ? [{ id: 'legacy', text: val, time: '' }] : [];
+  if(Array.isArray(val)) return val;
+  return [];
+}
+
+// Для сумісності зі старим кодом (повертає перший текст або '')
+function getCalNote(ds) {
+  const ns = getCalNotes(ds);
+  return ns.length ? ns[0].text : '';
+}
+
+// Рендерує список існуючих нотаток в модалі
+function _renderCalNotesList(ds) {
+  const container = document.getElementById('cal-notes-list-existing');
+  if(!container) return;
+  const notes = getCalNotes(ds);
+  if(!notes.length) { container.innerHTML = ''; return; }
+  container.innerHTML = '<div style="font-size:10px;font-weight:700;color:var(--text2);letter-spacing:.5px;text-transform:uppercase;margin-bottom:8px;">📋 Нотатки цього дня</div>' +
+    notes.map(n => {
+      const timeLabel = n.time ? n.time : '—';
+      const preview = n.text.length > 60 ? n.text.slice(0,60)+'…' : n.text;
+      return '<div class="cal-note-item" onclick="editCalNote(\''+escHtml(ds)+'\',\''+escHtml(n.id)+'\',event)">' +
+        '<div class="cal-note-item-time">'+escHtml(timeLabel)+'</div>' +
+        '<div class="cal-note-item-text">'+escHtml(preview)+'</div>' +
+        '<button class="cal-note-item-del" onclick="event.stopPropagation();_deleteCalNoteById(\''+escHtml(ds)+'\',\''+escHtml(n.id)+'\')" title="Видалити">🗑</button>' +
+        '</div>';
+    }).join('');
+}
+
+// Очистити форму для нової нотатки
+function newCalNote() {
+  window._calNoteEditId = null;
+  document.getElementById('cal-note-inp').value = '';
+  document.getElementById('cal-note-time').value = '';
+  document.getElementById('cal-note-del').style.display = 'none';
+  document.getElementById('cal-note-new-btn').style.display = 'none';
+  document.getElementById('cal-note-form-label').textContent = '➕ Нова нотатка';
+  document.getElementById('cal-note-inp').focus();
+}
+
+// Редагувати конкретну нотатку
+function editCalNote(ds, noteId, e) {
+  if(e) e.stopPropagation();
+  const notes = getCalNotes(ds);
+  const note = notes.find(n => n.id === noteId);
+  if(!note) return;
+  window._calNoteEditId = noteId;
+  document.getElementById('cal-note-inp').value = note.text;
+  document.getElementById('cal-note-time').value = note.time || '';
+  document.getElementById('cal-note-del').style.display = '';
+  document.getElementById('cal-note-new-btn').style.display = '';
+  document.getElementById('cal-note-form-label').textContent = '✏️ Редагувати нотатку';
+}
+
+// Зберегти нотатку (нову або відредаговану)
 function saveCalNote() {
   const txt = document.getElementById('cal-note-inp').value.trim();
-  const ds  = window._calNoteDate;
-  if(txt) _calNotes[ds] = txt;
-  else    delete _calNotes[ds];
+  const time = document.getElementById('cal-note-time').value || '';
+  const ds = window._calNoteDate;
+  if(!txt) { closeCalNoteModal(); return; }
+
+  // Мігруємо legacy рядок в масив
+  let notes = getCalNotes(ds).filter(n => n.id !== 'legacy');
+  if(typeof _calNotes[ds] === 'string') {
+    // міграція: старий текст залишаємо як першу нотатку
+    const oldText = _calNotes[ds];
+    if(oldText) notes = [{ id: 'n'+Date.now()+'a', text: oldText, time: '' }, ...notes];
+  }
+
+  const editId = window._calNoteEditId;
+  if(editId && editId !== 'legacy') {
+    // Оновлюємо існуючу
+    const idx = notes.findIndex(n => n.id === editId);
+    if(idx >= 0) notes[idx] = { ...notes[idx], text: txt, time };
+    else notes.push({ id: 'n'+Date.now()+Math.random().toString(36).slice(2), text: txt, time });
+  } else {
+    // Додаємо нову
+    notes.push({ id: 'n'+Date.now()+Math.random().toString(36).slice(2), text: txt, time });
+  }
+
+  // Сортуємо по часу
+  notes.sort((a, b) => {
+    const ta = a.time || '23:59', tb = b.time || '23:59';
+    return ta.localeCompare(tb);
+  });
+
+  _calNotes[ds] = notes;
   closeCalNoteModal();
   renderCalendar();
   _renderCalNotesInDeadlines();
   _saveUserSettings();
 }
 
+// Видалити конкретну нотатку по id
+function _deleteCalNoteById(ds, noteId) {
+  let notes = getCalNotes(ds);
+  notes = notes.filter(n => n.id !== noteId);
+  if(notes.length === 0) delete _calNotes[ds];
+  else _calNotes[ds] = notes;
+  _renderCalNotesList(ds);
+  renderCalendar();
+  _renderCalNotesInDeadlines();
+  _saveUserSettings();
+  // Якщо видалили ту що редагуємо — скидаємо форму
+  if(window._calNoteEditId === noteId) newCalNote();
+}
+
+// Видалити поточну нотатку (ту що в формі)
 function deleteCalNote() {
-  delete _calNotes[window._calNoteDate];
-  closeCalNoteModal();
-  renderCalendar();
-  _renderCalNotesInDeadlines();
-  _saveUserSettings();
+  const ds = window._calNoteDate;
+  const editId = window._calNoteEditId;
+  if(editId) {
+    _deleteCalNoteById(ds, editId);
+  } else {
+    delete _calNotes[ds];
+    closeCalNoteModal();
+    renderCalendar();
+    _renderCalNotesInDeadlines();
+    _saveUserSettings();
+  }
 }
 
-function openCalNoteModal(ds, e) {
+function openCalNoteModal(ds, e, noteId) {
   if(e) e.stopPropagation();
   window._calNoteDate = ds;
+  window._calNoteEditId = null;
   const d = new Date(ds+'T12:00:00');
   document.getElementById('cal-note-date-lbl').textContent = d.toLocaleDateString('uk-UA',{weekday:'long',day:'numeric',month:'long'});
-  document.getElementById('cal-note-inp').value = getCalNote(ds);
+
+  // Рендеримо список існуючих
+  _renderCalNotesList(ds);
+
+  // Якщо передано noteId — відразу відкриваємо на редагування
+  if(noteId) {
+    editCalNote(ds, noteId, null);
+    document.getElementById('cal-note-new-btn').style.display = '';
+  } else {
+    // Нова нотатка
+    document.getElementById('cal-note-inp').value = '';
+    document.getElementById('cal-note-time').value = '';
+    document.getElementById('cal-note-del').style.display = 'none';
+    document.getElementById('cal-note-new-btn').style.display = 'none';
+    document.getElementById('cal-note-form-label').textContent = '➕ Нова нотатка';
+  }
+
   const modal = document.getElementById('cal-note-modal');
   modal.style.display = 'flex';
   setTimeout(()=>document.getElementById('cal-note-inp').focus(),50);
-  const del = document.getElementById('cal-note-del');
-  if(del) del.style.display = getCalNote(ds)?'':'none';
 }
+
 function closeCalNoteModal() { document.getElementById('cal-note-modal').style.display='none'; }
 document.addEventListener('keydown', e=>{
   if(e.key==='Escape') closeCalNoteModal();
   if(e.key==='Enter'&&e.ctrlKey&&document.getElementById('cal-note-modal').style.display!=='none') saveCalNote();
 });
 
-// ── ПОКАЗАТИ НОТАТКИ В ДЕДЛАЙНАХ (і на головній) ──
+// ── ПОКАЗАТИ НОТАТКИ В ДЕДЛАЙНАХ — FIX 5: правильний фільтр активних ──
 function _renderCalNotesInDeadlines() {
   const today = new Date(); today.setHours(0,0,0,0);
-  const notes = Object.entries(_calNotes)
-    .filter(([,v])=>v)
-    .sort(([a],[b])=>a.localeCompare(b));
+  const now = new Date();
 
-  // Рендер для сторінки дедлайнів
+  // Збираємо всі нотатки (розгортаємо масиви)
+  const allNoteRows = [];
+  Object.entries(_calNotes).forEach(([ds, val]) => {
+    const notes = getCalNotes(ds);
+    notes.forEach(n => {
+      allNoteRows.push({ ds, note: n });
+    });
+  });
+  allNoteRows.sort((a, b) => {
+    const ta = a.ds + 'T' + (a.note.time || '23:59');
+    const tb = b.ds + 'T' + (b.note.time || '23:59');
+    return ta.localeCompare(tb);
+  });
+
+  // Для сторінки дедлайнів — з урахуванням фільтру
+  const fVal = (document.getElementById('dl-f')||{value:'active'}).value;
   const dlList = document.getElementById('dl-list');
   if(dlList) {
     let noteBlock = document.getElementById('cal-notes-in-dl');
@@ -1953,10 +1930,17 @@ function _renderCalNotesInDeadlines() {
       noteBlock.id = 'cal-notes-in-dl';
       dlList.parentNode.insertBefore(noteBlock, dlList);
     }
-    noteBlock.innerHTML = notes.length ? _buildNoteRows(notes, today, true) : '';
+    const filteredForDl = allNoteRows.filter(({ds, note}) => {
+      const fullDt = new Date(ds + 'T' + (note.time || '23:59'));
+      const isPast = fullDt <= now;
+      if(fVal === 'active') return !isPast;
+      if(fVal === 'past') return isPast;
+      return true; // 'all' або 'urgent'
+    });
+    noteBlock.innerHTML = filteredForDl.length ? _buildNoteRows(filteredForDl, today, now) : '';
   }
 
-  // Рендер для головної (dash-dl — ПЕРЕД дедлайнами)
+  // Для головної — тільки майбутні
   const dashDl = document.getElementById('dash-dl');
   if(dashDl) {
     let dashNotes = document.getElementById('cal-notes-in-dash');
@@ -1965,27 +1949,31 @@ function _renderCalNotesInDeadlines() {
       dashNotes.id = 'cal-notes-in-dash';
       dashDl.parentNode.insertBefore(dashNotes, dashDl);
     }
-    // На головній — тільки майбутні нотатки (не минулі)
-    const futureNotes = notes.filter(([ds]) => new Date(ds+'T12:00:00') >= today);
-    dashNotes.innerHTML = futureNotes.length ? _buildNoteRows(futureNotes, today, false) : '';
+    const futureNotes = allNoteRows.filter(({ds, note}) => {
+      const fullDt = new Date(ds + 'T' + (note.time || '23:59'));
+      return fullDt > now;
+    });
+    dashNotes.innerHTML = futureNotes.length ? _buildNoteRows(futureNotes, today, now) : '';
   }
 }
 
-function _buildNoteRows(notes, today, showPast) {
-  const rows = notes.map(([ds, txt]) => {
+function _buildNoteRows(noteRows, today, now) {
+  const rows = noteRows.map(({ds, note}) => {
+    const fullDt = new Date(ds + 'T' + (note.time || '23:59'));
+    const isPast = fullDt <= now;
     const d = new Date(ds+'T12:00:00');
-    const isPast = d < today;
-    if(isPast && !showPast) return '';
     const isToday = d.toDateString()===today.toDateString();
     const isTomorrow = d.toDateString()===new Date(today.getTime()+86400000).toDateString();
     const label = isToday ? '<span class="tag r">Сьогодні</span>' :
                   isTomorrow ? '<span class="tag y">Завтра</span>' :
                   isPast ? '<span class="tag" style="background:var(--bg3);color:var(--text2);">Минуло</span>' : '';
     const dateStr = d.toLocaleDateString('uk-UA',{day:'numeric',month:'short'});
-    return `<div class="dl-item" onclick="openCalNoteModal('${escHtml(ds)}',event)" style="${isPast?'opacity:.5':''}">
+    const timePrefix = note.time ? note.time + ' • ' : '';
+    const preview = note.text.length > 70 ? note.text.slice(0,70)+'…' : note.text;
+    return `<div class="dl-item" onclick="openCalNoteModal('${escHtml(ds)}',event,'${escHtml(note.id)}')" style="${isPast?'opacity:.5':''}">
       <div class="dl-dot" style="background:var(--accent);box-shadow:0 0 5px rgba(240,192,64,.4);"></div>
       <div class="dl-info">
-        <div class="dl-name">✏️ ${escHtml(txt.length>70?txt.slice(0,70)+'…':txt)}</div>
+        <div class="dl-name">✏️ ${escHtml(timePrefix+preview)}</div>
         <div class="dl-course">Нотатка в календарі</div>
       </div>
       <div class="dl-right">
@@ -2015,16 +2003,20 @@ function dlDateCls(d) {
 }
 function fmtDate(ts) { return new Date(ts*1000).toLocaleDateString('uk-UA',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}); }
 
+// FIX 5: правильний фільтр активних/минулих з урахуванням часу
 function applyDlFilter() {
   const q=(document.getElementById('dl-q')||{value:''}).value.toLowerCase();
   const f=(document.getElementById('dl-f')||{value:'active'}).value;
-  const now=Date.now()/1000;
+  const now = Date.now()/1000;
   let list=allDl.filter(d=>!_dlDeleted.includes(String(d.id)));
   list=list.filter(d=>!q||d.name.toLowerCase().includes(q)||d.course.toLowerCase().includes(q));
-  if(f==='active') list=list.filter(d=>!d.past);
-  else if(f==='urgent') list=list.filter(d=>!d.past&&(d.due-now)<_dlUrgentH*3600);
-  else if(f==='past') list=list.filter(d=>d.past);
+  if(f==='active') list=list.filter(d=>d.due > now);
+  else if(f==='urgent') list=list.filter(d=>d.due > now && (d.due-now)<_dlUrgentH*3600);
+  else if(f==='past') list=list.filter(d=>d.due <= now);
+  // Оновлюємо .past для коректного відображення
+  list = list.map(d => ({ ...d, past: d.due <= now }));
   renderDl(list, document.getElementById('dl-list'));
+  _renderCalNotesInDeadlines();
 }
 
 function renderDl(list, el) {
@@ -2035,11 +2027,11 @@ function renderDl(list, el) {
     const hasUrl=d.url&&d.url!=='#';
     const diff = d.due - now;
     let tag = '';
-    if(d.past) tag='<span class="tag r">Минув</span>';
+    if(d.past||d.due<=now) tag='<span class="tag r">Минув</span>';
     else if(diff < _dlUrgentH*3600) tag='<span class="tag r">🔴 Термін!</span>';
     else if(diff < 86400*2) tag='<span class="tag y">Завтра</span>';
     return '<div class="dl-item'+(hasUrl?' click':'')+'"'+
-      (hasUrl?' onclick="window.open(this.dataset.url)" data-url="'+escHtml(d.url)+'"':'')+(d.past?' style="opacity:.6"':'')+'>'+
+      (hasUrl?' onclick="window.open(this.dataset.url)" data-url="'+escHtml(d.url)+'"':'')+(d.past||d.due<=now?' style="opacity:.6"':'')+'>'+
       '<div class="dl-dot '+dc+'"></div>'+
       '<div class="dl-info"><div class="dl-name">'+escHtml(d.name)+(hasUrl?' <span style="opacity:.35;font-size:9px">↗</span>':'')+'</div>'+
       '<div class="dl-course">'+escHtml(d.course)+'</div></div>'+
@@ -2054,7 +2046,8 @@ function renderDl(list, el) {
 function renderDashDl() {
   const el=document.getElementById('dash-dl');
   const dlDel=typeof _dlDeleted!=='undefined'?_dlDeleted:[];
-  const top=allDl.filter(d=>!d.past&&!dlDel.includes(String(d.id))).slice(0,5);
+  const now = Date.now()/1000;
+  const top=allDl.filter(d=>d.due>now&&!dlDel.includes(String(d.id))).slice(0,5);
   if(!top.length){el.innerHTML='<div class="empty"><div class="emo">🎉</div><p>Немає активних дедлайнів!</p></div>';return;}
   renderDl(top,el);
 }
@@ -2062,28 +2055,21 @@ function renderDashDl() {
 // ── FILES ──
 function listenFiles() {
   if(!window._db||!group.id) return;
-  const {collection,query,where,orderBy,onSnapshot}=window._fb;
+  const {collection,query,where,onSnapshot}=window._fb;
   const q=query(collection(window._db,'files'),where('groupId','==',group.id));
   const unsub=onSnapshot(q,snap=>{
     cachedFiles=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
     checkFileNotifs(cachedFiles);
-    renderFiles(cachedFiles);
     renderFilesWithSearch(cachedFiles, filesSearchQuery);
     document.getElementById('s-files').textContent=cachedFiles.length;
-  },err=>{ 
-    console.warn('Files listener error:', err);
-    document.getElementById('files-list').innerHTML='<div class="empty"><div class="emo">⚠️</div><p>Помилка завантаження файлів. Можливо, потрібен індекс Firestore.</p></div>'; 
-  });
+  },err=>{ document.getElementById('files-list').innerHTML='<div class="empty"><div class="emo">⚠️</div><p>Помилка завантаження файлів.</p></div>'; });
   unsubs.push(unsub);
 }
 function handleFileSelect(inp) { Array.from(inp.files).forEach(uploadFile); inp.value=''; }
 function handleDrop(e) { e.preventDefault(); document.getElementById('uz').classList.remove('drag'); Array.from(e.dataTransfer.files).forEach(uploadFile); }
 async function uploadFile(file) {
-  const MAX = 700 * 1024; // ~700KB safe Firestore limit
-  if(file.size > MAX){
-    alert('Файл більше 700КБ (\'' + file.name + '\'). Firestore не підтримує великі файли напряму.\n\nЗавантаж файл на Google Drive і додай посилання через розділ "Матеріали".');
-    return;
-  }
+  const MAX = 700 * 1024;
+  if(file.size > MAX){ alert('Файл більше 700КБ (\'' + file.name + '\'). Завантаж на Google Drive і додай через Матеріали.'); return; }
   if(!window._db){alert('Firebase не готовий');return;}
   const uz=document.getElementById('uz');
   uz.innerHTML='<div class="ui">⏳</div><p>Завантаження ' + escHtml(file.name) + '...</p>';
@@ -2097,11 +2083,8 @@ async function uploadFile(file) {
         uploader:userData.fullname||'Студент',
         createdAt:Date.now(), dataUrl:e.target.result
       });
-    } catch(err){
-      console.error('Upload error:', err);
-      alert('Помилка завантаження: ' + err.message);
-    }
-    uz.innerHTML='<div class="ui">📤</div><p><strong>Натисніть або перетягніть</strong></p><p style="font-size:10px;margin-top:2px;">до 700КБ • більші файли — через Google Drive у Матеріали</p>';
+    } catch(err){ alert('Помилка завантаження: ' + err.message); }
+    uz.innerHTML='<div class="ui">📤</div><p><strong>Натисніть або перетягніть</strong></p><p style="font-size:10px;margin-top:2px;">до 700КБ</p>';
   };
   reader.readAsDataURL(file);
 }
@@ -2125,22 +2108,17 @@ function renderFiles(files) {
 async function dlFile(id) { const f=cachedFiles.find(x=>x.id===id); if(!f||!f.dataUrl)return; const a=document.createElement('a');a.href=f.dataUrl;a.download=f.name;a.click(); }
 async function rmFile(id) { 
   if(!confirm('Видалити файл?'))return; 
-  try {
-    const {doc,deleteDoc}=window._fb; 
-    await deleteDoc(doc(window._db,'files',id));
-  } catch(e) { alert('Помилка видалення: ' + e.message); }
+  try { const {doc,deleteDoc}=window._fb; await deleteDoc(doc(window._db,'files',id)); }
+  catch(e) { alert('Помилка видалення: ' + e.message); }
 }
 
 // ── MATERIALS ──
 function listenMats() {
   if(!window._db||!group.id) return;
-  const {collection,query,where,orderBy,onSnapshot}=window._fb;
+  const {collection,query,where,onSnapshot}=window._fb;
   const q=query(collection(window._db,'materials'),where('groupId','==',group.id));
   const unsub=onSnapshot(q,snap=>{ cachedMats=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(b.createdAt||0)-(a.createdAt||0)); renderMats(cachedMats); },
-  err=>{ 
-    console.warn('Materials listener error:', err);
-    document.getElementById('mats-list').innerHTML='<div class="empty"><div class="emo">⚠️</div><p>Помилка завантаження матеріалів.</p></div>'; 
-  });
+  err=>{ document.getElementById('mats-list').innerHTML='<div class="empty"><div class="emo">⚠️</div><p>Помилка завантаження матеріалів.</p></div>'; });
   unsubs.push(unsub);
 }
 function filterMats(q) { renderMats(cachedMats,q.toLowerCase()); }
@@ -2159,15 +2137,13 @@ function renderMats(list,q='') {
     '</div></div>'
   ).join('')+'</div>';
 }
+
 let _groupModalMode = 'create';
 let _groupEditId = null;
 
 function groupModalAction() {
-  if(_groupModalMode === 'edit' && _groupEditId) {
-    _doEditGroup(_groupEditId);
-  } else {
-    createGroup();
-  }
+  if(_groupModalMode === 'edit' && _groupEditId) _doEditGroup(_groupEditId);
+  else createGroup();
 }
 
 async function _doEditGroup(id) {
@@ -2183,13 +2159,11 @@ async function _doEditGroup(id) {
   await updateDoc(doc(window._db,'groups',id), {name, faculty, course, entryYear, manualCourse});
   closeModal('add-group');
   ['gn','gf','gc'].forEach(i=>document.getElementById(i).value='');
-  if(window._loadGroupsForLogin) window._loadGroupsForLogin();
 }
 
 function showModal(id) { 
   if(id==='add-group') {
-    _groupModalMode = 'create';
-    _groupEditId = null;
+    _groupModalMode = 'create'; _groupEditId = null;
     document.querySelector('#modal-add-group h3').textContent = '🏫 Створити групу';
     document.getElementById('group-modal-btn').textContent = 'Створити';
   }
@@ -2208,10 +2182,8 @@ async function addMat() {
 }
 async function rmMat(id) { 
   if(!confirm('Видалити матеріал?'))return; 
-  try {
-    const {doc,deleteDoc}=window._fb; 
-    await deleteDoc(doc(window._db,'materials',id));
-  } catch(e) { alert('Помилка видалення: ' + e.message); }
+  try { const {doc,deleteDoc}=window._fb; await deleteDoc(doc(window._db,'materials',id)); }
+  catch(e) { alert('Помилка видалення: ' + e.message); }
 }
 
 // ── CHAT ──
@@ -2234,15 +2206,12 @@ function openChatRoom(roomId, label) {
   const activeRoom=document.querySelector('[data-roomid="'+roomId+'"]');
   if(activeRoom) activeRoom.classList.add('active');
   if(chatUnsub) chatUnsub();
-  const {collection,query,orderBy,onSnapshot,where,limit}=window._fb;
+  const {collection,query,where,onSnapshot,limit}=window._fb;
   const q=query(collection(window._db,'messages'),where('room','==',roomId),limit(50));
   chatUnsub=onSnapshot(q,snap=>{
     const msgs=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(a.ts||0)-(b.ts||0));
     renderMessages(msgs);
-  }, err=>{
-    console.warn('Chat listener error:', err);
-    document.getElementById('chat-msgs').innerHTML='<div class="empty"><div class="emo">⚠️</div><p>Помилка завантаження чату</p></div>';
-  });
+  }, err=>{ document.getElementById('chat-msgs').innerHTML='<div class="empty"><div class="emo">⚠️</div><p>Помилка завантаження чату</p></div>'; });
 }
 function renderMessages(msgs) {
   const el=document.getElementById('chat-msgs');
@@ -2263,12 +2232,10 @@ function renderMessages(msgs) {
   }).join('');
   el.scrollTop=el.scrollHeight;
 }
-// escHtml defined at top of script
 function chatKey(e) { if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMsg();} }
 function autoResizeChat(el) { el.style.height='auto'; el.style.height=Math.min(el.scrollHeight,140)+'px'; }
 
 let _chatFile = null;
-
 function handleChatFile(inp) {
   const file = inp.files[0];
   if(!file) return;
@@ -2294,7 +2261,6 @@ function handleChatPaste(e) {
   }
 }
 
-// ── TELEGRAM-STYLE LIGHTBOX ──
 function _base64ToBlob(src) {
   try {
     const arr = src.split(','), mime = arr[0].match(/:(.*?);/)[1];
@@ -2305,90 +2271,52 @@ function _base64ToBlob(src) {
   } catch(e) { return src; }
 }
 function openLightbox(src, filename) {
-  const lb  = document.getElementById('lightbox');
-  const img = document.getElementById('lightbox-img');
-  const dl  = document.getElementById('lightbox-download');
-  const fn  = document.getElementById('lightbox-filename');
-  if(!lb || !img) return;
-
-  // Reset
-  img.src = '';
-
-  // Convert base64 → blob (fixes iOS white screen)
-  const blobUrl = src && src.startsWith('data:') ? _base64ToBlob(src) : src;
-  img.src = blobUrl;
-
-  // Download button
-  if(dl) { dl.href = blobUrl; dl.download = filename || 'image'; }
-  if(fn) fn.textContent = filename || '';
-
-  // Show
-  lb.style.display = 'block';
-  lb.style.overflowY = 'auto';
-  document.body.style.overflow = 'hidden';
-  document.body.style.position = 'fixed';
-  document.body.style.width = '100%';
-  document.addEventListener('keydown', _lbKey);
-
-  // Close on backdrop tap
-  lb.onclick = function(e) { if(e.target===lb||e.target===lb.firstElementChild) closeLightbox(); };
-
-  const closeBtn = document.getElementById('lightbox-close');
-  if(closeBtn) {
-    closeBtn.onclick = closeBtn.ontouchend = function(e) {
-      e.stopPropagation(); closeLightbox();
-    };
-  }
-
-  // Pinch-to-zoom on mobile (simple scale)
-  let _lbScale = 1, _lbDist0 = 0;
-  img.addEventListener('touchstart', function(e) {
-    if(e.touches.length===2) {
-      _lbDist0 = Math.hypot(e.touches[0].clientX-e.touches[1].clientX, e.touches[0].clientY-e.touches[1].clientY);
-    }
-  }, {passive:true});
-  img.addEventListener('touchmove', function(e) {
-    if(e.touches.length===2) {
-      const d = Math.hypot(e.touches[0].clientX-e.touches[1].clientX, e.touches[0].clientY-e.touches[1].clientY);
-      if(_lbDist0) { _lbScale = Math.min(Math.max(_lbScale*(d/_lbDist0), 0.5), 4); img.style.transform='scale('+_lbScale+')'; _lbDist0=d; }
-    }
-  }, {passive:true});
-  img.ondblclick = function() { _lbScale=_lbScale>1?1:2; img.style.transform='scale('+_lbScale+')'; };
+  const lb=document.getElementById('lightbox');
+  const img=document.getElementById('lightbox-img');
+  const dl=document.getElementById('lightbox-download');
+  const fn=document.getElementById('lightbox-filename');
+  if(!lb||!img) return;
+  img.src='';
+  const blobUrl=src&&src.startsWith('data:')?_base64ToBlob(src):src;
+  img.src=blobUrl;
+  if(dl){dl.href=blobUrl;dl.download=filename||'image';}
+  if(fn) fn.textContent=filename||'';
+  lb.style.display='block'; lb.style.overflowY='auto';
+  document.body.style.overflow='hidden'; document.body.style.position='fixed'; document.body.style.width='100%';
+  document.addEventListener('keydown',_lbKey);
+  lb.onclick=function(e){if(e.target===lb||e.target===lb.firstElementChild)closeLightbox();};
+  const closeBtn=document.getElementById('lightbox-close');
+  if(closeBtn){closeBtn.onclick=closeBtn.ontouchend=function(e){e.stopPropagation();closeLightbox();};}
+  let _lbScale=1,_lbDist0=0;
+  img.addEventListener('touchstart',function(e){if(e.touches.length===2)_lbDist0=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);},{passive:true});
+  img.addEventListener('touchmove',function(e){if(e.touches.length===2){const d=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);if(_lbDist0){_lbScale=Math.min(Math.max(_lbScale*(d/_lbDist0),.5),4);img.style.transform='scale('+_lbScale+')';_lbDist0=d;}}},{passive:true});
+  img.ondblclick=function(){_lbScale=_lbScale>1?1:2;img.style.transform='scale('+_lbScale+')';};
 }
-function closeLightbox() {
-  const lb  = document.getElementById('lightbox');
-  const img = document.getElementById('lightbox-img');
-  if(!lb) return;
-  if(img.src && img.src.startsWith('blob:')) URL.revokeObjectURL(img.src);
-  img.src = '';
-  img.style.transform = 'scale(1)';
-  lb.style.display = 'none';
-  document.body.style.overflow = '';
-  document.body.style.position = '';
-  document.body.style.width = '';
-  document.removeEventListener('keydown', _lbKey);
+function closeLightbox(){
+  const lb=document.getElementById('lightbox');const img=document.getElementById('lightbox-img');
+  if(!lb)return;
+  if(img.src&&img.src.startsWith('blob:'))URL.revokeObjectURL(img.src);
+  img.src='';img.style.transform='scale(1)';lb.style.display='none';
+  document.body.style.overflow='';document.body.style.position='';document.body.style.width='';
+  document.removeEventListener('keydown',_lbKey);
 }
-function _lbKey(e) { if(e.key==='Escape') closeLightbox(); }
+function _lbKey(e){if(e.key==='Escape')closeLightbox();}
 
-function clearChatFile() {
-  _chatFile = null;
-  document.getElementById('chat-file-preview').style.display = 'none';
-}
+function clearChatFile() { _chatFile=null; document.getElementById('chat-file-preview').style.display='none'; }
 
 async function sendMsg() {
   if(!currentChatRoom)return;
   const inp=document.getElementById('chat-inp');
   const text=inp.value.trim();
-  if(!text && !_chatFile)return;
+  if(!text&&!_chatFile)return;
   inp.value=''; inp.style.height='40px';
   const {collection,addDoc}=window._fb;
-  let fileData = null;
+  let fileData=null;
   if(_chatFile) {
-    fileData = await new Promise((res,rej)=>{
-      const r = new FileReader();
-      r.onload = ev => res({ name: _chatFile.name||'file', type: _chatFile.type||'', data: ev.target.result });
-      r.onerror = rej;
-      r.readAsDataURL(_chatFile);
+    fileData=await new Promise((res,rej)=>{
+      const r=new FileReader();
+      r.onload=ev=>res({name:_chatFile.name||'file',type:_chatFile.type||'',data:ev.target.result});
+      r.onerror=rej; r.readAsDataURL(_chatFile);
     });
     clearChatFile();
   }
@@ -2404,33 +2332,24 @@ async function sendMsg() {
 
 async function delMsg(id) {
   if(!canMod()&&!confirm('Видалити своє повідомлення?'))return;
-  try {
-    const {doc,deleteDoc}=window._fb;
-    await deleteDoc(doc(window._db,'messages',id));
-  } catch(e){ alert('Помилка: '+e.message); }
+  try { const {doc,deleteDoc}=window._fb; await deleteDoc(doc(window._db,'messages',id)); }
+  catch(e){ alert('Помилка: '+e.message); }
 }
 
 // ── ADMIN ──
 function listenAdminData() {
   if(!window._db)return;
   const {collection,query,onSnapshot,orderBy}=window._fb;
-  // Groups
   onSnapshot(query(collection(window._db,'groups'),orderBy('name')),snap=>{
     const groups=snap.docs.map(d=>({id:d.id,...d.data()}));
     renderAdminGroups(groups);
-  }, err=>{ console.warn('Admin groups error:',err); document.getElementById('admin-groups-list').innerHTML='<div class="empty"><p>Помилка завантаження груп</p></div>'; });
-  // Users
+  },err=>{ document.getElementById('admin-groups-list').innerHTML='<div class="empty"><p>Помилка</p></div>'; });
   onSnapshot(collection(window._db,'users'),snap=>{
     const users=snap.docs.map(d=>({id:d.id,...d.data()}));
-    _allAdminUsers = users;
-    const q = (document.getElementById('users-search')||{value:''}).value;
+    _allAdminUsers=users;
+    const q=(document.getElementById('users-search')||{value:''}).value;
     filterAdminUsers(q);
-    document.getElementById('admin-stats').innerHTML=
-      '<div style="font-size:13px;line-height:2;">'+
-      '👥 Користувачів: <b>'+users.length+'</b><br>'+
-      '🏫 Груп: <b>—</b><br>'+
-      '📁 Файлів: <b>—</b>'+
-      '</div>';
+    document.getElementById('admin-stats').innerHTML='<div style="font-size:13px;line-height:2;">👥 Користувачів: <b>'+users.length+'</b><br>🏫 Груп: <b>—</b><br>📁 Файлів: <b>—</b></div>';
   });
 }
 function renderAdminGroups(groups) {
@@ -2438,22 +2357,15 @@ function renderAdminGroups(groups) {
   if(!groups.length){el.innerHTML='<div class="empty"><p>Груп ще немає</p></div>';return;}
   el.innerHTML=groups.map(g=>
     '<div class="group-item">'+
-    '<div>'+
-      '<div class="gname">'+escHtml(g.name)+'</div>'+
-      '<div class="gcnt">'+escHtml(g.faculty||'—')+' • Курс '+escHtml(String(getGroupCourse(g)))+(g.entryYear?' 🔄':'')+'</div>'+
-    '</div>'+
+    '<div><div class="gname">'+escHtml(g.name)+'</div><div class="gcnt">'+escHtml(g.faculty||'—')+' • Курс '+escHtml(String(getGroupCourse(g)))+'</div></div>'+
     '<div style="display:flex;gap:3px;flex-shrink:0;">'+
     '<button class="btn" onclick="editGroup(this.dataset.id,this.dataset.name,this.dataset.faculty,this.dataset.course)" data-id="'+escHtml(g.id)+'" data-name="'+escHtml(g.name)+'" data-faculty="'+escHtml(g.faculty||'')+'" data-course="'+escHtml(String(g.course||'1'))+'">✏️</button>'+
     '<button class="btn d" onclick="delGroup(this.dataset.id)" data-id="'+escHtml(g.id)+'">🗑</button>'+
-    '</div>'+
-    '</div>'
+    '</div></div>'
   ).join('');
 }
-let _allAdminUsers = [];
-function filterAdminUsers(q) {
-  const filtered = q ? _allAdminUsers.filter(u => (u.name||'').toLowerCase().includes(q.toLowerCase())) : _allAdminUsers;
-  renderAdminUsers(filtered);
-}
+let _allAdminUsers=[];
+function filterAdminUsers(q){ const filtered=q?_allAdminUsers.filter(u=>(u.name||'').toLowerCase().includes(q.toLowerCase())):_allAdminUsers; renderAdminUsers(filtered); }
 function renderAdminUsers(users) {
   const el=document.getElementById('admin-users-list');
   if(!users.length){el.innerHTML='<div class="empty"><p>Користувачів ще немає</p></div>';return;}
@@ -2468,140 +2380,121 @@ function renderAdminUsers(users) {
     '</div>'
   ).join('');
 }
-async function setRole(uid, role) {
-  const {doc,updateDoc}=window._fb;
-  await updateDoc(doc(window._db,'users',uid),{role});
-}
+async function setRole(uid,role){ const {doc,updateDoc}=window._fb; await updateDoc(doc(window._db,'users',uid),{role}); }
 async function createGroup() {
   const name=document.getElementById('gn').value.trim();
   const faculty=document.getElementById('gf').value.trim();
   const course=parseInt(document.getElementById('gc').value)||1;
   if(!name)return;
   const {collection,addDoc}=window._fb;
-  // For courses 1-4: calc entryYear so it auto-updates each August
-  // For courses 5-6: save as manualCourse so it never auto-changes
-  const now = new Date();
-  const acadYear = now.getMonth() >= 7 ? now.getFullYear() : now.getFullYear() - 1;
-  const entryYear = course <= 4 ? acadYear - course + 1 : null;
-  const manualCourse = course > 4 ? course : null;
+  const now=new Date();
+  const acadYear=now.getMonth()>=7?now.getFullYear():now.getFullYear()-1;
+  const entryYear=course<=4?acadYear-course+1:null;
+  const manualCourse=course>4?course:null;
   await addDoc(collection(window._db,'groups'),{name,faculty,course,entryYear,manualCourse,createdAt:Date.now()});
   closeModal('add-group');
   ['gn','gf','gc'].forEach(id=>document.getElementById(id).value='');
-  if(window._loadGroupsForLogin) window._loadGroupsForLogin();
 }
-function editGroup(id, name, faculty, course) {
-  _groupModalMode = 'edit';
-  _groupEditId = id;
-  document.getElementById('gn').value = name;
-  document.getElementById('gf').value = faculty;
-  document.getElementById('gc').value = course;
-  document.querySelector('#modal-add-group h3').textContent = '✏️ Редагувати групу';
-  document.getElementById('group-modal-btn').textContent = 'Зберегти';
+function editGroup(id,name,faculty,course){
+  _groupModalMode='edit'; _groupEditId=id;
+  document.getElementById('gn').value=name; document.getElementById('gf').value=faculty; document.getElementById('gc').value=course;
+  document.querySelector('#modal-add-group h3').textContent='✏️ Редагувати групу';
+  document.getElementById('group-modal-btn').textContent='Зберегти';
   document.getElementById('modal-add-group').classList.add('show');
 }
-
-async function delGroup(id) {
-  if(!confirm('Видалити групу? Файли та матеріали залишаться.'))return;
-  const {doc,deleteDoc}=window._fb;
-  await deleteDoc(doc(window._db,'groups',id));
-}
+async function delGroup(id){ if(!confirm('Видалити групу?'))return; const {doc,deleteDoc}=window._fb; await deleteDoc(doc(window._db,'groups',id)); }
 
 // ── NAV ──
 const PAGE_TITLES={dashboard:'Головна',deadlines:'Дедлайни',courses:'Курси',files:'Файли',materials:'Матеріали',chat:'Чати',admin:'Адмін-панель',calendar:'Календар',notes:'Нотатки',assistant:'Асистент',notifications:'Сповіщення'};
 function go(name) {
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
-  const pg = document.getElementById('page-'+name);
+  const pg=document.getElementById('page-'+name);
   if(!pg) return;
   pg.classList.add('active');
   const labels={dashboard:'Голов',deadlines:'Дедл',courses:'Курс',files:'Файл',materials:'Матер',chat:'Чат',admin:'Адмін',calendar:'Календ',notes:'Нотат',assistant:'Асист',notifications:'Сповіщ'};
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.toggle('active',n.textContent.trim().startsWith(labels[name]||'_')));
   document.getElementById('topbar-title').textContent=PAGE_TITLES[name]||name;
-  // grades removed
   if(name==='calendar') renderCalendar();
   if(name==='notes') loadNotes();
-  // assistant page
-  if(name==='notifications') { markAllRead(); }
+  if(name==='notifications') markAllRead();
   closeSidebar();
 }
 
-// ── MOBILE SIDEBAR ──
-function setBnav(name) {
-  document.querySelectorAll('.bnav-item').forEach(b => b.classList.remove('active'));
-  const el = document.getElementById('bn-'+name);
+function setBnav(name){
+  document.querySelectorAll('.bnav-item').forEach(b=>b.classList.remove('active'));
+  const el=document.getElementById('bn-'+name);
   if(el) el.classList.add('active');
 }
 
-function openSidebar() { document.getElementById('sidebar').classList.add('open'); document.getElementById('sov').classList.add('show'); }
-function closeSidebar() { document.getElementById('sidebar').classList.remove('open'); document.getElementById('sov').classList.remove('show'); }
+function openSidebar(){document.getElementById('sidebar').classList.add('open');document.getElementById('sov').classList.add('show');}
+function closeSidebar(){document.getElementById('sidebar').classList.remove('open');document.getElementById('sov').classList.remove('show');}
 
-// ── THEME ──
-function toggleTheme() {
+function toggleTheme(){
   const t=document.documentElement.getAttribute('data-theme')==='dark'?'light':'dark';
   document.documentElement.setAttribute('data-theme',t);
   localStorage.setItem('sh_theme',t);
   updateThemeIcon(t);
 }
-function updateThemeIcon(t) {
-  const icon = t==='dark' ? '🌙' : '☀️';
+function updateThemeIcon(t){
+  const icon=t==='dark'?'🌙':'☀️';
   const b1=document.getElementById('theme-btn');
   const b2=document.getElementById('theme-btn-top');
-  if(b1) b1.textContent=icon;
-  if(b2) b2.textContent=icon;
+  if(b1)b1.textContent=icon;
+  if(b2)b2.textContent=icon;
 }
 const st=localStorage.getItem('sh_theme');
-if(st) { document.documentElement.setAttribute('data-theme',st); updateThemeIcon(st); }
-
+if(st){document.documentElement.setAttribute('data-theme',st);updateThemeIcon(st);}
 
 // ═══ CALENDAR ═══
 let calDate = new Date();
 const CAL_DAYS = ['Пн','Вт','Ср','Чт','Пт','Сб','Нд'];
 const CAL_MONTHS = ['Січень','Лютий','Березень','Квітень','Травень','Червень','Липень','Серпень','Вересень','Жовтень','Листопад','Грудень'];
 
-// ── CALENDAR USER NOTES functions moved above (Firestore sync) ──
-
 function renderCalendar() {
-  const year = calDate.getFullYear(), month = calDate.getMonth();
-  document.getElementById('cal-title').textContent = CAL_MONTHS[month] + ' ' + year;
-  const firstDay = new Date(year, month, 1);
-  const lastDay = new Date(year, month+1, 0);
-  let startDow = (firstDay.getDay()+6)%7;
-  const today = new Date(); today.setHours(0,0,0,0);
-  const nowTs = Date.now()/1000;
-  const dlDeleted = typeof _dlDeleted!=='undefined' ? _dlDeleted : [];
+  const year=calDate.getFullYear(), month=calDate.getMonth();
+  document.getElementById('cal-title').textContent=CAL_MONTHS[month]+' '+year;
+  const firstDay=new Date(year,month,1);
+  const lastDay=new Date(year,month+1,0);
+  let startDow=(firstDay.getDay()+6)%7;
+  const today=new Date(); today.setHours(0,0,0,0);
+  const nowTs=Date.now()/1000;
+  const dlDeleted=typeof _dlDeleted!=='undefined'?_dlDeleted:[];
 
-  let html = '<div class="cal-grid">';
-  CAL_DAYS.forEach(d => html += '<div class="cal-header-cell">'+d+'</div>');
+  let html='<div class="cal-grid">';
+  CAL_DAYS.forEach(d=>html+='<div class="cal-header-cell">'+d+'</div>');
 
-  for(let i=0;i<startDow;i++) {
-    const pDate = new Date(year,month,-startDow+i+1);
-    html += '<div class="cal-cell other-month"><div class="cal-day-num">'+pDate.getDate()+'</div></div>';
+  for(let i=0;i<startDow;i++){
+    const pDate=new Date(year,month,-startDow+i+1);
+    html+='<div class="cal-cell other-month"><div class="cal-day-num">'+pDate.getDate()+'</div></div>';
   }
 
-  for(let d=1;d<=lastDay.getDate();d++) {
-    const cellDate = new Date(year,month,d); cellDate.setHours(0,0,0,0);
-    const isToday = cellDate.getTime()===today.getTime();
-    const dateStr = year+'-'+String(month+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');
-    const dayStart = cellDate.getTime()/1000;
-    const dayEnd = dayStart+86400;
-    const urgH = typeof _dlUrgentH!=='undefined'?_dlUrgentH:48;
-    const warnD = typeof _dlWarnD!=='undefined'?_dlWarnD:7;
-    const dayDl = allDl.filter(dl=>!dlDeleted.includes(String(dl.id))&&dl.due>=dayStart&&dl.due<dayEnd);
-    const userNote = getCalNote(dateStr);
-    const hasAny = dayDl.length>0||!!userNote;
+  for(let d=1;d<=lastDay.getDate();d++){
+    const cellDate=new Date(year,month,d); cellDate.setHours(0,0,0,0);
+    const isToday=cellDate.getTime()===today.getTime();
+    const dateStr=year+'-'+String(month+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');
+    const dayStart=cellDate.getTime()/1000;
+    const dayEnd=dayStart+86400;
+    const urgH=typeof _dlUrgentH!=='undefined'?_dlUrgentH:48;
+    const warnD=typeof _dlWarnD!=='undefined'?_dlWarnD:7;
+    const dayDl=allDl.filter(dl=>!dlDeleted.includes(String(dl.id))&&dl.due>=dayStart&&dl.due<dayEnd);
+    const dayNotes=getCalNotes(dateStr);
+    const hasAny=dayDl.length>0||dayNotes.length>0;
 
-    html += '<div class="cal-cell'+(isToday?' today':'')+(hasAny?' has-events':'')+'">';
-    html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:2px;">';
-    html += '<div class="cal-day-num">'+d+'</div>';
-    html += '<button data-date="'+dateStr+'" onclick="openCalNoteModal(this.dataset.date,event)" title="Нотатка" style="background:none;border:none;color:var(--text2);font-size:11px;cursor:pointer;padding:0 2px;opacity:.4;line-height:1;transition:opacity .15s;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=.4">＋</button>';
-    html += '</div>';
+    html+='<div class="cal-cell'+(isToday?' today':'')+(hasAny?' has-events':'')+'">';
+    html+='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:2px;">';
+    html+='<div class="cal-day-num">'+d+'</div>';
+    html+='<button data-date="'+dateStr+'" onclick="openCalNoteModal(this.dataset.date,event)" title="Нотатка" style="background:none;border:none;color:var(--text2);font-size:11px;cursor:pointer;padding:0 2px;opacity:.4;line-height:1;transition:opacity .15s;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=.4">＋</button>';
+    html+='</div>';
 
-    if(userNote) {
-      const prev = userNote.length>28?userNote.slice(0,28)+'…':userNote;
-      html += '<div class="cal-event" data-date="'+dateStr+'" onclick="openCalNoteModal(this.dataset.date,event)" style="background:rgba(240,192,64,.15);color:var(--accent);border:1px solid rgba(240,192,64,.25);cursor:pointer;" title="'+escHtml(userNote)+'" data-full="'+escHtml(userNote)+'">✏️ '+escHtml(prev)+'</div>';
-    }
+    // Показуємо всі нотатки (з часом якщо є)
+    dayNotes.forEach(un => {
+      const tpfx = un.time ? un.time+' ' : '';
+      const prev = (tpfx+un.text).length>22?(tpfx+un.text).slice(0,22)+'…':(tpfx+un.text);
+      html+='<div class="cal-event" data-date="'+dateStr+'" data-nid="'+escHtml(un.id)+'" onclick="openCalNoteModal(this.dataset.date,event,this.dataset.nid)" style="background:rgba(240,192,64,.15);color:var(--accent);border:1px solid rgba(240,192,64,.25);cursor:pointer;" title="'+escHtml(un.text)+'" data-full="'+escHtml(un.text)+'">✏️ '+escHtml(prev)+'</div>';
+    });
 
     dayDl.slice(0,2).forEach(dl=>{
-      const diff=dl.due-nowTs, isPast=dl.due<nowTs;
+      const diff=dl.due-nowTs,isPast=dl.due<nowTs;
       const cls=isPast?'cal-ev-past':diff<urgH*3600?'cal-ev-urgent':diff<warnD*86400?'cal-ev-soon':'cal-ev-ok';
       const onclk=dl.url&&dl.url!=='#'?'onclick="window.open(this.dataset.url)" data-url="'+escHtml(dl.url)+'"':'';
       html+='<div class="cal-event '+cls+'" '+onclk+' title="'+escHtml(dl.name)+'" data-full="'+escHtml(dl.name+(dl.course?'\n'+dl.course:''))+'">'+escHtml(dl.name)+'</div>';
@@ -2624,132 +2517,36 @@ function renderCalendar() {
   document.getElementById('cal-grid').innerHTML=html;
 }
 
-function expandCalCell(btn, e) {
+function expandCalCell(btn,e){
   e.stopPropagation();
-  const cell = btn.closest('.cal-cell');
+  const cell=btn.closest('.cal-cell');
   cell.classList.toggle('expanded');
-  cell.querySelectorAll('.cal-hidden').forEach(el => {
-    el.style.display = cell.classList.contains('expanded') ? 'block' : 'none';
-  });
-  btn.textContent = cell.classList.contains('expanded') ? '▲ Сховати' : '+' + btn.dataset.count + ' ще';
+  cell.querySelectorAll('.cal-hidden').forEach(el=>{ el.style.display=cell.classList.contains('expanded')?'block':'none'; });
+  btn.textContent=cell.classList.contains('expanded')?'▲ Сховати':'+'+btn.dataset.count+' ще';
 }
 
-function calPrev() { calDate.setMonth(calDate.getMonth() - 1); renderCalendar(); }
-function calNext() { calDate.setMonth(calDate.getMonth() + 1); renderCalendar(); }
-function calToday() { calDate = new Date(); renderCalendar(); }
-
-// ═══ GRADES ═══
-let allGrades = [], gradesByCourse = {};
-
-async function loadGrades() {
-  const el = document.getElementById('grades-list');
-  el.innerHTML = '<div class="loading"><div class="spinner"></div>Завантаження оцінок...</div>';
-  try {
-    const info = await moodleCall('core_webservice_get_site_info');
-    const data = await moodleCall('gradereport_user_get_grade_items', { userid: info.userid, courseid: 0 });
-    
-    if(!data || data.errorcode) throw new Error(data ? data.message : 'No data');
-    
-    const items = data.usergrades || [];
-    allGrades = items;
-    
-    // Group by course
-    gradesByCourse = {};
-    items.forEach(grade => {
-      const cn = grade.coursefullname || grade.courseshortname || 'Невідомий курс';
-      if(!gradesByCourse[cn]) gradesByCourse[cn] = { name: cn, items: [] };
-      (grade.gradeitems || []).forEach(gi => {
-        if(gi.gradeformatted && gi.gradeformatted !== '-' && gi.gradeformatted !== '0.00') {
-          gradesByCourse[cn].items.push(gi);
-        }
-      });
-    });
-    
-    // Populate course filter
-    const sel = document.getElementById('grades-course-filter');
-    sel.innerHTML = '<option value="all">Всі курси</option>';
-    Object.keys(gradesByCourse).forEach(cn => {
-      sel.innerHTML += '<option value="'+escHtml(cn)+'">'+escHtml(cn)+'</option>';
-    });
-    
-    renderGrades(gradesByCourse);
-  } catch(e) {
-    el.innerHTML = '<div class="empty"><div class="emo">⚠️</div><p>Помилка завантаження оцінок: ' + escHtml(e.message) + '</p></div>';
-  }
-}
-
-function filterGradesByCourse(cn) {
-  if(cn === 'all') renderGrades(gradesByCourse);
-  else {
-    const filtered = {};
-    if(gradesByCourse[cn]) filtered[cn] = gradesByCourse[cn];
-    renderGrades(filtered);
-  }
-}
-
-function renderGrades(byCourse) {
-  const el = document.getElementById('grades-list');
-  const keys = Object.keys(byCourse);
-  if(!keys.length) { el.innerHTML = '<div class="empty"><div class="emo">📊</div><p>Оцінок не знайдено</p></div>'; return; }
-  
-  el.innerHTML = keys.map(cn => {
-    const course = byCourse[cn];
-    if(!course.items.length) return '';
-    
-    // Calculate average
-    const numericGrades = course.items.map(gi => parseFloat(gi.gradeformatted)).filter(g => !isNaN(g) && g > 0);
-    const avg = numericGrades.length ? (numericGrades.reduce((a,b)=>a+b,0)/numericGrades.length) : null;
-    const avgCls = avg === null ? '' : avg >= 75 ? 'high' : avg >= 50 ? 'mid' : 'low';
-    const avgText = avg !== null ? Math.round(avg) + '%' : '—';
-    
-    const toggleFn = "var b=this.nextElementSibling;b.style.display=b.style.display==='none'?'block':'none'";
-    let html = '<div class="grades-course">';
-    html += '<div class="grades-course-header" onclick="' + toggleFn + '">';
-    html += '<div class="grades-course-name">'+escHtml(cn)+'</div>';
-    html += '<div class="grades-avg '+avgCls+'">Ø '+avgText+'</div>';
-    html += '</div>';
-    html += '<div>';
-    
-    course.items.forEach(gi => {
-      const val = parseFloat(gi.gradeformatted);
-      const max = parseFloat(gi.grademax) || 100;
-      const pct = isNaN(val) ? 0 : Math.min(100, Math.round(val/max*100));
-      const barColor = pct >= 75 ? 'var(--success)' : pct >= 50 ? 'var(--warning)' : 'var(--accent2)';
-      const valCls = pct >= 75 ? 'high' : pct >= 50 ? 'mid' : 'low';
-      
-      html += '<div class="grade-item">';
-      html += '<div class="grade-item-name">'+escHtml(gi.itemname || 'Завдання')+'</div>';
-      html += '<div class="grade-bar-wrap"><div class="grade-bar" style="width:'+pct+'%;background:'+barColor+'"></div></div>';
-      html += '<div class="grade-val grades-avg '+valCls+'">'+escHtml(gi.gradeformatted||'—')+'</div>';
-      html += '</div>';
-    });
-    
-    html += '</div></div>';
-    return html;
-  }).filter(Boolean).join('') || '<div class="empty"><div class="emo">📊</div><p>Оцінок поки немає</p></div>';
-}
+function calPrev(){calDate.setMonth(calDate.getMonth()-1);renderCalendar();}
+function calNext(){calDate.setMonth(calDate.getMonth()+1);renderCalendar();}
+function calToday(){calDate=new Date();renderCalendar();}
 
 // ═══ NOTES ═══
-let notes = [], currentNoteId = null;
+let notes=[], currentNoteId=null;
 
-function loadNotes() {
-  const raw = localStorage.getItem('sh_notes_'+String(userData.userid||'local'));
-  notes = raw ? JSON.parse(raw) : [];
+function loadNotes(){
+  const raw=localStorage.getItem('sh_notes_'+String(userData.userid||'local'));
+  notes=raw?JSON.parse(raw):[];
   renderNotesList(notes);
-  // Populate course select
-  const sel = document.getElementById('note-course-sel');
-  sel.innerHTML = '<option value="">Без курсу</option>';
-  courses.forEach(c => sel.innerHTML += '<option value="'+escHtml(c.id)+'">'+escHtml(c.shortname||c.fullname)+'</option>');
+  const sel=document.getElementById('note-course-sel');
+  sel.innerHTML='<option value="">Без курсу</option>';
+  courses.forEach(c=>sel.innerHTML+='<option value="'+escHtml(c.id)+'">'+escHtml(c.shortname||c.fullname)+'</option>');
 }
 
-function saveNotesToLS() {
-  localStorage.setItem('sh_notes_'+String(userData.userid||'local'), JSON.stringify(notes));
-}
+function saveNotesToLS(){ localStorage.setItem('sh_notes_'+String(userData.userid||'local'),JSON.stringify(notes)); }
 
-function renderNotesList(list) {
-  const el = document.getElementById('notes-container');
-  if(!list.length) { el.innerHTML = '<div class="empty" style="width:100%"><div class="emo">✍️</div><p>Нотаток ще немає. Створіть першу!</p></div>'; return; }
-  el.innerHTML = list.map(n => 
+function renderNotesList(list){
+  const el=document.getElementById('notes-container');
+  if(!list.length){el.innerHTML='<div class="empty" style="width:100%"><div class="emo">✍️</div><p>Нотаток ще немає. Створіть першу!</p></div>';return;}
+  el.innerHTML=list.map(n=>
     '<div class="note-card" onclick="openNote(this.dataset.id)" data-id="'+escHtml(n.id)+'">'+
     '<button class="btn note-card-del" onclick="event.stopPropagation();deleteNote(this.closest(\'[data-id]\').dataset.id)" style="font-size:10px;padding:3px 6px;">🗑</button>'+
     '<div class="note-card-title">'+escHtml(n.title||'Без назви')+'</div>'+
@@ -2759,487 +2556,364 @@ function renderNotesList(list) {
   ).join('');
 }
 
-function searchNotes(q) {
-  const lq = q.toLowerCase();
-  renderNotesList(q ? notes.filter(n => (n.title||'').toLowerCase().includes(lq)||(n.content||'').toLowerCase().includes(lq)) : notes);
+function searchNotes(q){
+  const lq=q.toLowerCase();
+  renderNotesList(q?notes.filter(n=>(n.title||'').toLowerCase().includes(lq)||(n.content||'').toLowerCase().includes(lq)):notes);
 }
 
-function showNewNote() {
-  currentNoteId = null;
-  document.getElementById('note-title').value = '';
-  document.getElementById('note-md').value = '';
-  document.getElementById('note-preview').innerHTML = '<p style="color:var(--text2);font-size:12px;">Попередній перегляд...</p>';
+function showNewNote(){
+  currentNoteId=null;
+  document.getElementById('note-title').value='';
+  document.getElementById('note-md').value='';
+  document.getElementById('note-preview').innerHTML='<p style="color:var(--text2);font-size:12px;">Попередній перегляд...</p>';
   document.getElementById('note-editor-overlay').classList.add('show');
 }
 
-function openNote(id) {
-  const n = notes.find(x => x.id === id);
+function openNote(id){
+  const n=notes.find(x=>x.id===id);
   if(!n) return;
-  currentNoteId = id;
-  document.getElementById('note-title').value = n.title || '';
-  document.getElementById('note-md').value = n.content || '';
-  document.getElementById('note-course-sel').value = n.courseId || '';
+  currentNoteId=id;
+  document.getElementById('note-title').value=n.title||'';
+  document.getElementById('note-md').value=n.content||'';
+  document.getElementById('note-course-sel').value=n.courseId||'';
   updateNotePreview();
   document.getElementById('note-editor-overlay').classList.add('show');
 }
 
-function closeNoteEditor() { document.getElementById('note-editor-overlay').classList.remove('show'); }
+function closeNoteEditor(){document.getElementById('note-editor-overlay').classList.remove('show');}
 
-function saveNote() {
-  const title = document.getElementById('note-title').value.trim() || 'Без назви';
-  const content = document.getElementById('note-md').value;
-  const courseId = document.getElementById('note-course-sel').value;
-  const courseSel = document.getElementById('note-course-sel');
-  const courseText = courseSel.options[courseSel.selectedIndex]?.text || '';
-  
-  if(currentNoteId) {
-    const n = notes.find(x => x.id === currentNoteId);
-    if(n) { n.title = title; n.content = content; n.courseId = courseId; n.course = courseText; n.updated = Date.now(); }
+function saveNote(){
+  const title=document.getElementById('note-title').value.trim()||'Без назви';
+  const content=document.getElementById('note-md').value;
+  const courseId=document.getElementById('note-course-sel').value;
+  const courseSel=document.getElementById('note-course-sel');
+  const courseText=courseSel.options[courseSel.selectedIndex]?.text||'';
+  if(currentNoteId){
+    const n=notes.find(x=>x.id===currentNoteId);
+    if(n){n.title=title;n.content=content;n.courseId=courseId;n.course=courseText;n.updated=Date.now();}
   } else {
-    notes.unshift({ id: Date.now().toString(36)+Math.random().toString(36).slice(2), title, content, courseId, course: courseText, created: Date.now(), updated: Date.now() });
+    notes.unshift({id:Date.now().toString(36)+Math.random().toString(36).slice(2),title,content,courseId,course:courseText,created:Date.now(),updated:Date.now()});
   }
   saveNotesToLS();
   renderNotesList(notes);
   closeNoteEditor();
 }
 
-function deleteNote(id) {
-  if(!confirm('Видалити нотатку?')) return;
-  notes = notes.filter(n => n.id !== id);
+function deleteNote(id){
+  if(!confirm('Видалити нотатку?'))return;
+  notes=notes.filter(n=>n.id!==id);
   saveNotesToLS();
   renderNotesList(notes);
 }
 
-// Simple Markdown parser
-function parseMarkdown(md) {
-  let s = md.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-  s = s.replace(/^### (.+)$/gm,'<h3>$1</h3>');
-  s = s.replace(/^## (.+)$/gm,'<h2>$1</h2>');
-  s = s.replace(/^# (.+)$/gm,'<h1>$1</h1>');
-  s = s.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>');
-  s = s.replace(/\*(.+?)\*/g,'<em>$1</em>');
-  s = s.replace(/`([^`]+)`/g,'<code>$1</code>');
-  s = s.replace(/^> (.+)$/gm,'<blockquote>$1</blockquote>');
-  s = s.replace(/^- (.+)$/gm,'<li>$1</li>');
-  s = s.replace(/\n\n/g,'</p><p>');
-  s = s.replace(/^(?!<[hupbl])(.+)$/gm,'<p>$1</p>');
+function parseMarkdown(md){
+  let s=md.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  s=s.replace(/^### (.+)$/gm,'<h3>$1</h3>');
+  s=s.replace(/^## (.+)$/gm,'<h2>$1</h2>');
+  s=s.replace(/^# (.+)$/gm,'<h1>$1</h1>');
+  s=s.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>');
+  s=s.replace(/\*(.+?)\*/g,'<em>$1</em>');
+  s=s.replace(/`([^`]+)`/g,'<code>$1</code>');
+  s=s.replace(/^> (.+)$/gm,'<blockquote>$1</blockquote>');
+  s=s.replace(/^- (.+)$/gm,'<li>$1</li>');
+  s=s.replace(/\n\n/g,'</p><p>');
+  s=s.replace(/^(?!<[hupbl])(.+)$/gm,'<p>$1</p>');
   return s;
 }
 
-function updateNotePreview() {
-  const md = document.getElementById('note-md').value;
-  document.getElementById('note-preview').innerHTML = md ? parseMarkdown(md) : '<p style="color:var(--text2)">Попередній перегляд...</p>';
+function updateNotePreview(){
+  const md=document.getElementById('note-md').value;
+  document.getElementById('note-preview').innerHTML=md?parseMarkdown(md):'<p style="color:var(--text2)">Попередній перегляд...</p>';
 }
 
 // ═══ AI ASSISTANT ═══
-let aiHistory = [];
+let aiHistory=[];
+let aiImageBase64=null, aiImageMime='image/jpeg';
 
-let aiImageBase64 = null;
-let aiImageMime = 'image/jpeg';
-
-function setAIImage(base64, mime) {
-  aiImageBase64 = base64;
-  aiImageMime = mime || 'image/jpeg';
-  document.getElementById('ai-img-thumb').src = 'data:'+aiImageMime+';base64,'+base64;
-  document.getElementById('ai-img-preview').style.display = 'block';
+function setAIImage(base64,mime){
+  aiImageBase64=base64; aiImageMime=mime||'image/jpeg';
+  document.getElementById('ai-img-thumb').src='data:'+aiImageMime+';base64,'+base64;
+  document.getElementById('ai-img-preview').style.display='block';
 }
-
-function handleAIImg(inp) {
-  const file = inp.files[0];
-  if(!file) return;
-  const reader = new FileReader();
-  reader.onload = e => {
-    const result = e.target.result;
-    setAIImage(result.split(',')[1], file.type);
-  };
-  reader.readAsDataURL(file);
-  inp.value = '';
+function handleAIImg(inp){
+  const file=inp.files[0]; if(!file)return;
+  const reader=new FileReader();
+  reader.onload=e=>setAIImage(e.target.result.split(',')[1],file.type);
+  reader.readAsDataURL(file); inp.value='';
 }
-
-function handleAIPaste(e) {
-  const items = (e.clipboardData || e.originalEvent.clipboardData).items;
-  for(const item of items) {
-    if(item.type.startsWith('image/')) {
+function handleAIPaste(e){
+  const items=(e.clipboardData||e.originalEvent.clipboardData).items;
+  for(const item of items){
+    if(item.type.startsWith('image/')){
       e.preventDefault();
-      const file = item.getAsFile();
-      const reader = new FileReader();
-      reader.onload = ev => setAIImage(ev.target.result.split(',')[1], file.type);
-      reader.readAsDataURL(file);
-      break;
+      const file=item.getAsFile();
+      const reader=new FileReader();
+      reader.onload=ev=>setAIImage(ev.target.result.split(',')[1],file.type);
+      reader.readAsDataURL(file); break;
     }
   }
 }
+function clearAIImg(){aiImageBase64=null;document.getElementById('ai-img-preview').style.display='none';}
+function aiKey(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendAI();}}
 
-function clearAIImg() {
-  aiImageBase64 = null;
-  document.getElementById('ai-img-preview').style.display = 'none';
-}
-
-function aiKey(e) { if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendAI();} }
-
-async function sendAI() {
-  const inp = document.getElementById('ai-inp');
-  const text = inp.value.trim();
-  const hasImage = !!aiImageBase64;
-  if(!text && !hasImage) return;
-  inp.value = '';
-
-  // Показати повідомлення користувача
-  appendAIMsg('me', text || '📷 Фото', hasImage ? ('data:'+aiImageMime+';base64,'+aiImageBase64) : null);
-
-  // Будуємо вміст для API
+async function sendAI(){
+  const inp=document.getElementById('ai-inp');
+  const text=inp.value.trim();
+  const hasImage=!!aiImageBase64;
+  if(!text&&!hasImage)return;
+  inp.value='';
+  appendAIMsg('me',text||'📷 Фото',hasImage?('data:'+aiImageMime+';base64,'+aiImageBase64):null);
   let userContent;
-  if(hasImage) {
-    userContent = [
-      { type:'text', text: text || 'Що зображено? Поясни детально.' },
-      { type:'image_url', image_url:{ url:'data:'+aiImageMime+';base64,'+aiImageBase64 } }
-    ];
-  } else {
-    userContent = text;
-  }
-  aiHistory.push({ role:'user', content: userContent });
+  if(hasImage){
+    userContent=[{type:'text',text:text||'Що зображено?'},{type:'image_url',image_url:{url:'data:'+aiImageMime+';base64,'+aiImageBase64}}];
+  } else { userContent=text; }
+  aiHistory.push({role:'user',content:userContent});
   clearAIImg();
-
-  // Анімація "думає"
-  const thinkingDiv = document.createElement('div');
-  thinkingDiv.className = 'msg other';
-  thinkingDiv.innerHTML = '<div class="msg-bubble"><div class="ai-thinking"><span></span><span></span><span></span></div></div>';
+  const thinkingDiv=document.createElement('div');
+  thinkingDiv.className='msg other';
+  thinkingDiv.innerHTML='<div class="msg-bubble"><div class="ai-thinking"><span></span><span></span><span></span></div></div>';
   document.getElementById('ai-msgs').appendChild(thinkingDiv);
-  document.getElementById('ai-msgs').scrollTop = 99999;
-  document.getElementById('ai-send').disabled = true;
-
+  document.getElementById('ai-msgs').scrollTop=99999;
+  document.getElementById('ai-send').disabled=true;
   try {
-    const contextParts = [];
-    if(typeof courses !== 'undefined' && courses.length) contextParts.push('Курси студента: ' + courses.slice(0,10).map(c=>c.fullname||c.shortname).join(', '));
-    if(typeof allDl !== 'undefined') {
-      const upcomingDl = allDl.filter(d=>!d.past).slice(0,5);
-      if(upcomingDl.length) contextParts.push('Найближчі дедлайни: ' + upcomingDl.map(d=>d.name+' ('+fmtDate(d.due)+')').join(', '));
+    const contextParts=[];
+    if(typeof courses!=='undefined'&&courses.length) contextParts.push('Курси студента: '+courses.slice(0,10).map(c=>c.fullname||c.shortname).join(', '));
+    if(typeof allDl!=='undefined'){
+      const upcomingDl=allDl.filter(d=>!d.past).slice(0,5);
+      if(upcomingDl.length) contextParts.push('Найближчі дедлайни: '+upcomingDl.map(d=>d.name+' ('+fmtDate(d.due)+')').join(', '));
     }
-
-    const systemPrompt = `Ти навчальний асистент для студентів університету УкрДУЗТ.
-ПРАВИЛА:
-- Відповідай ЗАВЖДИ українською мовою
-- Давай ТОЧНІ та ПОВНІ відповіді — не обривай на середині
-- Якщо на фото задача або інтеграл — розв'яжи ПОВНІСТЮ покроково, покажи всі дії
-- Якщо питання теоретичне — дай чітке пояснення з прикладами
-- Використовуй markdown: **жирний**, ## заголовки, - списки, \`код\`
-- При математичних розрахунках показуй кожен крок окремо
-- В кінці ЗАВЖДИ давай чітку фінальну відповідь
-${contextParts.length ? '\nКонтекст студента: ' + contextParts.join('. ') : ''}`;
-
-    // Для зображень — Llama 4 Maverick (краще розпізнає математику/текст на фото)
-    const model = hasImage ? 'meta-llama/llama-4-maverick-17b-128e-instruct' : 'llama-3.3-70b-versatile';
-
-    // В history прибираємо старі base64 зображення (занадто великі)
-    const historyForAPI = aiHistory.slice(-12).map((m, i, arr) => {
-      if(i < arr.length - 1 && Array.isArray(m.content)) {
-        const textOnly = m.content.filter(p=>p.type==='text').map(p=>p.text).join(' ');
-        return { role: m.role, content: textOnly || '[зображення]' };
+    const systemPrompt=`Ти навчальний асистент для студентів університету УкрДУЗТ.\nПРАВИЛА:\n- Відповідай ЗАВЖДИ українською мовою\n- Давай ТОЧНІ та ПОВНІ відповіді\n- Якщо на фото задача — розв'яжи ПОВНІСТЮ покроково\n- Використовуй markdown: **жирний**, ## заголовки, - списки, \`код\`\n- При математичних розрахунках показуй кожен крок\n- В кінці ЗАВЖДИ давай чітку фінальну відповідь\n${contextParts.length?'\nКонтекст: '+contextParts.join('. '):''}`;
+    const model=hasImage?'meta-llama/llama-4-maverick-17b-128e-instruct':'llama-3.3-70b-versatile';
+    const historyForAPI=aiHistory.slice(-12).map((m,i,arr)=>{
+      if(i<arr.length-1&&Array.isArray(m.content)){
+        const textOnly=m.content.filter(p=>p.type==='text').map(p=>p.text).join(' ');
+        return{role:m.role,content:textOnly||'[зображення]'};
       }
       return m;
     });
-
-    const resp = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-      method: 'POST',
-      headers: { 'Content-Type':'application/json', 'Authorization':'Bearer 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' },
-      body: JSON.stringify({ model, max_tokens:4096, messages:[{role:'system',content:systemPrompt},...historyForAPI] })
+    const resp=await fetch('https://api.groq.com/openai/v1/chat/completions',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer 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'},
+      body:JSON.stringify({model,max_tokens:4096,messages:[{role:'system',content:systemPrompt},...historyForAPI]})
     });
-
-    const data = await resp.json();
-    if(data.error) {
-      thinkingDiv.remove();
-      appendAIMsg('other', '⚠️ Помилка: ' + (data.error.message || JSON.stringify(data.error)));
-      document.getElementById('ai-send').disabled = false;
-      return;
-    }
-    const reply = data.choices?.[0]?.message?.content || 'Вибачте, не вдалося отримати відповідь.';
-    aiHistory.push({ role:'assistant', content: reply });
+    const data=await resp.json();
+    if(data.error){thinkingDiv.remove();appendAIMsg('other','⚠️ Помилка: '+(data.error.message||JSON.stringify(data.error)));document.getElementById('ai-send').disabled=false;return;}
+    const reply=data.choices?.[0]?.message?.content||'Вибачте, не вдалося отримати відповідь.';
+    aiHistory.push({role:'assistant',content:reply});
     thinkingDiv.remove();
-    appendAIMsg('other', reply);
-  } catch(e) {
-    thinkingDiv.remove();
-    appendAIMsg('other', '⚠️ Помилка з\'єднання: ' + e.message);
-  }
-  document.getElementById('ai-send').disabled = false;
+    appendAIMsg('other',reply);
+  } catch(e){thinkingDiv.remove();appendAIMsg('other','⚠️ Помилка з\'єднання: '+e.message);}
+  document.getElementById('ai-send').disabled=false;
 }
 
-function renderMarkdown(text) {
-  // 1. Спочатку витягуємо LaTeX блоки щоб не зіпсувати їх escape-ом
-  const mathBlocks = [];
-  let t = text;
-
-  // Display math: \[...\] або $$...$$
-  t = t.replace(/\\\[([\s\S]*?)\\\]/g, (_, m) => { mathBlocks.push({type:'block',tex:m}); return `%%MATH_BLOCK_${mathBlocks.length-1}%%`; });
-  t = t.replace(/\$\$([\s\S]*?)\$\$/g, (_, m) => { mathBlocks.push({type:'block',tex:m}); return `%%MATH_BLOCK_${mathBlocks.length-1}%%`; });
-  // Inline math: \(...\) або $...$
-  t = t.replace(/\\\(([\s\S]*?)\\\)/g, (_, m) => { mathBlocks.push({type:'inline',tex:m}); return `%%MATH_INLINE_${mathBlocks.length-1}%%`; });
-  t = t.replace(/\$([^\$\n]+)\$/g, (_, m) => { mathBlocks.push({type:'inline',tex:m}); return `%%MATH_INLINE_${mathBlocks.length-1}%%`; });
-
-  // 2. Тепер безпечно escapeємо HTML
-  t = t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-
-  // 3. Markdown форматування
-  // Блоки коду
-  t = t.replace(/```(\w*)\n?([\s\S]*?)```/g, (_,lang,code) =>
-    '<pre style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px;overflow-x:auto;margin:8px 0;font-family:\'JetBrains Mono\',monospace;font-size:12px;line-height:1.5;">'+(lang?'<div style="font-size:9px;color:var(--accent);margin-bottom:6px;text-transform:uppercase;letter-spacing:1px;">'+lang+'</div>':'')+code+'</pre>');
-  // Інлайн код
-  t = t.replace(/`([^`\n]+)`/g,'<code style="background:var(--bg3);border:1px solid var(--border);border-radius:4px;padding:1px 6px;font-family:\'JetBrains Mono\',monospace;font-size:12px;">$1</code>');
-  // Заголовки
-  t = t.replace(/^### (.+)$/gm,'<div style="font-size:14px;font-weight:700;margin:10px 0 4px;color:var(--accent);">$1</div>');
-  t = t.replace(/^## (.+)$/gm,'<div style="font-size:16px;font-weight:800;margin:12px 0 5px;border-bottom:1px solid var(--border);padding-bottom:4px;">$1</div>');
-  t = t.replace(/^# (.+)$/gm,'<div style="font-size:18px;font-weight:800;margin:14px 0 6px;">$1</div>');
-  // Жирний та курсив
-  t = t.replace(/\*\*(.+?)\*\*/g,'<strong style="font-weight:700;">$1</strong>');
-  t = t.replace(/\*([^*\n]+)\*/g,'<em>$1</em>');
-  // Горизонтальна лінія
-  t = t.replace(/^---+$/gm,'<hr style="border:none;border-top:1px solid var(--border);margin:10px 0;">');
-  // Списки
-  t = t.replace(/^[\-\*] (.+)$/gm,'<li style="margin:4px 0;">$1</li>');
-  t = t.replace(/^\d+\. (.+)$/gm,'<li style="margin:4px 0;">$1</li>');
-  t = t.replace(/(<li[^>]*>[\s\S]*?<\/li>\n?)+/g, m => '<ul style="margin:8px 0;padding-left:22px;">'+m+'</ul>');
-  // Параграфи
-  t = t.replace(/\n\n+/g,'</p><p style="margin:8px 0;">');
-  t = t.replace(/\n/g,'<br>');
-  t = '<p style="margin:0;">'+t+'</p>';
-
-  // 4. Повертаємо LaTeX назад — рендеримо через KaTeX
-  t = t.replace(/%%MATH_BLOCK_(\d+)%%/g, (_, i) => {
-    try {
-      return '<div style="overflow-x:auto;margin:10px 0;padding:8px 0;text-align:center;">'+
-        window.katex.renderToString(mathBlocks[i].tex, {displayMode:true, throwOnError:false})+'</div>';
-    } catch(e) { return '<code>'+mathBlocks[i].tex+'</code>'; }
+function renderMarkdown(text){
+  const mathBlocks=[];
+  let t=text;
+  t=t.replace(/\\\[([\s\S]*?)\\\]/g,(_,m)=>{mathBlocks.push({type:'block',tex:m});return`%%MATH_BLOCK_${mathBlocks.length-1}%%`;});
+  t=t.replace(/\$\$([\s\S]*?)\$\$/g,(_,m)=>{mathBlocks.push({type:'block',tex:m});return`%%MATH_BLOCK_${mathBlocks.length-1}%%`;});
+  t=t.replace(/\\\(([\s\S]*?)\\\)/g,(_,m)=>{mathBlocks.push({type:'inline',tex:m});return`%%MATH_INLINE_${mathBlocks.length-1}%%`;});
+  t=t.replace(/\$([^\$\n]+)\$/g,(_,m)=>{mathBlocks.push({type:'inline',tex:m});return`%%MATH_INLINE_${mathBlocks.length-1}%%`;});
+  t=t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  t=t.replace(/```(\w*)\n?([\s\S]*?)```/g,(_,lang,code)=>'<pre style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px;overflow-x:auto;margin:8px 0;font-family:\'JetBrains Mono\',monospace;font-size:12px;line-height:1.5;">'+(lang?'<div style="font-size:9px;color:var(--accent);margin-bottom:6px;text-transform:uppercase;letter-spacing:1px;">'+lang+'</div>':'')+code+'</pre>');
+  t=t.replace(/`([^`\n]+)`/g,'<code style="background:var(--bg3);border:1px solid var(--border);border-radius:4px;padding:1px 6px;font-family:\'JetBrains Mono\',monospace;font-size:12px;">$1</code>');
+  t=t.replace(/^### (.+)$/gm,'<div style="font-size:14px;font-weight:700;margin:10px 0 4px;color:var(--accent);">$1</div>');
+  t=t.replace(/^## (.+)$/gm,'<div style="font-size:16px;font-weight:800;margin:12px 0 5px;border-bottom:1px solid var(--border);padding-bottom:4px;">$1</div>');
+  t=t.replace(/^# (.+)$/gm,'<div style="font-size:18px;font-weight:800;margin:14px 0 6px;">$1</div>');
+  t=t.replace(/\*\*(.+?)\*\*/g,'<strong style="font-weight:700;">$1</strong>');
+  t=t.replace(/\*([^*\n]+)\*/g,'<em>$1</em>');
+  t=t.replace(/^---+$/gm,'<hr style="border:none;border-top:1px solid var(--border);margin:10px 0;">');
+  t=t.replace(/^[\-\*] (.+)$/gm,'<li style="margin:4px 0;">$1</li>');
+  t=t.replace(/^\d+\. (.+)$/gm,'<li style="margin:4px 0;">$1</li>');
+  t=t.replace(/(<li[^>]*>[\s\S]*?<\/li>\n?)+/g,m=>'<ul style="margin:8px 0;padding-left:22px;">'+m+'</ul>');
+  t=t.replace(/\n\n+/g,'</p><p style="margin:8px 0;">');
+  t=t.replace(/\n/g,'<br>');
+  t='<p style="margin:0;">'+t+'</p>';
+  t=t.replace(/%%MATH_BLOCK_(\d+)%%/g,(_,i)=>{
+    try{return'<div style="overflow-x:auto;margin:10px 0;padding:8px 0;text-align:center;">'+window.katex.renderToString(mathBlocks[i].tex,{displayMode:true,throwOnError:false})+'</div>';}
+    catch(e){return'<code>'+mathBlocks[i].tex+'</code>';}
   });
-  t = t.replace(/%%MATH_INLINE_(\d+)%%/g, (_, i) => {
-    try {
-      return window.katex.renderToString(mathBlocks[i].tex, {displayMode:false, throwOnError:false});
-    } catch(e) { return '<code>'+mathBlocks[i].tex+'</code>'; }
+  t=t.replace(/%%MATH_INLINE_(\d+)%%/g,(_,i)=>{
+    try{return window.katex.renderToString(mathBlocks[i].tex,{displayMode:false,throwOnError:false});}
+    catch(e){return'<code>'+mathBlocks[i].tex+'</code>';}
   });
-
   return t;
 }
 
-function appendAIMsg(side, text, imgSrc) {
-  const el = document.getElementById('ai-msgs');
-  const div = document.createElement('div');
-  div.className = 'msg ' + side;
-  const isAI = side === 'other';
-  const imgHtml = imgSrc ? '<img src="'+imgSrc+'" style="max-width:100%;width:auto;max-height:260px;border-radius:8px;display:block;margin-bottom:8px;border:1px solid var(--border);">' : '';
-  const content = isAI ? renderMarkdown(text) : '<p style="margin:0;">'+escHtml(text).replace(/\n/g,'<br>')+'</p>';
-  div.innerHTML = '<div class="msg-bubble ai-bubble" style="max-width:88%;font-size:14px;line-height:1.65;">'+imgHtml+content+'</div>';
+function appendAIMsg(side,text,imgSrc){
+  const el=document.getElementById('ai-msgs');
+  const div=document.createElement('div');
+  div.className='msg '+side;
+  const isAI=side==='other';
+  const imgHtml=imgSrc?'<img src="'+imgSrc+'" style="max-width:100%;width:auto;max-height:260px;border-radius:8px;display:block;margin-bottom:8px;border:1px solid var(--border);">':'';
+  const content=isAI?renderMarkdown(text):'<p style="margin:0;">'+escHtml(text).replace(/\n/g,'<br>')+'</p>';
+  div.innerHTML='<div class="msg-bubble ai-bubble" style="max-width:88%;font-size:14px;line-height:1.65;">'+imgHtml+content+'</div>';
   el.appendChild(div);
-  el.scrollTop = 99999;
+  el.scrollTop=99999;
 }
 
 // ═══ NOTIFICATIONS ═══
-let notifList = [], notifUnsub = null;
-
-function loadNotifications() {
-  // Load from localStorage
-  const raw = localStorage.getItem('sh_notifs_' + String(userData.userid||'local'));
-  notifList = raw ? JSON.parse(raw) : [];
+let notifList=[];
+function loadNotifications(){
+  const raw=localStorage.getItem('sh_notifs_'+String(userData.userid||'local'));
+  notifList=raw?JSON.parse(raw):[];
   renderNotifs();
 }
-
-function addNotif(type, title, body) {
-  const n = { id: Date.now().toString(36), type, title, body, ts: Date.now(), read: false };
-  notifList.unshift(n);
-  notifList = notifList.slice(0, 50); // Keep last 50
-  localStorage.setItem('sh_notifs_'+String(userData.userid||'local'), JSON.stringify(notifList));
-  updateBellCount();
-  renderNotifs();
-  // Browser push if permission granted
-  if(Notification.permission === 'granted') {
-    new Notification('Student Hub — ' + title, { body, icon: '🎓' });
-  }
+function addNotif(type,title,body){
+  const n={id:Date.now().toString(36),type,title,body,ts:Date.now(),read:false};
+  notifList.unshift(n); notifList=notifList.slice(0,50);
+  localStorage.setItem('sh_notifs_'+String(userData.userid||'local'),JSON.stringify(notifList));
+  updateBellCount(); renderNotifs();
+  if(Notification.permission==='granted') new Notification('Student Hub — '+title,{body,icon:'🎓'});
 }
-
-function updateBellCount() {
-  const unread = notifList.filter(n => !n.read).length;
-  const badge = document.getElementById('bell-count');
-  if(!badge) return;
-  if(unread > 0) { badge.textContent = unread; badge.style.display = ''; }
-  else { badge.style.display = 'none'; }
+function updateBellCount(){
+  const unread=notifList.filter(n=>!n.read).length;
+  const badge=document.getElementById('bell-count');
+  if(!badge)return;
+  if(unread>0){badge.textContent=unread;badge.style.display='';}else{badge.style.display='none';}
 }
-
-function markAllRead() {
-  notifList.forEach(n => n.read = true);
-  localStorage.setItem('sh_notifs_'+String(userData.userid||'local'), JSON.stringify(notifList));
-  updateBellCount();
-  renderNotifs();
+function markAllRead(){
+  notifList.forEach(n=>n.read=true);
+  localStorage.setItem('sh_notifs_'+String(userData.userid||'local'),JSON.stringify(notifList));
+  updateBellCount(); renderNotifs();
 }
-
-function renderNotifs() {
-  const el = document.getElementById('notif-list');
-  if(!el) return;
-  if(!notifList.length) { el.innerHTML = '<div class="empty"><div class="emo">🔔</div><p>Немає сповіщень</p></div>'; return; }
-  el.innerHTML = notifList.map(n => {
-    const ico = n.type==='deadline'?'⏰':n.type==='file'?'📁':n.type==='chat'?'💬':'🔔';
-    const t = new Date(n.ts).toLocaleTimeString('uk-UA',{hour:'2-digit',minute:'2-digit'}) + ' ' + new Date(n.ts).toLocaleDateString('uk-UA');
-    return '<div class="notif-item'+(n.read?'':' unread')+'" onclick="markNotifRead(this.dataset.id)" data-id="'+escHtml(n.id)+'">' +
-      '<div class="notif-ico">'+ico+'</div>' +
-      '<div class="notif-body"><div class="notif-title">'+escHtml(n.title)+'</div><div class="notif-time">'+escHtml(n.body)+'<br>'+t+'</div></div>' +
+function renderNotifs(){
+  const el=document.getElementById('notif-list');
+  if(!el)return;
+  if(!notifList.length){el.innerHTML='<div class="empty"><div class="emo">🔔</div><p>Немає сповіщень</p></div>';return;}
+  el.innerHTML=notifList.map(n=>{
+    const ico=n.type==='deadline'?'⏰':n.type==='file'?'📁':n.type==='chat'?'💬':'🔔';
+    const t=new Date(n.ts).toLocaleTimeString('uk-UA',{hour:'2-digit',minute:'2-digit'})+' '+new Date(n.ts).toLocaleDateString('uk-UA');
+    return'<div class="notif-item'+(n.read?'':' unread')+'" onclick="markNotifRead(this.dataset.id)" data-id="'+escHtml(n.id)+'">'+
+      '<div class="notif-ico">'+ico+'</div>'+
+      '<div class="notif-body"><div class="notif-title">'+escHtml(n.title)+'</div><div class="notif-time">'+escHtml(n.body)+'<br>'+t+'</div></div>'+
       '</div>';
   }).join('');
 }
-
-function markNotifRead(id) {
-  const n = notifList.find(x=>x.id===id);
-  if(n) { n.read=true; localStorage.setItem('sh_notifs_'+String(userData.userid||'local'),JSON.stringify(notifList)); updateBellCount(); renderNotifs(); }
+function markNotifRead(id){
+  const n=notifList.find(x=>x.id===id);
+  if(n){n.read=true;localStorage.setItem('sh_notifs_'+String(userData.userid||'local'),JSON.stringify(notifList));updateBellCount();renderNotifs();}
 }
-
-async function requestNotifPerms() {
-  if(!('Notification' in window)) { alert('Браузер не підтримує сповіщення'); return; }
-  const p = await Notification.requestPermission();
-  if(p === 'granted') { alert('Сповіщення увімкнено! ✅'); addNotif('system','Сповіщення увімкнено','Ви будете отримувати нагадування про дедлайни та нові файли'); }
-  else { alert('Доступ до сповіщень відхилено'); }
+async function requestNotifPerms(){
+  if(!('Notification' in window)){alert('Браузер не підтримує сповіщення');return;}
+  const p=await Notification.requestPermission();
+  if(p==='granted'){alert('Сповіщення увімкнено! ✅');addNotif('system','Сповіщення увімкнено','Ви будете отримувати нагадування про дедлайни');}
+  else{alert('Доступ до сповіщень відхилено');}
 }
-
-// Schedule deadline notifications
-function scheduleDeadlineNotifs() {
-  const now = Date.now()/1000;
-  const dlDel = typeof _dlDeleted!=='undefined'?_dlDeleted:[];
-  allDl.filter(d=>!d.past&&!dlDel.includes(String(d.id))).forEach(d=>{
-    const diff = d.due - now;
-    if(diff>0&&diff<=48*3600) {
-      const key = 'notif_sent_'+d.id+'_48';
-      if(!localStorage.getItem(key)) {
-        const hours = Math.round(diff/3600);
-        const msg = hours<=1?'Менше години!':'Через '+hours+' год';
-        addNotif('deadline','⏰ '+d.name, msg+' — '+d.course);
+function scheduleDeadlineNotifs(){
+  const now=Date.now()/1000;
+  const dlDel=typeof _dlDeleted!=='undefined'?_dlDeleted:[];
+  allDl.filter(d=>d.due>now&&!dlDel.includes(String(d.id))).forEach(d=>{
+    const diff=d.due-now;
+    if(diff>0&&diff<=48*3600){
+      const key='notif_sent_'+d.id+'_48';
+      if(!localStorage.getItem(key)){
+        const hours=Math.round(diff/3600);
+        const msg=hours<=1?'Менше години!':'Через '+hours+' год';
+        addNotif('deadline','⏰ '+d.name,msg+' — '+d.course);
         localStorage.setItem(key,'1');
-        if(Notification.permission==='granted') {
-          try { new Notification('⏰ '+d.name,{body:msg+'\n'+d.course,tag:'dl_'+d.id,requireInteraction:hours<=2}); }catch(e){}
-        }
+        if(Notification.permission==='granted'){try{new Notification('⏰ '+d.name,{body:msg+'\n'+d.course,tag:'dl_'+d.id,requireInteraction:hours<=2});}catch(e){}}
       }
     }
-    if(diff>0&&diff<=24*3600) {
+    if(diff>0&&diff<=24*3600){
       const key2='notif_sent_'+d.id+'_24';
-      if(!localStorage.getItem(key2)) {
+      if(!localStorage.getItem(key2)){
         const h2=Math.round(diff/3600);
         addNotif('deadline','🔴 '+d.name,'Залишилось '+h2+'год! — '+d.course);
         localStorage.setItem(key2,'1');
-        if(Notification.permission==='granted') {
-          try { new Notification('🔴 Термін! '+d.name,{body:'Залишилось '+h2+' год!',tag:'dl_urgent_'+d.id,requireInteraction:true}); }catch(e){}
-        }
+        if(Notification.permission==='granted'){try{new Notification('🔴 Термін! '+d.name,{body:'Залишилось '+h2+' год!',tag:'dl_urgent_'+d.id,requireInteraction:true});}catch(e){}}
       }
     }
   });
 }
-
-// File notifications
-let prevFileCount = 0;
-function checkFileNotifs(files) {
-  if(prevFileCount > 0 && files.length > prevFileCount) {
-    const newFiles = files.slice(0, files.length - prevFileCount);
-    newFiles.forEach(f => addNotif('file', 'Новий файл у групі', f.name + ' — ' + (f.uploader||'?')));
+let prevFileCount=0;
+function checkFileNotifs(files){
+  if(prevFileCount>0&&files.length>prevFileCount){
+    const newFiles=files.slice(0,files.length-prevFileCount);
+    newFiles.forEach(f=>addNotif('file','Новий файл у групі',f.name+' — '+(f.uploader||'?')));
   }
-  prevFileCount = files.length;
+  prevFileCount=files.length;
 }
 
-// ═══ FILES SEARCH/PREVIEW ═══
-function renderFilesWithSearch(files, query = '') {
-  const filtered = query ? files.filter(f => (f.name||'').toLowerCase().includes(query.toLowerCase())) : files;
-  const el = document.getElementById('files-list');
-  if(!filtered.length) { el.innerHTML = '<div class="empty"><div class="emo">📂</div><p>'+(query?'Файлів не знайдено':'Файлів ще немає')+'</p></div>'; return; }
-  el.innerHTML = '<div class="file-list">'+filtered.map(f => {
-    const ext = (f.name||'').split('.').pop().toLowerCase();
-    const ec = ext==='pdf'?'ep':['doc','docx'].includes(ext)?'ed':['xls','xlsx'].includes(ext)?'ex':'eo';
-    const sz = f.size>1048576?(f.size/1048576).toFixed(1)+' МБ':Math.round(f.size/1024)+' КБ';
-    const isImg = ['jpg','jpeg','png','gif','webp'].includes(ext);
-    const previewBtn = isImg && f.dataUrl ? '<button class="btn" onclick="previewFile(this.dataset.id)" data-id="'+escHtml(f.id)+'">👁</button>' : '';
-    return '<div class="file-item">' +
-      (isImg && f.dataUrl ? '<img src="'+f.dataUrl+'" style="width:32px;height:32px;object-fit:cover;border-radius:7px;flex-shrink:0;cursor:pointer;" onclick="previewFile(this.dataset.id)" data-id="'+escHtml(f.id)+'">' : '<div class="file-ext '+ec+'">'+escHtml(ext.toUpperCase())+'</div>') +
-      '<div class="file-info"><div class="file-name">'+escHtml(f.name)+'</div><div class="file-meta">'+escHtml(f.uploader||'?')+' • '+new Date(f.createdAt).toLocaleDateString('uk-UA')+' • '+escHtml(sz)+'</div></div>' +
-      '<div class="file-actions">'+previewBtn+(f.dataUrl?'<button class="btn a" onclick="dlFile(this.dataset.id)" data-id="'+escHtml(f.id)+'">⬇</button>':'')+'<button class="btn d" onclick="rmFile(this.dataset.id)" data-id="'+escHtml(f.id)+'">🗑</button></div>' +
+// FILES SEARCH/PREVIEW
+function renderFilesWithSearch(files,query=''){
+  const filtered=query?files.filter(f=>(f.name||'').toLowerCase().includes(query.toLowerCase())):files;
+  const el=document.getElementById('files-list');
+  if(!filtered.length){el.innerHTML='<div class="empty"><div class="emo">📂</div><p>'+(query?'Файлів не знайдено':'Файлів ще немає')+'</p></div>';return;}
+  el.innerHTML='<div class="file-list">'+filtered.map(f=>{
+    const ext=(f.name||'').split('.').pop().toLowerCase();
+    const ec=ext==='pdf'?'ep':['doc','docx'].includes(ext)?'ed':['xls','xlsx'].includes(ext)?'ex':'eo';
+    const sz=f.size>1048576?(f.size/1048576).toFixed(1)+' МБ':Math.round(f.size/1024)+' КБ';
+    const isImg=['jpg','jpeg','png','gif','webp'].includes(ext);
+    const previewBtn=isImg&&f.dataUrl?'<button class="btn" onclick="previewFile(this.dataset.id)" data-id="'+escHtml(f.id)+'">👁</button>':'';
+    return'<div class="file-item">'+
+      (isImg&&f.dataUrl?'<img src="'+f.dataUrl+'" style="width:32px;height:32px;object-fit:cover;border-radius:7px;flex-shrink:0;cursor:pointer;" onclick="previewFile(this.dataset.id)" data-id="'+escHtml(f.id)+'">':'<div class="file-ext '+ec+'">'+escHtml(ext.toUpperCase())+'</div>')+
+      '<div class="file-info"><div class="file-name">'+escHtml(f.name)+'</div><div class="file-meta">'+escHtml(f.uploader||'?')+' • '+new Date(f.createdAt).toLocaleDateString('uk-UA')+' • '+escHtml(sz)+'</div></div>'+
+      '<div class="file-actions">'+previewBtn+(f.dataUrl?'<button class="btn a" onclick="dlFile(this.dataset.id)" data-id="'+escHtml(f.id)+'">⬇</button>':'')+'<button class="btn d" onclick="rmFile(this.dataset.id)" data-id="'+escHtml(f.id)+'">🗑</button></div>'+
       '</div>';
   }).join('')+'</div>';
 }
 
-function previewFile(id) {
-  const f = cachedFiles.find(x=>x.id===id);
-  if(!f||!f.dataUrl) return;
-  document.getElementById('preview-img').src = f.dataUrl;
+function previewFile(id){
+  const f=cachedFiles.find(x=>x.id===id);
+  if(!f||!f.dataUrl)return;
+  document.getElementById('preview-img').src=f.dataUrl;
   document.getElementById('preview-modal').classList.add('show');
 }
 
-let filesSearchQuery = '';
+let filesSearchQuery='';
 
 // ── LOGOUT ──
-function doLogout() {
+function doLogout(){
   unsubs.forEach(u=>u());
-  if(chatUnsub) chatUnsub();
-  unsubs=[]; token=''; userData={}; allDl=[]; courses=[]; group={}; userRole='student'; cachedFiles=[]; cachedMats=[];
-  localStorage.removeItem('sh_token'); localStorage.removeItem('sh_gid');
+  if(chatUnsub)chatUnsub();
+  unsubs=[];token='';userData={};allDl=[];courses=[];group={};userRole='student';cachedFiles=[];cachedMats=[];
+  localStorage.removeItem('sh_token');localStorage.removeItem('sh_gid');
   document.getElementById('screen-app').classList.remove('active');
   document.getElementById('screen-login').classList.add('active');
 }
 
 // ── AUTO LOGIN ──
-const sv=localStorage.getItem('sh_token'), sgid=localStorage.getItem('sh_gid');
-if(sv&&sgid) {
+const sv=localStorage.getItem('sh_token'),sgid=localStorage.getItem('sh_gid');
+if(sv&&sgid){
   token=sv;
-  const tryAutoLogin = async () => {
-    if(!window._fb || !window._db) { setTimeout(tryAutoLogin, 300); return; }
+  const tryAutoLogin=async()=>{
+    if(!window._fb||!window._db){setTimeout(tryAutoLogin,300);return;}
     const {doc,getDoc}=window._fb;
-
-    // Try to load group from cache first (for instant offline login)
-    const cachedGroup = localStorage.getItem('sh_cache_group');
-    if(cachedGroup) {
-      try {
-        const cg = JSON.parse(cachedGroup);
-        if(cg.id === sgid) { group = cg; }
-      } catch(e) {}
-    }
-
-    // Try Moodle + Firestore online
-    try {
-      const ctrl = new AbortController();
-      const tid = setTimeout(() => ctrl.abort(), 5000); // 5s timeout
-      const testR = await fetch(MOODLE+'/webservice/rest/server.php?wstoken='+sv+'&wsfunction=core_webservice_get_site_info&moodlewsrestformat=json', {signal: ctrl.signal});
+    const cachedGroup=localStorage.getItem('sh_cache_group');
+    if(cachedGroup){try{const cg=JSON.parse(cachedGroup);if(cg.id===sgid)group=cg;}catch(e){}}
+    try{
+      const ctrl=new AbortController();
+      const tid=setTimeout(()=>ctrl.abort(),5000);
+      const testR=await fetch(MOODLE+'/webservice/rest/server.php?wstoken='+sv+'&wsfunction=core_webservice_get_site_info&moodlewsrestformat=json',{signal:ctrl.signal});
       clearTimeout(tid);
-      const testD = await testR.json();
-      if(testD.errorcode) {
-        // Token invalid - but only clear if we have no cache (maybe just expired session)
-        if(!cachedGroup) {
-          localStorage.removeItem('sh_token'); localStorage.removeItem('sh_gid');
-        } else {
-          // Enter offline mode with cached data
-          await _offlineLogin(sgid);
-        }
+      const testD=await testR.json();
+      if(testD.errorcode){
+        if(!cachedGroup){localStorage.removeItem('sh_token');localStorage.removeItem('sh_gid');}
+        else{await _offlineLogin(sgid);}
         return;
       }
-      // Online: load group from Firestore
       const snap=await getDoc(doc(window._db,'groups',sgid));
       if(snap.exists()){group={id:sgid,...snap.data()};await initApp();}
-      else if(group.id) { await initApp(); } // use cached group
-      else {localStorage.removeItem('sh_token');localStorage.removeItem('sh_gid');}
-    } catch(e){
-      console.warn('Auto-login error (offline mode):', e);
-      // Moodle/network unavailable - try offline login
-      if(group.id || cachedGroup) {
-        await _offlineLogin(sgid);
-      }
+      else if(group.id){await initApp();}
+      else{localStorage.removeItem('sh_token');localStorage.removeItem('sh_gid');}
+    }catch(e){
+      if(group.id||cachedGroup)await _offlineLogin(sgid);
     }
   };
-  setTimeout(tryAutoLogin, 500);
+  setTimeout(tryAutoLogin,500);
 }
 
-async function _offlineLogin(sgid) {
-  const cachedGroup = localStorage.getItem('sh_cache_group');
-  if(!cachedGroup) return;
-  try {
-    group = JSON.parse(cachedGroup);
-    // Try Firestore for group (might work even if Moodle is down)
-    if(window._fb && window._db) {
-      try {
-        const {doc,getDoc}=window._fb;
-        const snap = await getDoc(doc(window._db,'groups',sgid));
-        if(snap.exists()) group = {id:sgid,...snap.data()};
-      } catch(e) {}
+async function _offlineLogin(sgid){
+  const cachedGroup=localStorage.getItem('sh_cache_group');
+  if(!cachedGroup)return;
+  try{
+    group=JSON.parse(cachedGroup);
+    if(window._fb&&window._db){
+      try{const {doc,getDoc}=window._fb;const snap=await getDoc(doc(window._db,'groups',sgid));if(snap.exists())group={id:sgid,...snap.data()};}catch(e){}
     }
     await initApp();
     _showOfflineBanner('Moodle недоступний — показуємо збережені дані');
-  } catch(e) { console.warn('Offline login failed:', e); }
+  }catch(e){}
 }
 </script>
 
@@ -3260,7 +2934,6 @@ async function _offlineLogin(sgid) {
     </div>
   </div>
 </div>
-</div>
 
 <!-- IMAGE PREVIEW -->
 <div class="preview-modal" id="preview-modal" onclick="this.classList.remove('show')">
@@ -3272,7 +2945,6 @@ async function _offlineLogin(sgid) {
 
 <!-- LIGHTBOX -->
 <div id="lightbox" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.96);z-index:9999;-webkit-overflow-scrolling:touch;">
-  <!-- Telegram-style lightbox -->
   <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;">
     <div style="position:absolute;top:0;left:0;right:0;display:flex;align-items:center;justify-content:space-between;padding:max(14px,env(safe-area-inset-top,14px)) 16px 14px;background:linear-gradient(to bottom,rgba(0,0,0,.6),transparent);z-index:2;">
       <div id="lightbox-filename" style="color:rgba(255,255,255,.85);font-size:13px;font-weight:600;max-width:70%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></div>

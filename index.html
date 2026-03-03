@@ -422,155 +422,38 @@ a { text-decoration: none; color: inherit; }
 /* ════════════════════════
    CHAT
 ════════════════════════ */
-/* ════ CHAT — Telegram/Discord style ════
-   Mobile: sidebar = горизонтальні вкладки зверху
-   Desktop (≥768px): sidebar = вертикально зліва
-   Ключ: NO fixed heights, тільки flex+min-height:0
-   Єдиний scroll — chat-messages
-═══════════════════════════════════════ */
-
-/* chat page — flex column, заповнює весь .content */
-#page-chat.active {
-  display: flex !important;
-  flex-direction: column;
-  height: 100%;
-  overflow: hidden;
-  padding: 0 !important;
-}
-
-/* Wrap = вся доступна висота */
-.chat-wrap {
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  min-height: 0;
-  overflow: hidden;
-}
-
-/* ─ Mobile sidebar: горизонтальні вкладки ─ */
-.chat-sidebar {
-  display: flex;
-  flex-direction: row;
-  overflow-x: auto;
-  overflow-y: hidden;
-  flex-shrink: 0;
-  padding: 10px 10px 6px;
-  gap: 6px;
-  scrollbar-width: none;
-  border-bottom: 1px solid var(--border);
-}
-.chat-sidebar::-webkit-scrollbar { display:none; }
-
+.chat-wrap { display:flex; flex-direction:column; height:calc(100dvh - 128px); gap:0; }
+.chat-sidebar { width:100%; flex-direction:row; overflow-x:auto; overflow-y:visible; padding:0 0 8px; gap:6px; display:flex; flex-shrink:0; }
 .chat-room {
-  background: var(--bg3);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 8px 14px;
-  cursor: pointer;
-  flex-shrink: 0;
-  min-width: 110px;
-  font-size: 12px; font-weight: 600;
-  transition: border-color .18s, background .18s, box-shadow .18s;
+  background:var(--card); border:1px solid var(--border); border-radius:var(--r);
+  padding:10px 12px; cursor:pointer; transition:border-color .2s, background .2s;
+  font-size:12px; font-weight:600; min-width:120px; flex-shrink:0;
 }
-.chat-room:hover  { border-color: var(--accent); background: rgba(240,192,64,.06); }
-.chat-room.active { border-color: var(--accent); background: rgba(240,192,64,.1); box-shadow: 0 2px 12px rgba(240,192,64,.2); }
-.chat-room-sub { font-size:10px; color:var(--text2); font-weight:400; margin-top:2px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.chat-room:hover { border-color:var(--accent); }
+.chat-room.active { border-color:var(--accent); background:rgba(240,192,64,.08); box-shadow:0 2px 10px rgba(240,192,64,.1); }
+.chat-room-sub { font-size:10px; color:var(--text2); font-weight:400; margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.chat-main { flex:1; min-height:0; display:flex; flex-direction:column; background:var(--card); border:1px solid var(--border); border-radius:var(--r); overflow:hidden; }
+.chat-header { padding:12px 14px; border-bottom:1px solid var(--border); font-size:13px; font-weight:700; }
+.chat-messages { flex:1; overflow-y:auto; padding:12px; display:flex; flex-direction:column; gap:8px; -webkit-overflow-scrolling:touch; }
 
-/* ─ Main chat panel ─ */
-.chat-main {
-  flex: 1;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-  background: var(--card);
-  overflow: hidden;
-}
-
-.chat-header {
-  flex-shrink: 0;
-  padding: 12px 16px;
-  border-bottom: 1px solid var(--border);
-  font-size: 13px; font-weight: 700;
-  background: var(--card);
-}
-
-/* ─ Messages: ЄДИНИЙ scroll ─ */
-.chat-messages {
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
-  overflow-x: hidden;
-  padding: 14px 12px 8px;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  -webkit-overflow-scrolling: touch;
-  overscroll-behavior: contain;
-}
-
-/* ─ Input: поза scroll, завжди внизу ─ */
-.chat-input-wrap {
-  flex-shrink: 0;
-  padding: 8px 10px;
-  padding-bottom: max(8px, env(safe-area-inset-bottom, 8px));
-  border-top: 1px solid var(--border);
-  background: var(--card);
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.chat-input {
-  flex: 1;
-  background: var(--bg3);
-  border: 1px solid var(--border);
-  border-radius: var(--r);
-  padding: 9px 13px;
-  color: var(--text);
-  font-family: 'Inter', sans-serif;
-  font-size: 16px; /* обов'язково 16px — без auto-zoom на iOS */
-  line-height: 1.5;
-  outline: none;
-  resize: none;
-  transition: border-color .2s, box-shadow .2s;
-  min-height: 40px;
-  max-height: 140px;
-  overflow-y: auto;
-}
-.chat-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(240,192,64,.1); }
-
-/* ─ Messages ─ */
-.msg {
-  max-width: 78%;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  animation: msgIn .2s ease;
-}
-@keyframes msgIn { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
-.msg.me    { align-self:flex-end;  align-items:flex-end; }
+.msg { max-width:85%; display:flex; flex-direction:column; gap:2px; }
+.msg.me { align-self:flex-end; align-items:flex-end; }
 .msg.other { align-self:flex-start; }
+.msg-author { font-size:9px; color:var(--text2); font-weight:600; margin-bottom:1px; }
+.msg-bubble { background:var(--bg3); border-radius:12px; padding:10px 14px; font-size:14px; line-height:1.65; word-break:break-word; overflow:hidden; }
+.msg.me .msg-bubble { background:rgba(240,192,64,.14); border-radius:12px 12px 3px 12px; }
+.msg.other .msg-bubble { border-radius:12px 12px 12px 3px; }
+.msg-time { font-size:9px; color:var(--text2); font-family:'JetBrains Mono',monospace; }
 
-.msg-author { font-size:10px; color:var(--text2); font-weight:600; margin-bottom:2px; padding-left:2px; }
-
-.msg-bubble {
-  padding: 9px 13px;
-  font-size: 14px; line-height: 1.6;
-  word-break: break-word;
-  box-shadow: 0 2px 8px rgba(0,0,0,.2);
+.chat-input-wrap { padding:10px; border-top:1px solid var(--border); display:flex; gap:7px; flex-direction:column; }
+.chat-input {
+  flex:1; background:var(--bg3); border:1px solid var(--border);
+  border-radius:var(--r); padding:10px 13px;
+  color:var(--text); font-family:'Inter',sans-serif;
+  font-size:16px; /* iOS no-zoom */
+  outline:none; resize:none; transition:border-color .2s;
 }
-.msg.other .msg-bubble {
-  background: var(--bg3);
-  border-radius: 4px 16px 16px 16px;
-  border: 1px solid rgba(255,255,255,.05);
-}
-.msg.me .msg-bubble {
-  background: rgba(240,192,64,.15);
-  border-radius: 16px 4px 16px 16px;
-  border: 1px solid rgba(240,192,64,.15);
-}
-
-.msg-time { font-size:9px; color:var(--text2); font-family:'JetBrains Mono',monospace; padding: 0 2px; }
+.chat-input:focus { border-color:var(--accent); }
 
 /* AI bubble */
 .ai-bubble strong { color:var(--text); font-weight:700; }
@@ -702,20 +585,13 @@ a { text-decoration: none; color: inherit; }
   .stat-card { padding:16px; }
   .stat-val { font-size:22px; }
 
-  /* Desktop chat — Discord style: sidebar зліва вертикально */
-  .chat-wrap { flex-direction: row; gap: 0; }
-  .chat-sidebar {
-    width: 230px; flex-shrink: 0;
-    flex-direction: column !important;
-    overflow-y: auto; overflow-x: hidden;
-    padding: 10px 8px !important;
-    gap: 4px !important;
-    border-bottom: none;
-    border-right: 1px solid var(--border);
-  }
-  .chat-room { min-width: unset; }
-  .chat-main { border-radius: 0; border: none; border-left: none; }
-  .chat-input-wrap { padding: 10px 14px; }
+  .chat-wrap { flex-direction:row; flex:1; min-height:0; gap:14px; }
+  #page-chat.active { flex:1; overflow:hidden; padding-bottom:0; display:flex; flex-direction:column; min-height:0; }
+  /* When chat is active, content itself shouldn't scroll — chat-messages does */
+  .content:has(#page-chat.active) { overflow:hidden; padding-bottom:0; }
+  .chat-sidebar { width:220px; flex-direction:column; overflow-y:auto; overflow-x:hidden; padding:0 0 8px; flex-shrink:0; gap:6px; }
+  .chat-room { min-width:unset; }
+  .chat-messages { -webkit-overflow-scrolling:touch; }
 
   .note-card { width:230px; }
   #notes-container { flex-direction:row; flex-wrap:wrap; gap:16px; align-content:flex-start; }
@@ -1083,7 +959,7 @@ a { text-decoration: none; color: inherit; }
               </div>
               <div style="display:flex;gap:6px;align-items:flex-end;">
                 <button onclick="document.getElementById('chat-file-input').click()" title="Додати файл/фото" style="width:38px;height:38px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);font-size:18px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;">📎</button>
-                <textarea class="chat-input" id="chat-inp" placeholder="Напишіть або вставте фото (Ctrl+V)..." rows="1" onkeydown="chatKey(event)" onpaste="handleChatPaste(event)" oninput="autoResizeChat(this)" style="flex:1;"></textarea>
+                <textarea class="chat-input" id="chat-inp" placeholder="Напишіть або вставте фото (Ctrl+V)..." rows="1" onkeydown="chatKey(event)" onpaste="handleChatPaste(event)" style="flex:1;"></textarea>
                 <button class="btn a" onclick="sendMsg()" style="height:38px;padding:0 14px;flex-shrink:0;">→</button>
               </div>
               <input type="file" id="chat-file-input" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip" style="display:none" onchange="handleChatFile(this)">
@@ -1103,24 +979,32 @@ a { text-decoration: none; color: inherit; }
           <button class="btn a" onclick="calToday()">Сьогодні</button>
         </div>
         <div id="cal-grid"></div>
-        <div id="cal-note-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:1000;align-items:center;justify-content:center;padding:16px;">
-          <div style="background:var(--card);border:1px solid var(--border);border-radius:16px;width:100%;max-width:440px;padding:20px;animation:fadeUp .2s ease;">
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+        <div id="cal-note-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:1000;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(4px);">
+          <div style="background:var(--card);border:1px solid var(--border);border-radius:18px;width:100%;max-width:480px;max-height:88vh;display:flex;flex-direction:column;animation:fadeUp .2s ease;box-shadow:0 12px 40px rgba(0,0,0,.6);">
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:15px 18px 12px;border-bottom:1px solid var(--border);flex-shrink:0;">
               <div id="cal-note-date-lbl" style="font-size:15px;font-weight:700;"></div>
-              <button onclick="closeCalNoteModal()" style="background:none;border:none;color:var(--text2);font-size:20px;cursor:pointer;line-height:1;">✕</button>
+              <button onclick="closeCalNoteModal()" style="background:none;border:none;color:var(--text2);font-size:20px;cursor:pointer;line-height:1;padding:4px;">✕</button>
             </div>
-            <textarea id="cal-note-inp" placeholder="Нотатка для цього дня..." style="width:100%;min-height:120px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:10px 13px;color:var(--text);font-family:'Inter',sans-serif;font-size:14px;resize:vertical;outline:none;line-height:1.6;"></textarea>
-            <div style="display:flex;gap:8px;margin-top:12px;justify-content:flex-end;">
-              <button class="btn" onclick="deleteCalNote()" id="cal-note-del" style="color:var(--accent2);">🗑 Видалити</button>
-              <button class="btn a" onclick="saveCalNote()">💾 Зберегти</button>
+            <div id="cal-note-list" style="flex:1;overflow-y:auto;padding:10px 14px;display:flex;flex-direction:column;gap:8px;min-height:48px;"></div>
+            <div style="padding:12px 14px 14px;border-top:1px solid var(--border);flex-shrink:0;">
+              <div style="font-size:10px;font-weight:700;color:var(--text2);letter-spacing:.5px;text-transform:uppercase;margin-bottom:8px;">Нова нотатка</div>
+              <div style="display:flex;gap:8px;margin-bottom:8px;">
+                <input type="time" id="cal-note-time" style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:7px 10px;color:var(--text);font-family:'Inter',sans-serif;font-size:14px;outline:none;width:108px;-webkit-appearance:none;cursor:pointer;">
+                <input type="text" id="cal-note-title" placeholder="Заголовок" style="flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:7px 10px;color:var(--text);font-family:'Inter',sans-serif;font-size:13px;outline:none;">
+              </div>
+              <textarea id="cal-note-inp" placeholder="Текст нотатки..." rows="2" style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:9px 11px;color:var(--text);font-family:'Inter',sans-serif;font-size:13px;resize:none;outline:none;line-height:1.5;margin-bottom:8px;display:block;"></textarea>
+              <div style="display:flex;justify-content:flex-end;">
+                <button class="btn a" onclick="addCalNote()" style="min-width:100px;">+ Додати</button>
+              </div>
             </div>
           </div>
+        </div>
         </div>
       </div>
 
             <!-- NOTES -->
       <div class="page" id="page-notes">
-        <div class="page-header"><h2>✍️ Нотатки</h2><p>Особисті конспекти з Markdown підтримкою</p></div>
+        <div class="page-header"><h2>✍️ Нотатки</h2></div>
         <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;align-items:center;">
           <button class="btn a" onclick="showNewNote()">+ Нова нотатка</button>
           <input class="tb-input" placeholder="🔍 Пошук..." oninput="searchNotes(this.value)" style="flex:1;max-width:260px;">
@@ -1818,7 +1702,15 @@ function startUserSettingsSync() {
       _dlUrgentH = data.dlUrgentH ?? 48;
       _dlWarnD   = data.dlWarnD   ?? 7;
       _dlDeleted = Array.isArray(data.dlDeleted) ? data.dlDeleted : [];
-      _calNotes  = (data.calNotes && typeof data.calNotes==='object') ? data.calNotes : {};
+      _calNotes = {};
+      if (data.calNotes && typeof data.calNotes==='object') {
+        for (const [ds, val] of Object.entries(data.calNotes)) {
+          if (Array.isArray(val)) { _calNotes[ds] = val; }
+          else if (typeof val==='string' && val.trim()) {
+            _calNotes[ds] = [{id:'m'+ds,time:'',title:'',text:val}];
+          }
+        }
+      }
       _settingsLoaded = true;
       // Оновити поля налаштувань якщо відкриті
       const uh = document.getElementById('dl-urgent-hours');
@@ -1897,51 +1789,80 @@ function deleteDl(id, e) {
   _saveUserSettings();
 }
 
-// ── CALENDAR NOTES — Firestore sync ──
-function getCalNote(ds) { return _calNotes[ds] || ''; }
+// ── CALENDAR NOTES — multiple per day + time ──
 
-function saveCalNote() {
-  const txt = document.getElementById('cal-note-inp').value.trim();
-  const ds  = window._calNoteDate;
-  if(txt) _calNotes[ds] = txt;
-  else    delete _calNotes[ds];
-  closeCalNoteModal();
-  renderCalendar();
-  _renderCalNotesInDeadlines();
-  _saveUserSettings();
+function _calNoteSync() { renderCalendar(); _renderCalNotesInDeadlines(); _saveUserSettings(); }
+
+function _renderNoteList(ds) {
+  const notes = (_calNotes[ds] || []).slice().sort((a,b)=>(a.time||'').localeCompare(b.time||''));
+  const el = document.getElementById('cal-note-list');
+  if (!el) return;
+  if (!notes.length) {
+    el.innerHTML = '<div style="text-align:center;color:var(--text2);font-size:12px;padding:14px 0;">Нотаток ще немає — додайте першу</div>';
+    return;
+  }
+  el.innerHTML = notes.map(n => {
+    const timeHtml = n.time ? '<span style="font-family:JetBrains Mono,monospace;font-size:11px;background:rgba(240,192,64,.15);color:var(--accent);padding:1px 7px;border-radius:5px;margin-right:5px;">'+escHtml(n.time)+'</span>' : '';
+    const titleHtml = n.title ? '<strong style="font-size:13px;">'+escHtml(n.title)+'</strong>' : '';
+    const textHtml = n.text ? '<div style="font-size:12px;color:var(--text2);margin-top:4px;white-space:pre-wrap;line-height:1.45;">'+escHtml(n.text)+'</div>' : '';
+    return '<div style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:10px 12px;display:flex;gap:8px;align-items:flex-start;">'
+      +'<div style="flex:1;min-width:0;"><div style="display:flex;align-items:center;flex-wrap:wrap;gap:4px;">'+timeHtml+titleHtml+'</div>'+textHtml+'</div>'
+      +'<button onclick="deleteCalNoteById(this.dataset.ds,this.dataset.nid)" data-ds="'+escHtml(ds)+'" data-nid="'+escHtml(n.id)+'" title="Видалити" style="background:none;border:none;color:var(--text2);cursor:pointer;font-size:15px;padding:0;flex-shrink:0;line-height:1;opacity:.45;transition:opacity .15s;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=.45">🗑</button>'
+      +'</div>';
+  }).join('');
 }
 
-function deleteCalNote() {
-  delete _calNotes[window._calNoteDate];
-  closeCalNoteModal();
-  renderCalendar();
-  _renderCalNotesInDeadlines();
-  _saveUserSettings();
+function addCalNote() {
+  const ds    = window._calNoteDate;
+  const time  = (document.getElementById('cal-note-time').value||'').trim();
+  const title = (document.getElementById('cal-note-title').value||'').trim();
+  const text  = (document.getElementById('cal-note-inp').value||'').trim();
+  if (!title && !text) { document.getElementById('cal-note-inp').focus(); return; }
+  if (!_calNotes[ds]) _calNotes[ds] = [];
+  _calNotes[ds].push({id: Date.now()+'_'+Math.random().toString(36).slice(2,5), time, title, text});
+  document.getElementById('cal-note-time').value  = '';
+  document.getElementById('cal-note-title').value = '';
+  document.getElementById('cal-note-inp').value   = '';
+  _renderNoteList(ds);
+  _calNoteSync();
+  document.getElementById('cal-note-inp').focus();
 }
+
+function deleteCalNoteById(ds, id) {
+  if (!_calNotes[ds]) return;
+  _calNotes[ds] = _calNotes[ds].filter(n => n.id !== id);
+  if (!_calNotes[ds].length) delete _calNotes[ds];
+  _renderNoteList(ds);
+  _calNoteSync();
+}
+
+function saveCalNote() { addCalNote(); }
+function deleteCalNote() { delete _calNotes[window._calNoteDate]; closeCalNoteModal(); _calNoteSync(); }
+function getCalNote(ds) { return (_calNotes[ds]||[]).map(n=>n.text).filter(Boolean).join(' / '); }
 
 function openCalNoteModal(ds, e) {
   if(e) e.stopPropagation();
   window._calNoteDate = ds;
   const d = new Date(ds+'T12:00:00');
   document.getElementById('cal-note-date-lbl').textContent = d.toLocaleDateString('uk-UA',{weekday:'long',day:'numeric',month:'long'});
-  document.getElementById('cal-note-inp').value = getCalNote(ds);
-  const modal = document.getElementById('cal-note-modal');
-  modal.style.display = 'flex';
-  setTimeout(()=>document.getElementById('cal-note-inp').focus(),50);
-  const del = document.getElementById('cal-note-del');
-  if(del) del.style.display = getCalNote(ds)?'':'none';
+  document.getElementById('cal-note-modal').style.display = 'flex';
+  document.getElementById('cal-note-time').value  = '';
+  document.getElementById('cal-note-title').value = '';
+  document.getElementById('cal-note-inp').value   = '';
+  _renderNoteList(ds);
+  setTimeout(()=>document.getElementById('cal-note-inp').focus(), 80);
 }
 function closeCalNoteModal() { document.getElementById('cal-note-modal').style.display='none'; }
 document.addEventListener('keydown', e=>{
   if(e.key==='Escape') closeCalNoteModal();
-  if(e.key==='Enter'&&e.ctrlKey&&document.getElementById('cal-note-modal').style.display!=='none') saveCalNote();
+  if(e.key==='Enter'&&e.ctrlKey&&document.getElementById('cal-note-modal').style.display!=='none') addCalNote();
 });
 
 // ── ПОКАЗАТИ НОТАТКИ В ДЕДЛАЙНАХ (і на головній) ──
 function _renderCalNotesInDeadlines() {
   const today = new Date(); today.setHours(0,0,0,0);
   const notes = Object.entries(_calNotes)
-    .filter(([,v])=>v)
+    .filter(([,v])=>v && (Array.isArray(v)?v.length:v))
     .sort(([a],[b])=>a.localeCompare(b));
 
   // Рендер для сторінки дедлайнів
@@ -1972,7 +1893,9 @@ function _renderCalNotesInDeadlines() {
 }
 
 function _buildNoteRows(notes, today, showPast) {
-  const rows = notes.map(([ds, txt]) => {
+  const rows = notes.map(([ds, raw]) => {
+    const arr = Array.isArray(raw) ? raw : [{text: raw, time:'', title:''}];
+    const txt = arr.map(n=>(n.time?n.time+' ':'')+( n.title||(n.text||'')).slice(0,60)).join(' · ');
     const d = new Date(ds+'T12:00:00');
     const isPast = d < today;
     if(isPast && !showPast) return '';
@@ -2265,7 +2188,6 @@ function renderMessages(msgs) {
 }
 // escHtml defined at top of script
 function chatKey(e) { if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMsg();} }
-function autoResizeChat(el) { el.style.height='auto'; el.style.height=Math.min(el.scrollHeight,140)+'px'; }
 
 let _chatFile = null;
 
@@ -2380,7 +2302,7 @@ async function sendMsg() {
   const inp=document.getElementById('chat-inp');
   const text=inp.value.trim();
   if(!text && !_chatFile)return;
-  inp.value=''; inp.style.height='40px';
+  inp.value='';
   const {collection,addDoc}=window._fb;
   let fileData = null;
   if(_chatFile) {

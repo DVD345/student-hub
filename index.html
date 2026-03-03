@@ -269,7 +269,7 @@ a { text-decoration: none; color: inherit; }
 ════════════════════════ */
 .page { display:none; animation: pageIn .28s cubic-bezier(.4,0,.2,1); }
 .page.active { display:block; }
-#page-chat.active { display:flex; flex-direction:column; flex:1; min-height:0; overflow:hidden; }
+#page-chat.active { display:flex; flex-direction:column; }
 @keyframes pageIn { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
 
 .page-header { margin-bottom:18px; }
@@ -422,95 +422,155 @@ a { text-decoration: none; color: inherit; }
 /* ════════════════════════
    CHAT
 ════════════════════════ */
-.chat-wrap { display:flex; flex-direction:column; flex:1; min-height:0; gap:0; }
+/* ════ CHAT — Telegram/Discord style ════
+   Mobile: sidebar = горизонтальні вкладки зверху
+   Desktop (≥768px): sidebar = вертикально зліва
+   Ключ: NO fixed heights, тільки flex+min-height:0
+   Єдиний scroll — chat-messages
+═══════════════════════════════════════ */
 
-/* Mobile: горизонтальний список кімнат зверху */
+/* chat page — flex column, заповнює весь .content */
+#page-chat.active {
+  display: flex !important;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+  padding: 0 !important;
+}
+
+/* Wrap = вся доступна висота */
+.chat-wrap {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* ─ Mobile sidebar: горизонтальні вкладки ─ */
 .chat-sidebar {
   display: flex;
   flex-direction: row;
-  overflow-x: auto; overflow-y: visible;
-  padding: 8px 0; gap: 6px;
+  overflow-x: auto;
+  overflow-y: hidden;
   flex-shrink: 0;
+  padding: 10px 10px 6px;
+  gap: 6px;
   scrollbar-width: none;
+  border-bottom: 1px solid var(--border);
 }
 .chat-sidebar::-webkit-scrollbar { display:none; }
 
 .chat-room {
-  background:var(--card); border:1px solid var(--border); border-radius:var(--r);
-  padding:9px 13px; cursor:pointer;
-  transition:border-color .2s, background .2s, box-shadow .2s;
-  font-size:12px; font-weight:600; min-width:120px; flex-shrink:0;
-}
-.chat-room:hover { border-color:var(--accent); }
-.chat-room.active { border-color:var(--accent); background:rgba(240,192,64,.09); box-shadow:0 2px 12px rgba(240,192,64,.15); }
-.chat-room-sub { font-size:10px; color:var(--text2); font-weight:400; margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-
-.chat-main { flex:1; min-height:0; display:flex; flex-direction:column; background:var(--card); border:1px solid var(--border); border-radius:var(--r); overflow:hidden; }
-.chat-header { padding:12px 16px; border-bottom:1px solid var(--border); font-size:13px; font-weight:700; flex-shrink:0; display:flex; align-items:center; gap:8px; }
-.chat-messages { flex:1; overflow-y:auto; padding:12px 14px; display:flex; flex-direction:column; gap:6px; -webkit-overflow-scrolling:touch; overscroll-behavior:contain; }
-
-/* Input area — фіксована до низу chat-main, НЕ в scroll-зоні */
-.chat-input-area {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 8px 14px;
+  cursor: pointer;
   flex-shrink: 0;
+  min-width: 110px;
+  font-size: 12px; font-weight: 600;
+  transition: border-color .18s, background .18s, box-shadow .18s;
+}
+.chat-room:hover  { border-color: var(--accent); background: rgba(240,192,64,.06); }
+.chat-room.active { border-color: var(--accent); background: rgba(240,192,64,.1); box-shadow: 0 2px 12px rgba(240,192,64,.2); }
+.chat-room-sub { font-size:10px; color:var(--text2); font-weight:400; margin-top:2px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+
+/* ─ Main chat panel ─ */
+.chat-main {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
   background: var(--card);
-  border-top: 1px solid var(--border);
+  overflow: hidden;
+}
+
+.chat-header {
+  flex-shrink: 0;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px; font-weight: 700;
+  background: var(--card);
+}
+
+/* ─ Messages: ЄДИНИЙ scroll ─ */
+.chat-messages {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 14px 12px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+/* ─ Input: поза scroll, завжди внизу ─ */
+.chat-input-wrap {
+  flex-shrink: 0;
   padding: 8px 10px;
   padding-bottom: max(8px, env(safe-area-inset-bottom, 8px));
+  border-top: 1px solid var(--border);
+  background: var(--card);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
-.chat-input-row { display:flex; gap:7px; align-items:flex-end; }
-
-.chat-attach-btn {
-  width:38px; height:38px; flex-shrink:0;
-  background:var(--bg3); border:1px solid var(--border);
-  border-radius:var(--r); font-size:18px;
-  cursor:pointer; display:flex; align-items:center; justify-content:center;
-  transition:border-color .2s; align-self:flex-end;
-}
-.chat-attach-btn:hover { border-color:var(--accent); }
-.chat-send-btn { width:38px; height:38px; flex-shrink:0; padding:0 !important; border-radius:var(--r) !important; align-self:flex-end; }
-
-.msg {
-  max-width: 85%;
-  display: flex; flex-direction: column; gap: 3px;
-  animation: msgIn .22s cubic-bezier(.4,0,.2,1);
-}
-@keyframes msgIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
-.msg.me { align-self:flex-end; align-items:flex-end; }
-.msg.other { align-self:flex-start; }
-.msg-author { font-size:9px; color:var(--text2); font-weight:600; margin-bottom:1px; }
-.msg-bubble {
-  background: var(--bg3);
-  border-radius: 14px;
-  padding: 9px 13px;
-  font-size: 14px; line-height: 1.6;
-  word-break: break-word; overflow: hidden;
-  border: 1px solid rgba(255,255,255,.05);
-  box-shadow: 0 2px 10px rgba(0,0,0,.25);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
-}
-.msg.me .msg-bubble { background:rgba(240,192,64,.13); border-radius:14px 14px 3px 14px; border-color:rgba(240,192,64,.15); }
-.msg.other .msg-bubble { border-radius:14px 14px 14px 3px; }
-.msg-time { font-size:9px; color:var(--text2); font-family:'JetBrains Mono',monospace; }
 
 .chat-input {
   flex: 1;
   background: var(--bg3);
   border: 1px solid var(--border);
   border-radius: var(--r);
-  padding: 9px 12px;
+  padding: 9px 13px;
   color: var(--text);
   font-family: 'Inter', sans-serif;
-  font-size: 16px; /* iOS: no auto-zoom */
+  font-size: 16px; /* обов'язково 16px — без auto-zoom на iOS */
   line-height: 1.5;
   outline: none;
   resize: none;
   transition: border-color .2s, box-shadow .2s;
-  min-height: 38px;
+  min-height: 40px;
   max-height: 140px;
   overflow-y: auto;
 }
-.chat-input:focus { border-color:var(--accent); box-shadow:0 0 0 3px rgba(240,192,64,.1); }
+.chat-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(240,192,64,.1); }
+
+/* ─ Messages ─ */
+.msg {
+  max-width: 78%;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  animation: msgIn .2s ease;
+}
+@keyframes msgIn { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
+.msg.me    { align-self:flex-end;  align-items:flex-end; }
+.msg.other { align-self:flex-start; }
+
+.msg-author { font-size:10px; color:var(--text2); font-weight:600; margin-bottom:2px; padding-left:2px; }
+
+.msg-bubble {
+  padding: 9px 13px;
+  font-size: 14px; line-height: 1.6;
+  word-break: break-word;
+  box-shadow: 0 2px 8px rgba(0,0,0,.2);
+}
+.msg.other .msg-bubble {
+  background: var(--bg3);
+  border-radius: 4px 16px 16px 16px;
+  border: 1px solid rgba(255,255,255,.05);
+}
+.msg.me .msg-bubble {
+  background: rgba(240,192,64,.15);
+  border-radius: 16px 4px 16px 16px;
+  border: 1px solid rgba(240,192,64,.15);
+}
+
+.msg-time { font-size:9px; color:var(--text2); font-family:'JetBrains Mono',monospace; padding: 0 2px; }
 
 /* AI bubble */
 .ai-bubble strong { color:var(--text); font-weight:700; }
@@ -642,25 +702,20 @@ a { text-decoration: none; color: inherit; }
   .stat-card { padding:16px; }
   .stat-val { font-size:22px; }
 
-  /* Desktop chat — Discord layout */
-  .chat-wrap { flex-direction:row; }
+  /* Desktop chat — Discord style: sidebar зліва вертикально */
+  .chat-wrap { flex-direction: row; gap: 0; }
   .chat-sidebar {
-    flex-direction: column !important;
-    overflow-y: auto !important;
-    overflow-x: hidden !important;
     width: 230px; flex-shrink: 0;
-    padding: 8px !important;
-    border-right: 1px solid var(--border);
+    flex-direction: column !important;
+    overflow-y: auto; overflow-x: hidden;
+    padding: 10px 8px !important;
     gap: 4px !important;
+    border-bottom: none;
+    border-right: 1px solid var(--border);
   }
-  .chat-room { min-width:unset; }
-  #page-chat.active {
-    flex: 1; min-height: 0;
-    overflow: hidden; padding: 0;
-    display: flex; flex-direction: column;
-  }
-  .content:has(#page-chat.active) { overflow:hidden; padding:0; }
-  .chat-input-area { padding:10px 14px; }
+  .chat-room { min-width: unset; }
+  .chat-main { border-radius: 0; border: none; border-left: none; }
+  .chat-input-wrap { padding: 10px 14px; }
 
   .note-card { width:230px; }
   #notes-container { flex-direction:row; flex-wrap:wrap; gap:16px; align-content:flex-start; }
@@ -1015,40 +1070,21 @@ a { text-decoration: none; color: inherit; }
 
       <!-- CHAT -->
       <div class="page" id="page-chat">
+        <div class="page-header"><h2>💬 Чати</h2><p>Спілкуйтесь з групою та університетом</p></div>
         <div class="chat-wrap">
-          <!-- Sidebar — список кімнат -->
           <div class="chat-sidebar" id="chat-rooms"></div>
-
-          <!-- Main area -->
           <div class="chat-main">
-            <div class="chat-header" id="chat-room-title">
-              <span id="chat-room-title-text">Оберіть кімнату</span>
-            </div>
-
-            <!-- Messages scroll zone -->
-            <div class="chat-messages" id="chat-msgs">
-              <div class="empty"><div class="emo">💬</div><p>Оберіть чат зліва</p></div>
-            </div>
-
-            <!-- Input — sticky до низу, поза scroll-зоною -->
-            <div class="chat-input-area" id="chat-input-area">
-              <!-- File preview -->
-              <div id="chat-file-preview" style="display:none;align-items:center;gap:8px;padding:6px 12px 0;font-size:12px;">
+            <div class="chat-header" id="chat-room-title">Оберіть кімнату</div>
+            <div class="chat-messages" id="chat-msgs"><div class="empty"><div class="emo">💬</div><p>Оберіть чат зліва</p></div></div>
+            <div class="chat-input-wrap" style="flex-direction:column;gap:6px;padding:10px;">
+              <div id="chat-file-preview" style="display:none;align-items:center;gap:8px;padding:6px 10px;background:var(--bg3);border-radius:8px;font-size:12px;">
                 <span id="chat-file-name" style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text2);"></span>
                 <button onclick="clearChatFile()" style="background:none;border:none;color:var(--accent2);cursor:pointer;font-size:16px;line-height:1;flex-shrink:0;">✕</button>
               </div>
-              <!-- Input row -->
-              <div class="chat-input-row">
-                <button class="chat-attach-btn" onclick="document.getElementById('chat-file-input').click()" title="Додати файл/фото">📎</button>
-                <textarea class="chat-input" id="chat-inp"
-                  placeholder="Напишіть повідомлення..."
-                  rows="1"
-                  onkeydown="chatKey(event)"
-                  onpaste="handleChatPaste(event)"
-                  oninput="autoResizeChat(this)"></textarea>
-                <button class="chat-send-btn btn a" onclick="sendMsg()">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-                </button>
+              <div style="display:flex;gap:6px;align-items:flex-end;">
+                <button onclick="document.getElementById('chat-file-input').click()" title="Додати файл/фото" style="width:38px;height:38px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);font-size:18px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;">📎</button>
+                <textarea class="chat-input" id="chat-inp" placeholder="Напишіть або вставте фото (Ctrl+V)..." rows="1" onkeydown="chatKey(event)" onpaste="handleChatPaste(event)" oninput="autoResizeChat(this)" style="flex:1;"></textarea>
+                <button class="btn a" onclick="sendMsg()" style="height:38px;padding:0 14px;flex-shrink:0;">→</button>
               </div>
               <input type="file" id="chat-file-input" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip" style="display:none" onchange="handleChatFile(this)">
             </div>
@@ -2229,11 +2265,7 @@ function renderMessages(msgs) {
 }
 // escHtml defined at top of script
 function chatKey(e) { if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMsg();} }
-
-function autoResizeChat(el) {
-  el.style.height = 'auto';
-  el.style.height = Math.min(el.scrollHeight, 140) + 'px';
-}
+function autoResizeChat(el) { el.style.height='auto'; el.style.height=Math.min(el.scrollHeight,140)+'px'; }
 
 let _chatFile = null;
 
@@ -2348,8 +2380,7 @@ async function sendMsg() {
   const inp=document.getElementById('chat-inp');
   const text=inp.value.trim();
   if(!text && !_chatFile)return;
-  inp.value='';
-  inp.style.height='38px';
+  inp.value=''; inp.style.height='40px';
   const {collection,addDoc}=window._fb;
   let fileData = null;
   if(_chatFile) {

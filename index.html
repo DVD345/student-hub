@@ -239,7 +239,7 @@ a { text-decoration: none; color: inherit; }
 .icon-btn:hover { color:var(--text); background:var(--bg3); }
 
 /* MAIN AREA */
-.main { margin-left:var(--sidebar); min-height:100vh; flex:1; display:flex; flex-direction:column; }
+.main { margin-left:var(--sidebar); height:100vh; flex:1; display:flex; flex-direction:column; overflow:hidden; }
 
 .topbar {
   display:none; padding:11px 16px;
@@ -257,7 +257,7 @@ a { text-decoration: none; color: inherit; }
 /* CONTENT — mobile base */
 .content {
   padding: 14px 14px calc(72px + env(safe-area-inset-bottom,0px));
-  flex:1; overflow-x:hidden;
+  flex:1; overflow-x:hidden; overflow-y:auto;
 }
 
 /* OVERLAY */
@@ -585,8 +585,8 @@ a { text-decoration: none; color: inherit; }
   .stat-card { padding:16px; }
   .stat-val { font-size:22px; }
 
-  .chat-wrap { flex-direction:row; flex:1; min-height:0; gap:14px; height:calc(100vh - 110px); }
-  #page-chat.active { height:calc(100vh - 0px); }
+  .chat-wrap { flex-direction:row; flex:1; min-height:0; gap:14px; }
+  #page-chat.active { height:calc(100vh - 0px); overflow:hidden; padding-bottom:0; }
   .chat-sidebar { width:220px; flex-direction:column; overflow-y:auto; overflow-x:hidden; padding:0 0 8px; flex-shrink:0; gap:6px; }
   .chat-room { min-width:unset; }
   .chat-messages { -webkit-overflow-scrolling:touch; }

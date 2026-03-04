@@ -294,6 +294,7 @@ a { text-decoration: none; color: inherit; }
 .dl-course { font-size:11px; color:var(--text2); margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .dl-right { display:flex; flex-direction:column; align-items:flex-end; gap:3px; flex-shrink:0; min-width:52px; }
 .dl-date { font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--text2); text-align:right; }
+.dl-date.time { color:var(--accent); font-weight:700; font-size:11px; }
 .dl-date.u { color:var(--accent2); font-weight:700; }
 .dl-date.s { color:var(--warning); font-weight:600; }
 
@@ -1969,16 +1970,18 @@ function _buildNoteRows(noteRows, today, now) {
                   isTomorrow ? '<span class="tag y">Завтра</span>' :
                   isPast ? '<span class="tag" style="background:var(--bg3);color:var(--text2);">Минуло</span>' : '';
     const dateStr = d.toLocaleDateString('uk-UA',{day:'numeric',month:'short'});
-    const timePrefix = note.time ? note.time + ' • ' : '';
     const preview = note.text.length > 70 ? note.text.slice(0,70)+'…' : note.text;
+    const timeEl = note.time ? `<div class="dl-date time">${note.time}</div>` : '';
     return `<div class="dl-item" onclick="openCalNoteModal('${escHtml(ds)}',event,'${escHtml(note.id)}')" style="${isPast?'opacity:.5':''}">
       <div class="dl-dot" style="background:var(--accent);box-shadow:0 0 5px rgba(240,192,64,.4);"></div>
       <div class="dl-info">
-        <div class="dl-name">✏️ ${escHtml(timePrefix+preview)}</div>
+        <div class="dl-name">✏️ ${escHtml(preview)}</div>
         <div class="dl-course">Нотатка в календарі</div>
       </div>
       <div class="dl-right">
-        <div class="dl-date">${dateStr}</div>${label}
+        ${timeEl}
+        <div class="dl-date">${dateStr}</div>
+        ${label}
       </div>
     </div>`;
   }).join('');

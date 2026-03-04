@@ -2323,7 +2323,7 @@ function openChatRoom(roomId, label) {
 }
 // Підсвічує @ім'я в тексті повідомлення
 function _highlightMentions(text, myName) {
-  return text.replace(/@([\wЀ-ӿІіЇїЄєҐґʼ'-]+(?:\s[\wЀ-ӿІіЇїЄєҐґ]+)?)/g, (match, name) => {
+  return text.replace(/@([\wЀ-ӿІіЇїЄєҐґʼ'-]+(?:\s[\wЀ-ӿІіЇїЄєҐґʼ'-]+){0,2})/g, (match, name) => {
     const isMe = myName && myName.toLowerCase().includes(name.toLowerCase());
     return `<span class="mention${isMe?' me':''}">${match}</span>`;
   });
@@ -2896,7 +2896,6 @@ function aiKey(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendAI();}
 // Worker код: export default { async fetch(req) { const body=await req.json(); const r=await fetch('https://api.groq.com/openai/v1/chat/completions',{method:'POST',headers:{'Authorization':'Bearer '+env.GROQ_API_KEY,'Content-Type':'application/json'},body:JSON.stringify(body)}); return new Response(await r.text(),{headers:{'Content-Type':'application/json','Access-Control-Allow-Origin':'*'}}); } }
 const _AI_PROXY = 'https://groq-proxy.dvdkunec.workers.dev';
 function _getAIToken() {
-  // Проксі встановлено — токен зберігається на сервері (Cloudflare Worker)
   if(_AI_PROXY) return 'proxy';
   return localStorage.getItem('sh_ai_key') || '';
 }

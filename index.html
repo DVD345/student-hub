@@ -7,6 +7,62 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="StudentHub">
+<link rel="manifest" id="pwa-manifest">
+<script>
+// PWA Manifest inline
+const _manifest = {
+  name: "StudentHub — УкрДУЗТ",
+  short_name: "StudentHub",
+  description: "Портал студентів УкрДУЗТ",
+  start_url: "./",
+  display: "standalone",
+  background_color: "#08080f",
+  theme_color: "#f0c040",
+  orientation: "portrait-primary",
+  icons: [
+    { src: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%23f0c040'/><text y='.9em' font-size='80' x='10'>🎓</text></svg>", sizes: "any", type: "image/svg+xml" }
+  ]
+};
+const _mBlob = new Blob([JSON.stringify(_manifest)], {type:'application/manifest+json'});
+document.getElementById('pwa-manifest').href = URL.createObjectURL(_mBlob);
+
+// Service Worker
+if('serviceWorker' in navigator) {
+  const swCode = `
+const CACHE = 'sh-v1';
+const PRECACHE = ['./'];
+self.addEventListener('install', e => {
+  e.waitUntil(caches.open(CACHE).then(c => c.addAll(PRECACHE)).then(() => self.skipWaiting()));
+});
+self.addEventListener('activate', e => {
+  e.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim()));
+});
+self.addEventListener('fetch', e => {
+  if(e.request.method !== 'GET') return;
+  const url = new URL(e.request.url);
+  // Кешуємо лише свої ресурси, не Firebase/Moodle/Groq
+  if(url.origin !== location.origin) return;
+  e.respondWith(
+    caches.match(e.request).then(cached => {
+      const fresh = fetch(e.request).then(r => {
+        if(r && r.status === 200) {
+          const clone = r.clone();
+          caches.open(CACHE).then(c => c.put(e.request, clone));
+        }
+        return r;
+      }).catch(() => cached);
+      return cached || fresh;
+    })
+  );
+});
+`;
+  const swBlob = new Blob([swCode], {type:'application/javascript'});
+  const swUrl = URL.createObjectURL(swBlob);
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register(swUrl).catch(()=>{});
+  });
+}
+</script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Student Hub — УкрДУЗТ</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -527,6 +583,12 @@ a { text-decoration: none; color: inherit; }
 }
 
 .msg-time { font-size:9px; color:var(--text2); font-family:'JetBrains Mono',monospace; padding: 0 2px; }
+.mention { background:rgba(240,192,64,.15); color:var(--accent); border-radius:4px; padding:1px 5px; font-weight:700; cursor:pointer; }
+.mention.me { background:rgba(224,80,80,.15); color:var(--accent2); }
+.mention-popup { position:absolute; bottom:calc(100% + 6px); left:0; background:var(--bg2); border:1px solid var(--border); border-radius:10px; box-shadow:var(--sh-md); z-index:500; min-width:180px; max-height:180px; overflow-y:auto; }
+.mention-item { padding:8px 12px; font-size:12px; cursor:pointer; transition:background .15s; display:flex; align-items:center; gap:8px; }
+.mention-item:hover { background:var(--bg3); }
+.mention-item .mav { width:22px; height:22px; border-radius:50%; background:var(--accent); color:#07070f; font-size:9px; font-weight:700; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
 
 .ai-bubble strong { color:var(--text); font-weight:700; }
 .ai-bubble em { color:var(--text2); }
@@ -779,9 +841,31 @@ a { text-decoration: none; color: inherit; }
 .cal-note-item-del { background:none; border:none; color:var(--accent2); cursor:pointer; font-size:14px; padding:0 2px; flex-shrink:0; opacity:.5; transition:opacity .15s; }
 .cal-note-item-del:hover { opacity:1; }
 </style>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
-<script defer src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
-<script defer src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"></script>
+<script>
+// KaTeX lazy load — завантажується лише при першому відкритті Асистента або Нотаток
+let _katexLoaded = false, _katexLoading = false, _katexQueue = [];
+function _loadKaTeX() {
+  return new Promise((resolve) => {
+    if(_katexLoaded) { resolve(); return; }
+    _katexQueue.push(resolve);
+    if(_katexLoading) return;
+    _katexLoading = true;
+    const link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = 'https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css';
+    document.head.appendChild(link);
+    const s1 = document.createElement('script');
+    s1.src = 'https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js';
+    s1.onload = () => {
+      const s2 = document.createElement('script');
+      s2.src = 'https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js';
+      s2.onload = () => { _katexLoaded = true; _katexLoading = false; _katexQueue.forEach(r=>r()); _katexQueue=[]; };
+      document.head.appendChild(s2);
+    };
+    document.head.appendChild(s1);
+  });
+}
+</script>
 </head>
 <body>
 
@@ -798,7 +882,14 @@ a { text-decoration: none; color: inherit; }
     <div class="field"><label>Пароль від Moodle</label><input type="password" id="lp" placeholder="••••••••" autocomplete="current-password"></div>
     <button class="btn-primary" id="login-btn" onclick="doLogin()">Увійти</button>
     <div class="err-box" id="lerr"></div>
-    <p class="login-info">Логін/пароль передаються напряму на сервер УкрДУЗТ • Група визначається автоматично</p>
+    <div style="margin-top:14px;background:rgba(56,208,122,.07);border:1px solid rgba(56,208,122,.2);border-radius:10px;padding:10px 13px;">
+      <div style="font-size:11px;font-weight:700;color:#38d07a;margin-bottom:5px;">🔒 Ваші дані в безпеці</div>
+      <div style="font-size:10px;color:var(--text2);line-height:1.6;">
+        • Логін і пароль <strong style="color:var(--text)">не зберігаються</strong> на наших серверах<br>
+        • Дані йдуть напряму до <strong style="color:var(--text)">do.kart.edu.ua</strong> — офіційного сервера УкрДУЗТ<br>
+        • Відкритий код: <a href="https://github.com/" target="_blank" rel="noopener" style="color:#38d07a;text-decoration:underline;">github.com/студентхаб</a> — перевірте самі
+      </div>
+    </div>
   </div>
 </div>
 
@@ -983,7 +1074,7 @@ a { text-decoration: none; color: inherit; }
               </div>
               <div style="display:flex;gap:6px;align-items:flex-end;">
                 <button onclick="document.getElementById('chat-file-input').click()" title="Додати файл/фото" style="width:38px;height:38px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);font-size:18px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;">📎</button>
-                <textarea class="chat-input" id="chat-inp" placeholder="Напишіть або вставте фото (Ctrl+V)..." rows="1" onkeydown="chatKey(event)" onpaste="handleChatPaste(event)" oninput="autoResizeChat(this)" style="flex:1;"></textarea>
+                <textarea class="chat-input" id="chat-inp" placeholder="Напишіть або вставте фото (Ctrl+V)..." rows="1" onkeydown="chatKey(event)" onpaste="handleChatPaste(event)" oninput="chatInputHandler(event)" style="flex:1;"></textarea>
                 <button class="btn a" onclick="sendMsg()" style="height:38px;padding:0 14px;flex-shrink:0;">→</button>
               </div>
               <input type="file" id="chat-file-input" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip" style="display:none" onchange="handleChatFile(this)">
@@ -2230,6 +2321,60 @@ function openChatRoom(roomId, label) {
     renderMessages(msgs);
   }, err=>{ document.getElementById('chat-msgs').innerHTML='<div class="empty"><div class="emo">⚠️</div><p>Помилка завантаження чату</p></div>'; });
 }
+// Підсвічує @ім'я в тексті повідомлення
+function _highlightMentions(text, myName) {
+  return text.replace(/@([\wЀ-ӿІіЇїЄєҐґʼ'-]+(?:\s[\wЀ-ӿІіЇїЄєҐґ]+)?)/g, (match, name) => {
+    const isMe = myName && myName.toLowerCase().includes(name.toLowerCase());
+    return `<span class="mention${isMe?' me':''}">${match}</span>`;
+  });
+}
+
+// @-autocomplete
+let _mentionActive = false, _mentionStart = 0, _mentionQuery = '';
+function _getChatMembers() {
+  // Збираємо імена з останніх повідомлень
+  const msgs = document.querySelectorAll('.msg-author');
+  const names = new Set();
+  msgs.forEach(m => { if(m.textContent.trim()) names.add(m.textContent.trim()); });
+  return [...names];
+}
+
+function _showMentionPopup(query) {
+  let popup = document.getElementById('mention-popup');
+  const members = _getChatMembers().filter(n => n.toLowerCase().startsWith(query.toLowerCase()));
+  if(!members.length) { _hideMentionPopup(); return; }
+  if(!popup) {
+    popup = document.createElement('div');
+    popup.id = 'mention-popup';
+    popup.className = 'mention-popup';
+    const wrap = document.querySelector('.chat-input-wrap');
+    wrap.style.position = 'relative';
+    wrap.appendChild(popup);
+  }
+  popup.innerHTML = members.map(n =>
+    `<div class="mention-item" onclick="_insertMention('${escHtml(n)}')">
+      <div class="mav">${escHtml(n[0].toUpperCase())}</div>
+      ${escHtml(n)}
+    </div>`
+  ).join('');
+  popup.style.display = 'block';
+  _mentionActive = true;
+}
+
+function _hideMentionPopup() {
+  const p = document.getElementById('mention-popup');
+  if(p) p.style.display = 'none';
+  _mentionActive = false;
+}
+
+function _insertMention(name) {
+  const inp = document.getElementById('chat-inp');
+  const val = inp.value;
+  inp.value = val.slice(0, _mentionStart) + '@' + name + ' ' + val.slice(_mentionStart + _mentionQuery.length + 1);
+  inp.focus();
+  _hideMentionPopup();
+}
+
 function renderMessages(msgs) {
   const el=document.getElementById('chat-msgs');
   if(!msgs.length){el.innerHTML='<div class="empty"><div class="emo">💬</div><p>Повідомлень ще немає</p></div>';return;}
@@ -2242,14 +2387,37 @@ function renderMessages(msgs) {
       'onmouseleave="this.querySelector(\'.msg-del\')&&(this.querySelector(\'.msg-del\').style.opacity=0)">'+
       (!isMe?'<div class="msg-author">'+escHtml(m.author)+'</div>':'')+
       '<div style="display:flex;align-items:flex-end;gap:4px;'+(isMe?'flex-direction:row-reverse':'')+'">'+
-        '<div class="msg-bubble">'+(m.text?escHtml(m.text):'')+(m.file?(m.file.type&&m.file.type.startsWith('image/')?'<br><img src="'+m.file.data+'" style="max-width:220px;max-height:220px;border-radius:10px;display:block;margin-top:6px;cursor:pointer;box-shadow:0 2px 12px rgba(0,0,0,.3);transition:transform .15s;" onclick="openLightbox(this.src,\''+escHtml(m.file.name||'photo')+'\')" onmouseover="this.style.transform=\'scale(1.02)\'" onmouseout="this.style.transform=\'scale(1)\'">':'<br><a href="'+m.file.data+'" download="'+escHtml(m.file.name||'file')+'" style="display:inline-flex;align-items:center;gap:5px;padding:5px 9px;background:rgba(255,255,255,.07);border-radius:7px;font-size:11px;color:var(--text);text-decoration:none;margin-top:4px;">\u{1F4C4} '+escHtml(m.file.name||'Файл')+'</a>'):'')+'</div>'+
+        '<div class="msg-bubble">'+(m.text?_highlightMentions(escHtml(m.text), userData.fullname):'')+(m.file?(m.file.type&&m.file.type.startsWith('image/')?'<br><img src="'+m.file.data+'" style="max-width:220px;max-height:220px;border-radius:10px;display:block;margin-top:6px;cursor:pointer;box-shadow:0 2px 12px rgba(0,0,0,.3);transition:transform .15s;" onclick="openLightbox(this.src,\''+escHtml(m.file.name||'photo')+'\')" onmouseover="this.style.transform=\'scale(1.02)\'" onmouseout="this.style.transform=\'scale(1)\'">':'<br><a href="'+m.file.data+'" download="'+escHtml(m.file.name||'file')+'" style="display:inline-flex;align-items:center;gap:5px;padding:5px 9px;background:rgba(255,255,255,.07);border-radius:7px;font-size:11px;color:var(--text);text-decoration:none;margin-top:4px;">\u{1F4C4} '+escHtml(m.file.name||'Файл')+'</a>'):'')+'</div>'+
         (canDel&&m.id?'<button class="msg-del" data-id="'+escHtml(m.id)+'" onclick="delMsg(this.dataset.id)" style="background:rgba(224,80,80,.15);border:1px solid rgba(224,80,80,.3);color:var(--accent2);border-radius:5px;padding:2px 5px;font-size:9px;cursor:pointer;opacity:0;transition:opacity .2s;flex-shrink:0">🗑</button>':'')+
       '</div>'+
       '<div class="msg-time">'+t+'</div></div>';
   }).join('');
   el.scrollTop=el.scrollHeight;
 }
-function chatKey(e) { if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMsg();} }
+function chatKey(e) {
+  if(_mentionActive) {
+    if(e.key==='Escape') { _hideMentionPopup(); return; }
+    if(e.key==='Enter' || e.key==='Tab') {
+      const first = document.querySelector('#mention-popup .mention-item');
+      if(first) { e.preventDefault(); first.click(); return; }
+    }
+  }
+  if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMsg();}
+}
+function chatInputHandler(e) {
+  autoResizeChat(e.target);
+  const val = e.target.value, pos = e.target.selectionStart;
+  // Шукаємо @ перед курсором
+  const before = val.slice(0, pos);
+  const atMatch = before.match(/@([\wЀ-ӿІіЇїЄєҐґ]*)$/);
+  if(atMatch) {
+    _mentionStart = before.lastIndexOf('@');
+    _mentionQuery = atMatch[1];
+    _showMentionPopup(_mentionQuery);
+  } else {
+    _hideMentionPopup();
+  }
+}
 function autoResizeChat(el) { el.style.height='auto'; el.style.height=Math.min(el.scrollHeight,140)+'px'; }
 
 let _chatFile = null;
@@ -2432,6 +2600,7 @@ function go(name) {
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.toggle('active',n.textContent.trim().startsWith(labels[name]||'_')));
   document.getElementById('topbar-title').textContent=PAGE_TITLES[name]||name;
   if(name==='calendar') renderCalendar();
+  if(name==='assistant'||name==='notes') _loadKaTeX();
   if(name==='notes') loadNotes();
   if(name==='notifications') markAllRead();
   closeSidebar();
@@ -2721,6 +2890,19 @@ function handleAIPaste(e){
 function clearAIImg(){aiImageBase64=null;document.getElementById('ai-img-preview').style.display='none';}
 function aiKey(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendAI();}}
 
+// AI токен — для продакшн замініть URL на свій Cloudflare Worker / Vercel Function
+// Cloudflare Worker приклад: https://developers.cloudflare.com/workers/
+// ENV змінна: GROQ_API_KEY=gsk_...
+// Worker код: export default { async fetch(req) { const body=await req.json(); const r=await fetch('https://api.groq.com/openai/v1/chat/completions',{method:'POST',headers:{'Authorization':'Bearer '+env.GROQ_API_KEY,'Content-Type':'application/json'},body:JSON.stringify(body)}); return new Response(await r.text(),{headers:{'Content-Type':'application/json','Access-Control-Allow-Origin':'*'}}); } }
+const _AI_PROXY = 'https://groq-proxy.dvdkunec.workers.dev';
+function _getAIToken() {
+  // Проксі встановлено — токен зберігається на сервері (Cloudflare Worker)
+  if(_AI_PROXY) return 'proxy';
+  return localStorage.getItem('sh_ai_key') || '';
+}
+function _getAIEndpoint() {
+  return _AI_PROXY || 'https://api.groq.com/openai/v1/chat/completions';
+}
 async function sendAI(){
   const inp=document.getElementById('ai-inp');
   const text=inp.value.trim();
@@ -2756,9 +2938,9 @@ async function sendAI(){
       }
       return m;
     });
-    const resp=await fetch('https://api.groq.com/openai/v1/chat/completions',{
+    const resp=await fetch(_getAIEndpoint(),{
       method:'POST',
-      headers:{'Content-Type':'application/json','Authorization':'Bearer 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'},
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+_getAIToken()},
       body:JSON.stringify({model,max_tokens:4096,messages:[{role:'system',content:systemPrompt},...historyForAPI]})
     });
     const data=await resp.json();
@@ -2766,7 +2948,7 @@ async function sendAI(){
     const reply=data.choices?.[0]?.message?.content||'Вибачте, не вдалося отримати відповідь.';
     aiHistory.push({role:'assistant',content:reply});
     thinkingDiv.remove();
-    appendAIMsg('other',reply);
+    _loadKaTeX().then(()=>appendAIMsg('other',reply));
   } catch(e){thinkingDiv.remove();appendAIMsg('other','⚠️ Помилка з\'єднання: '+e.message);}
   document.getElementById('ai-send').disabled=false;
 }

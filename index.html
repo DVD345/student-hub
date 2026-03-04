@@ -294,7 +294,6 @@ a { text-decoration: none; color: inherit; }
 .dl-course { font-size:11px; color:var(--text2); margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .dl-right { display:flex; flex-direction:column; align-items:flex-end; gap:3px; flex-shrink:0; min-width:52px; }
 .dl-date { font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--text2); text-align:right; }
-.dl-date.time { color:var(--accent); font-weight:700; font-size:11px; }
 .dl-date.u { color:var(--accent2); font-weight:700; }
 .dl-date.s { color:var(--warning); font-weight:600; }
 
@@ -1960,9 +1959,13 @@ function _renderCalNotesInDeadlines() {
 }
 
 function _buildNoteRows(noteRows, today, now) {
+  const urgH = typeof _dlUrgentH !== 'undefined' ? _dlUrgentH : 48;
+  const warnD = typeof _dlWarnD !== 'undefined' ? _dlWarnD : 7;
   const rows = noteRows.map(({ds, note}) => {
     const fullDt = new Date(ds + 'T' + (note.time || '23:59'));
     const isPast = fullDt <= now;
+    const diffMs = fullDt - now;
+    const diffH = diffMs / (1000 * 60 * 60);
     const d = new Date(ds+'T12:00:00');
     const isToday = d.toDateString()===today.toDateString();
     const isTomorrow = d.toDateString()===new Date(today.getTime()+86400000).toDateString();
@@ -1971,9 +1974,13 @@ function _buildNoteRows(noteRows, today, now) {
                   isPast ? '<span class="tag" style="background:var(--bg3);color:var(--text2);">Минуло</span>' : '';
     const dateStr = d.toLocaleDateString('uk-UA',{day:'numeric',month:'short'});
     const preview = note.text.length > 70 ? note.text.slice(0,70)+'…' : note.text;
-    const timeEl = note.time ? `<div class="dl-date time">${note.time}</div>` : '';
+    // Колір dot і часу залежно від терміновості
+    const dotColor = isPast ? 'var(--accent2)' : diffH < urgH ? 'var(--accent2)' : diffH < warnD*24 ? 'var(--warning)' : 'var(--accent)';
+    const dotShadow = isPast ? 'rgba(224,80,80,.4)' : diffH < urgH ? 'rgba(224,80,80,.5)' : diffH < warnD*24 ? 'rgba(240,160,48,.4)' : 'rgba(240,192,64,.4)';
+    const timeColor = isPast ? 'var(--text2)' : diffH < urgH ? 'var(--accent2)' : diffH < warnD*24 ? 'var(--warning)' : 'var(--accent)';
+    const timeEl = note.time ? `<div class="dl-date" style="color:${timeColor};font-weight:700;font-size:11px;">${note.time}</div>` : '';
     return `<div class="dl-item" onclick="openCalNoteModal('${escHtml(ds)}',event,'${escHtml(note.id)}')" style="${isPast?'opacity:.5':''}">
-      <div class="dl-dot" style="background:var(--accent);box-shadow:0 0 5px rgba(240,192,64,.4);"></div>
+      <div class="dl-dot" style="background:${dotColor};box-shadow:0 0 5px ${dotShadow};"></div>
       <div class="dl-info">
         <div class="dl-name">✏️ ${escHtml(preview)}</div>
         <div class="dl-course">Нотатка в календарі</div>

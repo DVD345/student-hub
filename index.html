@@ -583,6 +583,10 @@ a { text-decoration: none; color: inherit; }
 }
 
 .msg-time { font-size:9px; color:var(--text2); font-family:'JetBrains Mono',monospace; padding: 0 2px; }
+.tag { display:inline-block; font-size:9px; font-weight:700; padding:2px 7px; border-radius:20px; letter-spacing:.3px; margin-top:3px; }
+.tag.r { background:rgba(224,80,80,.15); color:var(--accent2); }
+.tag.y { background:rgba(240,160,48,.15); color:var(--warning); }
+.tag.g { background:rgba(56,208,122,.15); color:var(--success); }
 .mention { background:rgba(240,192,64,.15); color:var(--accent); border-radius:4px; padding:1px 5px; font-weight:700; cursor:pointer; }
 .mention.me { background:rgba(224,80,80,.15); color:var(--accent2); }
 .mention-popup { position:absolute; bottom:calc(100% + 6px); left:0; background:var(--bg2); border:1px solid var(--border); border-radius:10px; box-shadow:var(--sh-md); z-index:500; min-width:180px; max-height:180px; overflow-y:auto; }
@@ -1282,7 +1286,11 @@ async function doLogin() {
   if (!username||!password) { showErr('Введіть логін та пароль'); return; }
   btn.disabled=true; btn.textContent='Входимо...';
   try {
-    const r = await fetch(MOODLE+'/login/token.php?username='+encodeURIComponent(username)+'&password='+encodeURIComponent(password)+'&service=moodle_mobile_app');
+    const r = await fetch(MOODLE+'/login/token.php', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({ username, password, service: 'moodle_mobile_app' })
+    });
     const d = await r.json();
     if (!d.token) { showErr(d.error || 'Невірний логін або пароль'); btn.disabled=false; btn.textContent='Увійти'; return; }
     token = d.token;
@@ -1498,7 +1506,19 @@ async function loadUserInfo() {
     userData = d;
     const name = d.fullname || 'Студент';
     document.getElementById('uname').textContent = name;
-    document.getElementById('uav').textContent = name[0].toUpperCase();
+    const avatarUrl = d.userpictureurl || null;
+    const uav = document.getElementById('uav');
+    if(avatarUrl && !avatarUrl.includes('/f/default')) {
+      const img = document.createElement('img');
+      img.src = avatarUrl;
+      img.style.cssText = 'width:100%;height:100%;object-fit:cover;border-radius:50%;';
+      img.onerror = function(){ uav.textContent = name[0].toUpperCase(); uav.style.padding=''; };
+      uav.style.padding = '0';
+      uav.textContent = '';
+      uav.appendChild(img);
+    } else {
+      uav.textContent = name[0].toUpperCase();
+    }
     const today = new Date().toLocaleDateString('uk-UA',{weekday:'long',day:'numeric',month:'long'});
     document.getElementById('dash-sub').textContent = today + ' • ' + name;
     if (window._db && userData.userid) {
@@ -1537,6 +1557,64 @@ async function moodleCall(fn, params={}) {
   return r.json();
 }
 
+
+async function moodlePost(fn, params={}) {
+  const body = new URLSearchParams({ wstoken: token, wsfunction: fn, moodlewsrestformat: 'json' });
+  Object.entries(params).forEach(([k,v]) => body.append(k, v));
+  const r = await fetch(MOODLE+'/webservice/rest/server.php', { method:'POST', body });
+  return r.json();
+}
+async function loadSubmissionStatuses() {
+  if(!token || !userData.userid) return;
+  const assignDls = allDl.filter(d => d.assignid);
+  if(!assignDls.length) return;
+  const chunks = [];
+  for(let i=0; i<assignDls.length; i+=8) chunks.push(assignDls.slice(i,i+8));
+  for(const chunk of chunks) {
+    await Promise.all(chunk.map(async d => {
+      try {
+        const res = await moodlePost('mod_assign_get_submission_status', { assignid: d.assignid, userid: userData.userid });
+        if(res && res.lastattempt && res.lastattempt.submission) {
+          const status = res.lastattempt.submission.status;
+          d.submitted = (status === 'submitted') ? 'submitted' : (status === 'draft' ? 'draft' : null);
+        }
+      } catch(e) {}
+    }));
+  }
+  applyDlFilter();
+  renderDashDl();
+}
+
+async function openCourseContents(courseId, btn) {
+  const courseName = btn ? btn.closest('.course-card').querySelector('.c-name').textContent : 'Курс';
+  const modal = document.getElementById('course-contents-modal');
+  const body = document.getElementById('cc-body');
+  document.getElementById('cc-title').textContent = courseName;
+  body.innerHTML = '<div class="loading"><div class="spinner"></div>Завантаження...</div>';
+  modal.style.display = 'block';
+  try {
+    const sections = await moodlePost('core_course_get_contents', { courseid: courseId });
+    if(!Array.isArray(sections)) { body.innerHTML = '<div class="empty"><p>Не вдалося завантажити</p></div>'; return; }
+    const nonEmpty = sections.filter(s => s.modules && s.modules.filter(m=>m.modname!=='label').length);
+    if(!nonEmpty.length) { body.innerHTML = '<div class="empty"><p>Розділів поки немає</p></div>'; return; }
+    const modIco = { resource:'📄', url:'🔗', assign:'📝', quiz:'📊', forum:'💬', folder:'📁', page:'📃', video:'🎥' };
+    body.innerHTML = nonEmpty.map(s => {
+      const mods = s.modules.filter(m=>m.modname!=='label').map(m => {
+        const ico = modIco[m.modname] || '📌';
+        const fileUrl = m.contents && m.contents[0] ? m.contents[0].fileurl + '?token=' + token : null;
+        const link = fileUrl || m.url || MOODLE+'/mod/'+m.modname+'/view.php?id='+m.id;
+        const sz = m.contents && m.contents[0] && m.contents[0].filesize > 1024
+          ? ' <span style="color:var(--text2);font-size:10px;">' + Math.round(m.contents[0].filesize/1024) + ' КБ</span>' : '';
+        return '<a href="'+escHtml(link)+'" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:10px;padding:10px 12px;color:var(--text);text-decoration:none;border-bottom:1px solid var(--border);transition:background .15s;" onmouseover="this.style.background=&quot;var(--bg3)&quot;" onmouseout="this.style.background=&quot;&quot;">'+
+          '<span style="font-size:16px;flex-shrink:0;">'+ico+'</span>'+
+          '<span style="flex:1;font-size:13px;">'+escHtml(m.name)+sz+'</span>'+
+          '<span style="opacity:.4;font-size:11px;">↗</span></a>';
+      }).join('');
+      return '<div style="margin-bottom:12px;"><div style="font-size:10px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px;">'+escHtml(s.name)+'</div>'+
+        '<div style="background:var(--card);border:1px solid var(--border);border-radius:10px;overflow:hidden;">'+mods+'</div></div>';
+    }).join('');
+  } catch(e) { body.innerHTML = '<div class="empty"><p>Помилка: '+escHtml(e.message)+'</p></div>'; }
+}
 async function syncMoodle() { await loadCourses(); await loadDeadlines(); renderCalendar(); }
 
 // ── COURSES — FIX 4: hidden courses ──
@@ -1607,7 +1685,7 @@ function filterCourses() {
     '<button class="hide-course-btn" data-cid="'+escHtml(String(c.id))+'" onclick="hideCourse(this.dataset.cid,event)" title="Сховати курс">✕ Сховати</button>'+
     '<div class="c-num">№'+(i+1)+'</div>'+
     '<div class="c-name">'+escHtml(c.fullname||c.shortname)+'</div>'+
-    '<div class="c-meta">'+escHtml(c.shortname||'')+'</div></div>'
+    '<div class="c-meta">'+escHtml(c.shortname||'')+'</div><div style="margin-top:8px;"><button class="btn" style="font-size:10px;padding:4px 9px;min-height:28px;" onclick="event.stopPropagation();openCourseContents('+c.id+',this)">📖 Вміст</button></div></div>'
   ).join('')+'</div>';
 
   if(_hiddenCourses.length > 0) {
@@ -1642,25 +1720,36 @@ async function loadDeadlines() {
 
     if(courses.length) {
       try {
-        const courseids = courses.slice(0,25).map((c,i)=>`courseids[${i}]=${c.id}`).join('&');
-        const d4 = await fetch(MOODLE+'/webservice/rest/server.php?wstoken='+token+'&wsfunction=mod_assign_get_assignments&moodlewsrestformat=json&'+courseids)
+        // Батчинг по 20 курсів
+        const chunkSize = 20;
+        const chunks = [];
+        for(let i=0; i<courses.length; i+=chunkSize) chunks.push(courses.slice(i,i+chunkSize));
+        const chunkResults = await Promise.all(chunks.map(chunk => {
+          const courseids = chunk.map((c,i)=>`courseids[${i}]=${c.id}`).join('&');
+          return fetch(MOODLE+'/webservice/rest/server.php?wstoken='+token+'&wsfunction=mod_assign_get_assignments&moodlewsrestformat=json&'+courseids)
             .then(r=>r.json()).catch(()=>null);
+        }));
         const extraEvents = [];
-        if(d4 && d4.courses) {
-          d4.courses.forEach(course => {
-            (course.assignments||[]).forEach(a => {
-              const deadline = a.duedate || 0;
-              if(deadline > 0) {
-                extraEvents.push({
-                  id: 'assign_'+a.id, name: a.name,
-                  course: { fullname: course.fullname },
-                  timesort: deadline, modulename: 'assign',
-                  url: MOODLE+'/mod/assign/view.php?id='+a.cmid
-                });
-              }
+        window._assignMap = {};
+        chunkResults.forEach(d4 => {
+          if(d4 && d4.courses) {
+            d4.courses.forEach(course => {
+              (course.assignments||[]).forEach(a => {
+                const deadline = a.duedate || 0;
+                window._assignMap[a.id] = { cmid: a.cmid, courseid: course.id };
+                if(deadline > 0) {
+                  extraEvents.push({
+                    id: 'assign_'+a.id, name: a.name,
+                    course: { fullname: course.fullname },
+                    timesort: deadline, modulename: 'assign',
+                    assignid: a.id,
+                    url: MOODLE+'/mod/assign/view.php?id='+a.cmid
+                  });
+                }
+              });
             });
-          });
-        }
+          }
+        });
         const existingKeys = new Set(events.map(e => {
           const cn = e.course ? (e.course.fullname||e.course.shortname||'') : '';
           return (e.name||'').toLowerCase().trim() + '|' + cn.toLowerCase().trim() + '|' + (e.timesort||0);
@@ -1709,7 +1798,9 @@ async function loadDeadlines() {
         course: courseName,
         due: due,
         past: due < now,
-        url: e.url || e.activityurl || '#'
+        url: e.url || e.activityurl || '#',
+        assignid: e.assignid || null,
+        submitted: null
       };
     }).sort((a,b) => a.due - b.due);
 
@@ -1732,6 +1823,7 @@ async function loadDeadlines() {
     renderCalendar();
     scheduleDeadlineNotifs();
     _renderCalNotesInDeadlines();
+    loadSubmissionStatuses();
   } catch(e) {
     console.error('Deadlines error:', e);
     const msg = e && e.message ? e.message : String(e);
@@ -2135,7 +2227,9 @@ function renderDl(list, el) {
     const hasUrl=d.url&&d.url!=='#';
     const diff = d.due - now;
     let tag = '';
-    if(d.past||d.due<=now) tag='<span class="tag r">Минув</span>';
+    if(d.submitted==='submitted') tag='<span class="tag g">✅ Здано</span>';
+    else if(d.submitted==='draft') tag='<span class="tag y">📝 Чернетка</span>';
+    else if(d.past||d.due<=now) tag='<span class="tag r">Минув</span>';
     else if(diff < _dlUrgentH*3600) tag='<span class="tag r">🔴 Термін!</span>';
     else if(diff < 86400*2) tag='<span class="tag y">Завтра</span>';
     return '<div class="dl-item'+(hasUrl?' click':'')+'"'+
@@ -3163,6 +3257,16 @@ async function _offlineLogin(sgid){
 }
 </script>
 
+
+<div id="course-contents-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:1000;overflow-y:auto;padding:16px;backdrop-filter:blur(4px);">
+  <div style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;max-width:640px;margin:0 auto;overflow:hidden;">
+    <div style="padding:16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;">
+      <div style="flex:1;font-size:15px;font-weight:700;" id="cc-title">Вміст курсу</div>
+      <button onclick="document.getElementById('course-contents-modal').style.display='none'" style="background:none;border:none;color:var(--text2);font-size:20px;cursor:pointer;line-height:1;">✕</button>
+    </div>
+    <div id="cc-body" style="padding:16px;max-height:75vh;overflow-y:auto;"></div>
+  </div>
+</div>
 <!-- NOTE EDITOR -->
 <div class="note-editor-overlay" id="note-editor-overlay">
   <div class="note-editor">

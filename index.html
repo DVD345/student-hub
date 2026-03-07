@@ -2166,7 +2166,7 @@ function _buildNoteRows(noteRows, today, now) {
         ? 'background:var(--warning);box-shadow:0 0 5px rgba(240,160,48,.4);'
         : 'background:var(--success);';
     // Колір часу: той самий принцип
-    const timeColor = isPast ? 'var(--text2)' : isUrgent ? 'var(--accent2)' : isWarn ? 'var(--warning)' : 'var(--accent)';
+    const timeColor = isPast ? 'var(--text2)' : isUrgent ? 'var(--accent2)' : isWarn ? 'var(--warning)' : isToday ? 'var(--accent)' : 'var(--text2)';
     const timeEl = note.time ? `<div class="dl-date" style="color:${timeColor};font-weight:700;font-size:11px;">${note.time}</div>` : '';
     return `<div class="dl-item" onclick="openCalNoteModal('${escHtml(ds)}',event,'${escHtml(note.id)}')" style="${isPast?'opacity:.5':''}">
       <div class="dl-dot" style="${dotStyle}flex-shrink:0;"></div>

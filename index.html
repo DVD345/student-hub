@@ -2231,7 +2231,7 @@ function renderDl(list, el) {
     else if(d.submitted==='draft') tag='<span class="tag y">📝 Чернетка</span>';
     else if(d.past||d.due<=now) tag='<span class="tag r">Минув</span>';
     else if(diff < _dlUrgentH*3600) tag='<span class="tag r">🔴 Термін!</span>';
-    else if(diff < 86400*2) tag='<span class="tag y">Завтра</span>';
+    else if(diff < 86400*2) { const dueD=new Date(d.due*1000); const todD=new Date(); const isTomorrow=dueD.getDate()===todD.getDate()+1&&dueD.getMonth()===todD.getMonth()&&dueD.getFullYear()===todD.getFullYear(); if(isTomorrow) tag='<span class="tag y">Завтра</span>'; }
     return '<div class="dl-item'+(hasUrl?' click':'')+'"'+
       (hasUrl?' onclick="window.open(this.dataset.url)" data-url="'+escHtml(d.url)+'"':'')+(d.past||d.due<=now?' style="opacity:.6"':'')+'>'+
       '<div class="dl-dot '+dc+'"></div>'+

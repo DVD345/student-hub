@@ -1693,7 +1693,7 @@ document.getElementById('li').addEventListener('keydown', e => { if(e.key==='Ent
     sg.addColorStop(.5,'rgba(240,192,64,.018)');
     sg.addColorStop(1,'transparent');
     ctx.fillStyle=sg; ctx.fillRect(0,sy-80,W,160);
-    requestAnimationFrame(tick);
+    if(!window._loginAnimStop) requestAnimationFrame(tick);
   }
 
   window.addEventListener('resize',()=>{resize();initParticles();});
@@ -1701,7 +1701,7 @@ document.getElementById('li').addEventListener('keydown', e => { if(e.key==='Ent
 })();
 
 async function initApp() {
-  document.getElementById('screen-login').classList.remove('active');
+  document.getElementById('screen-login').classList.remove('active'); window._loginAnimStop = true;
   document.getElementById('screen-app').classList.add('active');
   document.getElementById('gpill').textContent = '📌 ' + group.name;
   document.getElementById('files-lbl').textContent = group.name;

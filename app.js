@@ -360,6 +360,7 @@ function _showOfflineBanner(msg) {
 async function loadUserInfo() {
   try {
     const d = await moodleCall('core_webservice_get_site_info');
+    if(!d) return;
     userData = d;
     const name = d.fullname || 'Студент';
     document.getElementById('uname').textContent = name;
@@ -410,20 +411,23 @@ function setupNav() {
 
 async function _parseMoodleResponse(r) {
   const text = await r.text();
-  if(text.trim().startsWith('<')) {
-    // Got HTML instead of JSON — session expired
-    console.warn('Moodle session expired');
-    throw Object.assign(new Error('SESSION_EXPIRED'), { moodleSessionExpired: true });
+  const t = text.trim();
+  // Moodle returns HTML login page when token is invalid
+  if(t.startsWith('<') || t.includes('<!DOCTYPE') || t.includes('<html') || t.includes('Увійдіть')) {
+    console.warn('Moodle session expired — got HTML instead of JSON');
+    _showOfflineBanner('Сесія Moodle закінчилась — увійдіть знову');
+    return null;
   }
   try {
-    const data = JSON.parse(text);
-    if(data && data.errorcode === 'invalidtoken') {
-      throw Object.assign(new Error('SESSION_EXPIRED'), { moodleSessionExpired: true });
+    const data = JSON.parse(t);
+    if(data && (data.errorcode === 'invalidtoken' || data.errorcode === 'accessdenied')) {
+      _showOfflineBanner('Сесія Moodle закінчилась — увійдіть знову');
+      return null;
     }
     return data;
   } catch(e) {
-    if(e.moodleSessionExpired) throw e;
-    throw new Error('JSON parse error: ' + text.slice(0,100));
+    console.warn('Moodle JSON parse error:', t.slice(0,120));
+    return null;
   }
 }
 
@@ -469,6 +473,7 @@ async function openCourseContents(courseId, btn) {
   modal.style.display = 'block';
   try {
     const sections = await moodlePost('core_course_get_contents', { courseid: courseId });
+    if(!sections) { btn.textContent='📖 Вміст'; return; }
     if(!Array.isArray(sections)) { body.innerHTML = '<div class="empty"><p>Не вдалося завантажити</p></div>'; return; }
     const nonEmpty = sections.filter(s => s.modules && s.modules.filter(m=>m.modname!=='label').length);
     if(!nonEmpty.length) { body.innerHTML = '<div class="empty"><p>Розділів поки немає</p></div>'; return; }
@@ -530,7 +535,9 @@ async function loadCourses() {
   if(!token){ document.getElementById('courses-list').innerHTML='<div class="empty"><div class="emo">⚠️</div><p>Немає токену. Вийдіть і увійдіть знову.</p></div>'; return; }
   try {
     const info = await moodleCall('core_webservice_get_site_info');
+    if(!info) return;
     const d = await moodleCall('core_enrol_get_users_courses',{userid:info.userid});
+    if(!d) return;
     courses = Array.isArray(d) ? d : [];
     document.getElementById('s-courses').textContent = courses.length;
     filterCourses();

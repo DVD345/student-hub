@@ -158,6 +158,16 @@ function _loadKaTeX() {
       <div class="nav-item" id="nav-admin" onclick="go('admin')" style="display:none"><span class="ni">⚙️</span>Адмін-панель</div>
     </div>
     <div class="sidebar-bottom">
+      <div class="theme-picker">
+        <div class="theme-picker-label">🎨 Тема</div>
+        <div class="theme-swatches" id="theme-swatches">
+          <button class="theme-swatch active" data-theme="dark"    style="background:linear-gradient(135deg,#0d0d1a,#141420)" title="Dark"      onclick="setTheme('dark')"     ><span class="sw-label">Dark</span></button>
+          <button class="theme-swatch"        data-theme="light"   style="background:linear-gradient(135deg,#f0f1f8,#e4e5f0)" title="Light"     onclick="setTheme('light')"    ><span class="sw-label">Light</span></button>
+          <button class="theme-swatch"        data-theme="midnight"style="background:linear-gradient(135deg,#080820,#a57fff44)" title="Midnight" onclick="setTheme('midnight')" ><span class="sw-label">Midnight</span></button>
+          <button class="theme-swatch"        data-theme="solarized"style="background:linear-gradient(135deg,#fdf6e3,#eee8d5)" title="Solarized" onclick="setTheme('solarized')"><span class="sw-label">Solarized</span></button>
+          <button class="theme-swatch"        data-theme="forest"  style="background:linear-gradient(135deg,#0a1a0d,#4ade8044)" title="Forest"   onclick="setTheme('forest')"  ><span class="sw-label">Forest</span></button>
+        </div>
+      </div>
       <div class="user-card">
         <div class="user-avatar" id="uav" style="background:var(--accent)">?</div>
         <div class="user-info">
@@ -174,6 +184,7 @@ function _loadKaTeX() {
     <div class="topbar" id="topbar">
       <button class="topbar-menu" onclick="openSidebar()">☰</button>
       <h2 id="topbar-title">Головна</h2>
+      <button class="icon-btn" onclick="openGlobalSearch()" title="Пошук (Ctrl+K)" style="font-size:16px;">🔍</button>
       <button class="icon-btn" id="theme-btn-top" onclick="toggleTheme()">🌙</button>
       <button class="icon-btn" id="bell-btn" onclick="go('notifications')" style="position:relative">🔔<span id="bell-count" style="display:none;position:absolute;top:-2px;right:-2px;background:var(--accent2);color:#fff;font-size:8px;font-weight:700;padding:1px 4px;border-radius:10px;min-width:14px;text-align:center"></span></button>
     </div>
@@ -209,6 +220,10 @@ function _loadKaTeX() {
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;flex-wrap:wrap;">
           <div class="sync-badge"><div class="sync-dot"></div>Moodle</div>
           <button class="btn" onclick="syncMoodle()">🔄 Оновити</button>
+          <div style="margin-left:auto;display:flex;gap:6px;">
+            <button class="btn" onclick="exportJSON()" title="Експорт даних">💾 JSON</button>
+            <button class="btn" onclick="exportNotesMD()" title="Експорт нотаток">📄 Нотатки</button>
+          </div>
         </div>
         <div class="stats-grid">
           <div class="stat-card"><div class="stat-ico si-y">📚</div><div><div class="stat-val" id="s-courses">—</div><div class="stat-lbl">Курсів</div></div></div>
@@ -216,7 +231,48 @@ function _loadKaTeX() {
           <div class="stat-card"><div class="stat-ico si-g">✅</div><div><div class="stat-val" id="s-done">—</div><div class="stat-lbl">Минуло</div></div></div>
           <div class="stat-card"><div class="stat-ico si-b">📁</div><div><div class="stat-val" id="s-files">—</div><div class="stat-lbl">Файлів</div></div></div>
         </div>
-        <div class="section-title">Найближчі дедлайни</div>
+
+        <!-- WIDGETS -->
+        <div class="dash-widgets">
+          <!-- Today's deadlines -->
+          <div class="widget">
+            <div class="widget-header">
+              <span class="widget-icon">⏰</span>
+              <span class="widget-title">Сьогодні</span>
+              <button class="widget-link" onclick="go('deadlines');setBnav('deadlines')">Всі →</button>
+            </div>
+            <div class="widget-body" id="w-today"></div>
+          </div>
+          <!-- Upcoming this week -->
+          <div class="widget">
+            <div class="widget-header">
+              <span class="widget-icon">📅</span>
+              <span class="widget-title">Цього тижня</span>
+              <button class="widget-link" onclick="go('deadlines');setBnav('deadlines')">Всі →</button>
+            </div>
+            <div class="widget-body" id="w-week"></div>
+          </div>
+          <!-- Recent notes -->
+          <div class="widget">
+            <div class="widget-header">
+              <span class="widget-icon">✍️</span>
+              <span class="widget-title">Останні нотатки</span>
+              <button class="widget-link" onclick="go('notes')">Всі →</button>
+            </div>
+            <div class="widget-body" id="w-notes"></div>
+          </div>
+          <!-- Recent files -->
+          <div class="widget">
+            <div class="widget-header">
+              <span class="widget-icon">📁</span>
+              <span class="widget-title">Нові файли</span>
+              <button class="widget-link" onclick="go('files')">Всі →</button>
+            </div>
+            <div class="widget-body" id="w-files"></div>
+          </div>
+        </div>
+
+        <div class="section-title" style="margin-top:4px;">Найближчі дедлайни</div>
         <div id="dash-dl"><div class="loading"><div class="spinner"></div>Завантаження...</div></div>
       </div>
 
@@ -304,6 +360,12 @@ function _loadKaTeX() {
           <div class="chat-sidebar" id="chat-rooms"></div>
           <div class="chat-main">
             <div class="chat-header" id="chat-room-title">Оберіть кімнату</div>
+            <div class="pinned-bar" id="pinned-bar" style="display:none" onclick="scrollToPinned()">
+              <span class="pinned-bar-icon">📌</span>
+              <span class="pinned-bar-label">Закріплено</span>
+              <span class="pinned-bar-text"></span>
+              <button class="pinned-bar-close" onclick="event.stopPropagation();unpinMessage()" title="Відкріпити">✕</button>
+            </div>
             <div class="chat-messages" id="chat-msgs"><div class="empty"><div class="emo">💬</div><p>Оберіть чат зліва</p></div></div>
             <div class="chat-input-wrap" style="flex-direction:column;gap:6px;padding:10px;">
               <div id="chat-file-preview" style="display:none;align-items:center;gap:8px;padding:6px 10px;background:var(--bg3);border-radius:8px;font-size:12px;">

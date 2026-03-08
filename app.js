@@ -288,8 +288,22 @@ document.getElementById('li').addEventListener('keydown', e => { if(e.key==='Ent
 })();
 
 async function initApp() {
-  document.getElementById('screen-login').classList.remove('active'); window._loginAnimStop = true;
-  document.getElementById('screen-app').classList.add('active');
+  const loginScreen = document.getElementById('screen-login');
+  const appScreen = document.getElementById('screen-app');
+  loginScreen.style.transition = 'opacity .35s ease, transform .35s ease';
+  loginScreen.style.opacity = '0';
+  loginScreen.style.transform = 'scale(.97)';
+  setTimeout(() => {
+    loginScreen.classList.remove('active');
+    loginScreen.style.cssText = '';
+    window._loginAnimStop = true;
+    appScreen.style.opacity = '0';
+    appScreen.style.transform = 'translateY(16px)';
+    appScreen.classList.add('active');
+    appScreen.style.transition = 'opacity .35s ease, transform .35s ease';
+    requestAnimationFrame(() => { appScreen.style.opacity='1'; appScreen.style.transform='translateY(0)'; });
+    setTimeout(() => { appScreen.style.cssText = ''; }, 400);
+  }, 320);
   document.getElementById('gpill').textContent = '📌 ' + group.name;
   document.getElementById('files-lbl').textContent = group.name;
   document.getElementById('mats-lbl').textContent = group.name;
@@ -338,7 +352,7 @@ function _loadCachedData() {
     }
     if(cachedGroup) { const cg = JSON.parse(cachedGroup); if(!group.id) group = cg; }
     if(cachedCourses) { courses = JSON.parse(cachedCourses); renderCourses(); }
-    if(cachedDl) { allDl = JSON.parse(cachedDl); applyDlFilter(); renderDashDl(); renderCalendar(); }
+    if(cachedDl) { allDl = JSON.parse(cachedDl); applyDlFilter(); renderDashDl(); renderDashWidgets(); renderCalendar(); }
     if(cacheTs) {
       const age = Math.round((Date.now() - parseInt(cacheTs)) / 60000);
       if(age > 30) _showOfflineBanner('Дані з кешу (' + (age > 1440 ? Math.round(age/1440)+'д' : age+'хв') + ' тому)');
@@ -461,7 +475,7 @@ async function loadSubmissionStatuses() {
     }));
   }
   applyDlFilter();
-  renderDashDl();
+  renderDashDl(); renderDashWidgets();
 }
 
 async function openCourseContents(courseId, btn) {
@@ -701,7 +715,7 @@ async function loadDeadlines() {
     document.getElementById('s-urgent').textContent = urgent;
     document.getElementById('s-done').textContent = past;
     applyDlFilter();
-    renderDashDl();
+    renderDashDl(); renderDashWidgets();
     renderCalendar();
     scheduleDeadlineNotifs();
     _renderCalNotesInDeadlines();
@@ -750,7 +764,7 @@ function startUserSettingsSync() {
       const wd = document.getElementById('dl-warn-days');
       if(uh) uh.value = _dlUrgentH;
       if(wd) wd.value = _dlWarnD;
-      if(allDl.length > 0) { applyDlFilter(); renderDashDl(); renderCalendar(); _renderCalNotesInDeadlines(); }
+      if(allDl.length > 0) { applyDlFilter(); renderDashDl(); renderDashWidgets(); renderCalendar(); _renderCalNotesInDeadlines(); }
       if(firstLoad) { firstLoad = false; resolve(); }
     }, err => { console.warn('userSettings sync error:', err.code); resolve(); });
   });
@@ -786,7 +800,7 @@ function loadDlSettings() {
 function saveDlSettings() {
   _dlUrgentH = parseInt(document.getElementById('dl-urgent-hours').value)||48;
   _dlWarnD   = parseInt(document.getElementById('dl-warn-days').value)||1;
-  applyDlFilter(); renderDashDl(); renderCalendar();
+  applyDlFilter(); renderDashDl(); renderDashWidgets(); renderCalendar();
   _saveUserSettings();
 }
 
@@ -801,7 +815,7 @@ function deleteDl(id, e) {
   if(!confirm('Приховати цей дедлайн?')) return;
   const sid = String(id);
   if(!_dlDeleted.includes(sid)) _dlDeleted.push(sid);
-  applyDlFilter(); renderDashDl(); renderCalendar();
+  applyDlFilter(); renderDashDl(); renderDashWidgets(); renderCalendar();
   _saveUserSettings();
 }
 
@@ -1146,6 +1160,7 @@ function listenFiles() {
     checkFileNotifs(cachedFiles);
     renderFilesWithSearch(cachedFiles, filesSearchQuery);
     document.getElementById('s-files').textContent=cachedFiles.length;
+    renderWidgetFiles();
   },err=>{ document.getElementById('files-list').innerHTML='<div class="empty"><div class="emo">⚠️</div><p>Помилка завантаження файлів.</p></div>'; });
   unsubs.push(unsub);
 }
@@ -1290,6 +1305,7 @@ function openChatRoom(roomId, label) {
   const activeRoom=document.querySelector('[data-roomid="'+roomId+'"]');
   if(activeRoom) activeRoom.classList.add('active');
   if(chatUnsub) chatUnsub();
+  subscribePinned(roomId);
   const {collection,query,where,onSnapshot,limit}=window._fb;
   const q=query(collection(window._db,'messages'),where('room','==',roomId),limit(50));
   chatUnsub=onSnapshot(q,snap=>{
@@ -1351,6 +1367,100 @@ function _insertMention(name) {
   _hideMentionPopup();
 }
 
+const REACTION_EMOJIS = ['👍','❤️','😂','🔥','👏','😮','😢','🎉'];
+
+function _renderReactions(m) {
+  const reactions = m.reactions || {};
+  const myUid = String(userData.userid);
+  let html = '<div class="msg-reactions">';
+  const grouped = {};
+  Object.entries(reactions).forEach(([uid, emoji]) => {
+    if (!grouped[emoji]) grouped[emoji] = [];
+    grouped[emoji].push(uid);
+  });
+  Object.entries(grouped).forEach(([emoji, uids]) => {
+    const mine = uids.includes(myUid);
+    html += `<button class="reaction-btn${mine?' mine':''}" onclick="toggleReaction('${escHtml(m.id)}','${emoji}')" title="${uids.length} реакцій">${emoji}<span class="rcnt">${uids.length}</span></button>`;
+  });
+  html += `<button class="reaction-add" onclick="openEmojiPicker(event,'${escHtml(m.id)}')" title="Додати реакцію">＋</button>`;
+  html += '</div>';
+  return html;
+}
+
+async function toggleReaction(msgId, emoji) {
+  if(!msgId||!window._fb||!window._db) return;
+  const myUid = String(userData.userid);
+  const {doc, getDoc, updateDoc} = window._fb;
+  const ref = doc(window._db, 'messages', msgId);
+  try {
+    const snap = await getDoc(ref);
+    if(!snap.exists()) return;
+    const reactions = snap.data().reactions || {};
+    if(reactions[myUid] === emoji) delete reactions[myUid];
+    else reactions[myUid] = emoji;
+    await updateDoc(ref, {reactions});
+  } catch(e) {}
+}
+
+function openEmojiPicker(e, msgId) {
+  e.stopPropagation();
+  document.querySelectorAll('.emoji-picker').forEach(p=>p.remove());
+  const picker = document.createElement('div');
+  picker.className = 'emoji-picker';
+  REACTION_EMOJIS.forEach(em => {
+    const btn = document.createElement('button');
+    btn.textContent = em;
+    btn.onclick = (ev) => { ev.stopPropagation(); toggleReaction(msgId, em); picker.remove(); };
+    picker.appendChild(btn);
+  });
+  const rect = e.currentTarget.getBoundingClientRect();
+  picker.style.position = 'fixed';
+  picker.style.top = (rect.top - 60) + 'px';
+  picker.style.left = Math.max(8, rect.left - 60) + 'px';
+  document.body.appendChild(picker);
+  setTimeout(() => document.addEventListener('click', () => picker.remove(), {once:true}), 10);
+}
+
+// ── Pinned messages ──
+var _pinnedUnsub = null;
+var _currentPinnedMsg = null;
+
+async function pinMessage(msgId, msgText, author) {
+  if(!canMod()) return;
+  if(!window._fb||!window._db) return;
+  const {doc, setDoc} = window._fb;
+  try {
+    await setDoc(doc(window._db,'pinned',currentChatRoom), {
+      msgId, text: msgText, author, pinnedBy: userData.fullname||'?', ts: Date.now()
+    });
+  } catch(e) {}
+}
+
+async function unpinMessage() {
+  if(!canMod()) return;
+  if(!window._fb||!window._db) return;
+  const {doc, deleteDoc} = window._fb;
+  try { await deleteDoc(doc(window._db,'pinned',currentChatRoom)); } catch(e) {}
+}
+
+function subscribePinned(roomId) {
+  if(_pinnedUnsub) { _pinnedUnsub(); _pinnedUnsub=null; }
+  const {doc, onSnapshot} = window._fb;
+  _pinnedUnsub = onSnapshot(doc(window._db,'pinned',roomId), snap => {
+    const bar = document.getElementById('pinned-bar');
+    if(!bar) return;
+    if(snap.exists()) {
+      const d = snap.data();
+      _currentPinnedMsg = d;
+      bar.style.display = 'flex';
+      bar.querySelector('.pinned-bar-text').textContent = (d.author?d.author+': ':'') + (d.text||'');
+    } else {
+      _currentPinnedMsg = null;
+      bar.style.display = 'none';
+    }
+  });
+}
+
 function renderMessages(msgs) {
   const el=document.getElementById('chat-msgs');
   if(!msgs.length){el.innerHTML='<div class="empty"><div class="emo">💬</div><p>Повідомлень ще немає</p></div>';return;}
@@ -1358,14 +1468,23 @@ function renderMessages(msgs) {
     const isMe=m.uid===String(userData.userid);
     const t=m.ts?new Date(m.ts).toLocaleTimeString('uk-UA',{hour:'2-digit',minute:'2-digit'}):'';
     const canDel = canMod() || m.uid===String(userData.userid);
+    const fileHtml = m.file
+      ? (m.file.type&&m.file.type.startsWith('image/')
+          ? '<br><img src="'+m.file.data+'" style="max-width:220px;max-height:220px;border-radius:10px;display:block;margin-top:6px;cursor:pointer;box-shadow:0 2px 12px rgba(0,0,0,.3);transition:transform .15s;" onclick="openLightbox(this.src,\''+escHtml(m.file.name||'photo')+'\')" onmouseover="this.style.transform=\'scale(1.02)\'" onmouseout="this.style.transform=\'scale(1)\'">'
+          : '<br><a href="'+m.file.data+'" download="'+escHtml(m.file.name||'file')+'" style="display:inline-flex;align-items:center;gap:5px;padding:5px 9px;background:rgba(255,255,255,.07);border-radius:7px;font-size:11px;color:var(--text);text-decoration:none;margin-top:4px;">\u{1F4C4} '+escHtml(m.file.name||'Файл')+'</a>')
+      : '';
+    const msgText = m.text ? _highlightMentions(escHtml(m.text), userData.fullname) : '';
+    const pinBtn = (canMod()&&m.id) ? '<button class="msg-del" onclick="pinMessage(\''+escHtml(m.id)+'\',\''+escHtml((m.text||'').slice(0,80)).replace(/'/g,'')+'\'  ,\''+escHtml(m.author||'')+'\');" style="background:rgba(240,192,64,.12);border:1px solid rgba(240,192,64,.25);color:var(--accent);border-radius:5px;padding:2px 5px;font-size:9px;cursor:pointer;opacity:0;transition:opacity .2s;flex-shrink:0" title="Закріпити">📌</button>' : '';
+    const delBtn = (canDel&&m.id) ? '<button class="msg-del" data-id="'+escHtml(m.id)+'" onclick="delMsg(this.dataset.id)" style="background:rgba(224,80,80,.15);border:1px solid rgba(224,80,80,.3);color:var(--accent2);border-radius:5px;padding:2px 5px;font-size:9px;cursor:pointer;opacity:0;transition:opacity .2s;flex-shrink:0">🗑</button>' : '';
     return '<div class="msg '+(isMe?'me':'other')+'" style="position:relative" '+
-      'onmouseenter="this.querySelector(\'.msg-del\')&&(this.querySelector(\'.msg-del\').style.opacity=1)" '+
-      'onmouseleave="this.querySelector(\'.msg-del\')&&(this.querySelector(\'.msg-del\').style.opacity=0)">'+
+      'onmouseenter="this.querySelectorAll(\'.msg-del\').forEach(b=>b.style.opacity=1)" '+
+      'onmouseleave="this.querySelectorAll(\'.msg-del\').forEach(b=>b.style.opacity=0)">'+
       (!isMe?'<div class="msg-author">'+escHtml(m.author)+'</div>':'')+
-      '<div style="display:flex;align-items:flex-end;gap:4px;'+(isMe?'flex-direction:row-reverse':'')+'">'+
-        '<div class="msg-bubble">'+(m.text?_highlightMentions(escHtml(m.text), userData.fullname):'')+(m.file?(m.file.type&&m.file.type.startsWith('image/')?'<br><img src="'+m.file.data+'" style="max-width:220px;max-height:220px;border-radius:10px;display:block;margin-top:6px;cursor:pointer;box-shadow:0 2px 12px rgba(0,0,0,.3);transition:transform .15s;" onclick="openLightbox(this.src,\''+escHtml(m.file.name||'photo')+'\')" onmouseover="this.style.transform=\'scale(1.02)\'" onmouseout="this.style.transform=\'scale(1)\'">':'<br><a href="'+m.file.data+'" download="'+escHtml(m.file.name||'file')+'" style="display:inline-flex;align-items:center;gap:5px;padding:5px 9px;background:rgba(255,255,255,.07);border-radius:7px;font-size:11px;color:var(--text);text-decoration:none;margin-top:4px;">\u{1F4C4} '+escHtml(m.file.name||'Файл')+'</a>'):'')+'</div>'+
-        (canDel&&m.id?'<button class="msg-del" data-id="'+escHtml(m.id)+'" onclick="delMsg(this.dataset.id)" style="background:rgba(224,80,80,.15);border:1px solid rgba(224,80,80,.3);color:var(--accent2);border-radius:5px;padding:2px 5px;font-size:9px;cursor:pointer;opacity:0;transition:opacity .2s;flex-shrink:0">🗑</button>':'')+
+      '<div style="display:flex;align-items:flex-end;gap:4px;'+(isMe?'flex-direction:row-reverse':'')+'">' +
+        '<div class="msg-bubble">'+msgText+fileHtml+'</div>'+
+        pinBtn+delBtn+
       '</div>'+
+      _renderReactions(m)+
       '<div class="msg-time">'+t+'</div></div>';
   }).join('');
   el.scrollTop=el.scrollHeight;
@@ -1567,11 +1686,42 @@ async function delGroup(id){ if(!confirm('Видалити групу?'))return;
 
 // ── NAV ──
 var PAGE_TITLES={dashboard:'Головна',deadlines:'Дедлайни',courses:'Курси',files:'Файли',materials:'Матеріали',chat:'Чати',admin:'Адмін-панель',calendar:'Календар',notes:'Нотатки',assistant:'Асистент',notifications:'Сповіщення'};
+// ── Page order for directional transitions ──
+const PAGE_ORDER = ['dashboard','deadlines','courses','calendar','assistant','files','materials','notes','chat','notifications','admin'];
+let _currentPage = 'dashboard';
+
 function go(name) {
-  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
-  const pg=document.getElementById('page-'+name);
-  if(!pg) return;
-  pg.classList.add('active');
+  const prevName = _currentPage;
+  if(prevName === name) return;
+
+  const prevPg = document.getElementById('page-' + prevName);
+  const nextPg = document.getElementById('page-' + name);
+  if(!nextPg) return;
+
+  const prevIdx = PAGE_ORDER.indexOf(prevName);
+  const nextIdx = PAGE_ORDER.indexOf(name);
+  const forward = nextIdx === -1 || prevIdx === -1 || nextIdx > prevIdx;
+
+  // Animate out previous page
+  if(prevPg && prevPg.classList.contains('active')) {
+    prevPg.classList.remove('active','pg-enter-right','pg-enter-left','pg-enter-up');
+    prevPg.classList.add(forward ? 'pg-exit-left' : 'pg-exit-right');
+    const cleanup = () => { prevPg.classList.remove('pg-exit-left','pg-exit-right'); };
+    prevPg.addEventListener('animationend', cleanup, {once:true});
+    setTimeout(cleanup, 250); // fallback
+  }
+
+  // Animate in next page
+  document.querySelectorAll('.page').forEach(p => {
+    if(p !== prevPg) p.classList.remove('active','pg-enter-right','pg-enter-left','pg-enter-up','pg-exit-left','pg-exit-right');
+  });
+  nextPg.classList.add('active', forward ? 'pg-enter-right' : 'pg-enter-left');
+  nextPg.addEventListener('animationend', () => {
+    nextPg.classList.remove('pg-enter-right','pg-enter-left','pg-enter-up');
+  }, {once:true});
+
+  _currentPage = name;
+
   const labels={dashboard:'Голов',deadlines:'Дедл',courses:'Курс',files:'Файл',materials:'Матер',chat:'Чат',admin:'Адмін',calendar:'Календ',notes:'Нотат',assistant:'Асист',notifications:'Сповіщ'};
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.toggle('active',n.textContent.trim().startsWith(labels[name]||'_')));
   document.getElementById('topbar-title').textContent=PAGE_TITLES[name]||name;
@@ -1591,21 +1741,47 @@ function setBnav(name){
 function openSidebar(){document.getElementById('sidebar').classList.add('open');document.getElementById('sov').classList.add('show');}
 function closeSidebar(){document.getElementById('sidebar').classList.remove('open');document.getElementById('sov').classList.remove('show');}
 
-function toggleTheme(){
-  const t=document.documentElement.getAttribute('data-theme')==='dark'?'light':'dark';
-  document.documentElement.setAttribute('data-theme',t);
-  localStorage.setItem('sh_theme',t);
+const THEMES = {
+  dark:      { icon:'🌙', label:'Dark' },
+  light:     { icon:'☀️', label:'Light' },
+  midnight:  { icon:'🔮', label:'Midnight' },
+  solarized: { icon:'🌅', label:'Solarized' },
+  forest:    { icon:'🌿', label:'Forest' },
+};
+
+function setTheme(t) {
+  if(!THEMES[t]) t = 'dark';
+  document.documentElement.setAttribute('data-theme', t);
+  localStorage.setItem('sh_theme', t);
   updateThemeIcon(t);
+  // Update active swatch
+  document.querySelectorAll('.theme-swatch').forEach(el => {
+    el.classList.toggle('active', el.dataset.theme === t);
+  });
 }
-function updateThemeIcon(t){
-  const icon=t==='dark'?'🌙':'☀️';
-  const b1=document.getElementById('theme-btn');
-  const b2=document.getElementById('theme-btn-top');
-  if(b1)b1.textContent=icon;
-  if(b2)b2.textContent=icon;
+
+function toggleTheme() {
+  const keys = Object.keys(THEMES);
+  const cur = document.documentElement.getAttribute('data-theme') || 'dark';
+  const next = keys[(keys.indexOf(cur) + 1) % keys.length];
+  setTheme(next);
 }
-const st=localStorage.getItem('sh_theme');
-if(st){document.documentElement.setAttribute('data-theme',st);updateThemeIcon(st);}
+
+function updateThemeIcon(t) {
+  const icon = THEMES[t]?.icon || '🌙';
+  const b1 = document.getElementById('theme-btn');
+  const b2 = document.getElementById('theme-btn-top');
+  if(b1) b1.textContent = icon;
+  if(b2) b2.textContent = icon;
+}
+
+const st = localStorage.getItem('sh_theme');
+if(st) { document.documentElement.setAttribute('data-theme', st); updateThemeIcon(st); }
+// sync swatch state after DOM ready
+document.addEventListener('DOMContentLoaded', () => {
+  const cur = localStorage.getItem('sh_theme') || 'dark';
+  document.querySelectorAll('.theme-swatch').forEach(el => el.classList.toggle('active', el.dataset.theme === cur));
+});
 
 // ═══ CALENDAR ═══
 var calDate = new Date();
@@ -1661,7 +1837,7 @@ function renderCalendar() {
   CAL_DAYS.forEach(d=>html+='<div class="cal-header-cell">'+d+'</div>');
 
   for(let i=0;i<startDow;i++){
-    const pDate=new Date(year,month,-startDow+i+1);
+    const pDate=new Date(year,month,i-startDow+1);
     html+='<div class="cal-cell other-month"><div class="cal-day-num">'+pDate.getDate()+'</div></div>';
   }
 
@@ -1673,7 +1849,7 @@ function renderCalendar() {
     const dayEnd=dayStart+86400;
     const urgH=typeof _dlUrgentH!=='undefined'?_dlUrgentH:48;
     const warnD=typeof _dlWarnD!=='undefined'?_dlWarnD:7;
-    const dayDl=allDl.filter(dl=>!dlDeleted.includes(String(dl.id))&&dl.due>=dayStart&&dl.due<dayEnd);
+    const dayDl=allDl.filter(dl=>!dlDeleted.includes(String(dl.id))&&dl.due>=dayStart&&dl.due<dayEnd&&dl.due>=nowTs);
     const dayNotes=getCalNotes(dateStr);
     const hasAny=dayDl.length>0||dayNotes.length>0;
 
@@ -1746,6 +1922,7 @@ function loadNotes(){
   const raw=localStorage.getItem('sh_notes_'+String(userData.userid||'local'));
   notes=raw?JSON.parse(raw):[];
   renderNotesList(notes);
+  renderWidgetNotes();
   const sel=document.getElementById('note-course-sel');
   sel.innerHTML='<option value="">Без курсу</option>';
   courses.forEach(c=>sel.innerHTML+='<option value="'+escHtml(c.id)+'">'+escHtml(c.shortname||c.fullname)+'</option>');
@@ -2136,4 +2313,312 @@ async function _offlineLogin(sgid){
     await initApp();
     _showOfflineBanner('Moodle недоступний — показуємо збережені дані');
   }catch(e){}
+}
+
+// ═══ GLOBAL SEARCH (Ctrl+K) ═══
+(function(){
+  // Build search index
+  function buildIndex() {
+    const idx = [];
+    // Courses
+    (courses||[]).forEach(c=>{
+      idx.push({type:'course',icon:'📚',name:c.fullname||c.shortname,sub:c.shortname||'',url:c.viewurl||null,action:()=>{go('courses');setTimeout(()=>{const q=document.getElementById('c-q');if(q){q.value=c.shortname||c.fullname;filterCourses();}},200);}});
+    });
+    // Deadlines
+    (allDl||[]).forEach(d=>{
+      if(d.past) return;
+      const due = d.due ? new Date(d.due*1000).toLocaleDateString('uk-UA',{day:'numeric',month:'short'}) : '';
+      idx.push({type:'deadline',icon:'⏰',name:d.name,sub:due+(d.course?' · '+d.course:''),url:d.url&&d.url!=='#'?d.url:null,action:()=>{if(d.url&&d.url!=='#')window.open(d.url,'_blank');else go('deadlines');}});
+    });
+    // Notes
+    (notes||[]).forEach(n=>{
+      idx.push({type:'note',icon:'✍️',name:n.title||'Без назви',sub:(n.content||'').slice(0,60),url:null,action:()=>{go('notes');setTimeout(()=>openNote(n.id),200);}});
+    });
+    // Files
+    (cachedFiles||[]).forEach(f=>{
+      idx.push({type:'file',icon:'📁',name:f.name,sub:f.uploaderName||'',url:f.url||null,action:()=>{if(f.url)window.open(f.url,'_blank');else go('files');}});
+    });
+    // Materials
+    (cachedMats||[]).forEach(m=>{
+      idx.push({type:'material',icon:'📝',name:m.name,sub:m.subject||m.desc||'',url:m.link||null,action:()=>{if(m.link)window.open(m.link,'_blank');else go('materials');}});
+    });
+    // Pages
+    [
+      {name:'Головна',icon:'🏠',action:()=>go('dashboard')},
+      {name:'Дедлайни',icon:'⏰',action:()=>go('deadlines')},
+      {name:'Курси',icon:'📚',action:()=>go('courses')},
+      {name:'Календар',icon:'📅',action:()=>go('calendar')},
+      {name:'Асистент',icon:'🤖',action:()=>go('assistant')},
+      {name:'Файли',icon:'📁',action:()=>go('files')},
+      {name:'Матеріали',icon:'📝',action:()=>go('materials')},
+      {name:'Нотатки',icon:'✍️',action:()=>go('notes')},
+      {name:'Чат',icon:'💬',action:()=>go('chat')},
+    ].forEach(p=>idx.push({type:'page',icon:p.icon,name:p.name,sub:'Сторінка',url:null,action:p.action}));
+    return idx;
+  }
+
+  const TYPE_LABELS = {course:'Курс',deadline:'Дедлайн',note:'Нотатка',file:'Файл',material:'Матеріал',page:'Сторінка'};
+  const TYPE_ORDER  = ['page','deadline','course','note','file','material'];
+
+  function openSearch(){
+    let ov = document.getElementById('gs-overlay');
+    if(!ov){ buildSearchUI(); ov=document.getElementById('gs-overlay'); }
+    ov.style.display='flex';
+    setTimeout(()=>{ ov.classList.add('gs-show'); document.getElementById('gs-inp').focus(); },10);
+    renderResults('');
+  }
+  function closeSearch(){
+    const ov=document.getElementById('gs-overlay');
+    if(!ov)return;
+    ov.classList.remove('gs-show');
+    setTimeout(()=>{ ov.style.display='none'; },200);
+  }
+
+  let _gsActive=-1;
+  function renderResults(q){
+    const box=document.getElementById('gs-results');
+    const idx=buildIndex();
+    const term=q.trim().toLowerCase();
+    let items = term
+      ? idx.filter(it=>(it.name||'').toLowerCase().includes(term)||(it.sub||'').toLowerCase().includes(term))
+      : idx.filter(it=>it.type==='page');
+    // Sort by type priority
+    items.sort((a,b)=>TYPE_ORDER.indexOf(a.type)-TYPE_ORDER.indexOf(b.type));
+    items=items.slice(0,12);
+    _gsActive=-1;
+    if(!items.length){
+      box.innerHTML='<div style="text-align:center;padding:32px 16px;color:var(--text2);font-size:14px;">Нічого не знайдено 🔍</div>';
+      return;
+    }
+    let html='';
+    let lastType='';
+    items.forEach((it,i)=>{
+      if(it.type!==lastType){
+        html+=`<div style="font-size:10px;font-weight:700;color:var(--text2);letter-spacing:.6px;text-transform:uppercase;padding:10px 14px 4px;">${TYPE_LABELS[it.type]||it.type}</div>`;
+        lastType=it.type;
+      }
+      html+=`<div class="gs-item" data-idx="${i}" onclick="_gsSelect(${i})" onmouseover="_gsHover(${i})">
+        <span class="gs-ico">${it.icon}</span>
+        <div class="gs-text">
+          <div class="gs-name">${escHtml(it.name)}</div>
+          ${it.sub?`<div class="gs-sub">${escHtml(it.sub)}</div>`:''}
+        </div>
+        <span class="gs-tag">${TYPE_LABELS[it.type]||''}</span>
+      </div>`;
+    });
+    box.innerHTML=html;
+    window._gsItems=items;
+  }
+
+  window._gsSelect=function(i){
+    const items=window._gsItems||[];
+    if(items[i]){items[i].action();closeSearch();}
+  };
+  window._gsHover=function(i){ _gsActive=i; _gsHighlight(); };
+
+  function _gsHighlight(){
+    document.querySelectorAll('.gs-item').forEach((el,i)=>{
+      el.classList.toggle('gs-active',i===_gsActive);
+    });
+  }
+
+  function buildSearchUI(){
+    const ov=document.createElement('div');
+    ov.id='gs-overlay';
+    ov.style.cssText='display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9500;align-items:flex-start;justify-content:center;padding:10vh 16px 16px;backdrop-filter:blur(6px);transition:opacity .2s;opacity:0;';
+    ov.innerHTML=`
+      <div id="gs-box" style="width:100%;max-width:580px;background:var(--card);border:1px solid var(--border);border-radius:16px;overflow:hidden;box-shadow:0 24px 64px rgba(0,0,0,.5);transform:translateY(-12px);transition:transform .2s;">
+        <div style="display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid var(--border);">
+          <span style="font-size:18px;flex-shrink:0;">🔍</span>
+          <input id="gs-inp" placeholder="Пошук по всьому сайту..." autocomplete="off" spellcheck="false"
+            style="flex:1;background:none;border:none;outline:none;color:var(--text);font-size:16px;font-family:'Inter',sans-serif;">
+          <kbd style="background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:2px 8px;font-size:11px;color:var(--text2);font-family:'JetBrains Mono',monospace;flex-shrink:0;">ESC</kbd>
+        </div>
+        <div id="gs-results" style="max-height:420px;overflow-y:auto;padding:4px 0 8px;"></div>
+        <div style="padding:8px 14px;border-top:1px solid var(--border);display:flex;gap:12px;align-items:center;">
+          <span style="font-size:11px;color:var(--text2);">↑↓ навігація</span>
+          <span style="font-size:11px;color:var(--text2);">↵ відкрити</span>
+          <span style="font-size:11px;color:var(--text2);margin-left:auto;">Ctrl+K</span>
+        </div>
+      </div>`;
+    ov.addEventListener('click',e=>{if(e.target===ov)closeSearch();});
+    ov.querySelector('#gs-inp').addEventListener('input',e=>renderResults(e.target.value));
+    ov.querySelector('#gs-inp').addEventListener('keydown',e=>{
+      const items=window._gsItems||[];
+      if(e.key==='ArrowDown'){e.preventDefault();_gsActive=Math.min(_gsActive+1,items.length-1);_gsHighlight();}
+      else if(e.key==='ArrowUp'){e.preventDefault();_gsActive=Math.max(_gsActive-1,0);_gsHighlight();}
+      else if(e.key==='Enter'){e.preventDefault();if(_gsActive>=0)_gsSelect(_gsActive);else if(items.length)_gsSelect(0);}
+      else if(e.key==='Escape'){closeSearch();}
+    });
+    document.body.appendChild(ov);
+    // animate-in class
+    requestAnimationFrame(()=>{ ov.style.opacity='1'; });
+  }
+
+  // Ctrl+K / Cmd+K
+  document.addEventListener('keydown',e=>{
+    if((e.ctrlKey||e.metaKey)&&e.key==='k'){e.preventDefault();openSearch();}
+  });
+
+  window.openGlobalSearch=openSearch;
+
+  // CSS for search items
+  const style=document.createElement('style');
+  style.textContent=`
+    #gs-overlay.gs-show { opacity:1!important; }
+    #gs-overlay.gs-show #gs-box { transform:translateY(0)!important; }
+    .gs-item { display:flex;align-items:center;gap:10px;padding:9px 14px;cursor:pointer;border-radius:8px;margin:0 6px;transition:background .1s; }
+    .gs-item:hover,.gs-item.gs-active { background:var(--bg3); }
+    .gs-ico { font-size:18px;flex-shrink:0;width:26px;text-align:center; }
+    .gs-text { flex:1;min-width:0; }
+    .gs-name { font-size:14px;font-weight:500;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
+    .gs-sub { font-size:11px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px; }
+    .gs-tag { font-size:10px;color:var(--text2);background:var(--bg3);border:1px solid var(--border);border-radius:4px;padding:2px 6px;flex-shrink:0; }
+  `;
+  document.head.appendChild(style);
+})();
+
+// ── Scroll to pinned message in chat ──
+function scrollToPinned() {
+  if(!_currentPinnedMsg||!_currentPinnedMsg.msgId) return;
+  const el = document.querySelector('[data-msgid="'+_currentPinnedMsg.msgId+'"]');
+  if(el) { el.scrollIntoView({behavior:'smooth',block:'center'}); el.style.background='rgba(240,192,64,.18)'; setTimeout(()=>el.style.background='',1200); }
+}
+
+// ═══ DASHBOARD WIDGETS ═══
+function renderDashWidgets() {
+  renderWidgetToday();
+  renderWidgetWeek();
+  renderWidgetNotes();
+  renderWidgetFiles();
+}
+
+function renderWidgetToday() {
+  const el = document.getElementById('w-today');
+  if(!el) return;
+  const now = Date.now()/1000;
+  const todayStart = new Date(); todayStart.setHours(0,0,0,0);
+  const todayEnd   = new Date(); todayEnd.setHours(23,59,59,999);
+  const dlDel = typeof _dlDeleted!=='undefined' ? _dlDeleted : [];
+  const items = allDl.filter(d =>
+    !dlDel.includes(String(d.id)) && d.due >= todayStart.getTime()/1000 && d.due <= todayEnd.getTime()/1000
+  );
+  if(!items.length) { el.innerHTML='<div class="widget-empty">🎉 Сьогодні дедлайнів немає</div>'; return; }
+  el.innerHTML = items.slice(0,4).map(d => {
+    const t = new Date(d.due*1000).toLocaleTimeString('uk-UA',{hour:'2-digit',minute:'2-digit'});
+    const urgent = (d.due - now) < 7200;
+    return `<div class="widget-item" onclick="${d.url&&d.url!=='#'?'window.open(\''+escHtml(d.url)+'\',\'_blank\')':'go(\'deadlines\')'}" title="${escHtml(d.name)}">
+      <span class="widget-item-dot" style="background:${urgent?'var(--accent2)':'var(--warning)'}"></span>
+      <span class="widget-item-name">${escHtml(d.name)}</span>
+      <span class="widget-item-meta">${t}</span>
+    </div>`;
+  }).join('');
+}
+
+function renderWidgetWeek() {
+  const el = document.getElementById('w-week');
+  if(!el) return;
+  const now = Date.now()/1000;
+  const weekEnd = now + 7*86400;
+  const dlDel = typeof _dlDeleted!=='undefined' ? _dlDeleted : [];
+  const urgH  = typeof _dlUrgentH!=='undefined' ? _dlUrgentH : 48;
+  const warnD = typeof _dlWarnD!=='undefined'   ? _dlWarnD   : 7;
+  const items = allDl.filter(d =>
+    !dlDel.includes(String(d.id)) && d.due > now && d.due <= weekEnd
+  ).slice(0,4);
+  if(!items.length) { el.innerHTML='<div class="widget-empty">📭 Дедлайнів на тижні немає</div>'; return; }
+  el.innerHTML = items.map(d => {
+    const diff = d.due - now;
+    const color = diff < urgH*3600 ? 'var(--accent2)' : diff < warnD*86400 ? 'var(--warning)' : 'var(--success)';
+    const label = diff < 86400 ? 'Сьогодні' : diff < 172800 ? 'Завтра' :
+      new Date(d.due*1000).toLocaleDateString('uk-UA',{day:'numeric',month:'short'});
+    return `<div class="widget-item" onclick="${d.url&&d.url!=='#'?'window.open(\''+escHtml(d.url)+'\',\'_blank\')':'go(\'deadlines\')'}" title="${escHtml(d.name)}">
+      <span class="widget-item-dot" style="background:${color}"></span>
+      <span class="widget-item-name">${escHtml(d.name)}</span>
+      <span class="widget-item-meta">${label}</span>
+    </div>`;
+  }).join('');
+}
+
+function renderWidgetNotes() {
+  const el = document.getElementById('w-notes');
+  if(!el) return;
+  const recent = (notes||[]).slice().sort((a,b)=>(b.updatedAt||b.createdAt||0)-(a.updatedAt||a.createdAt||0)).slice(0,4);
+  if(!recent.length) { el.innerHTML='<div class="widget-empty">✍️ Нотаток ще немає</div>'; return; }
+  el.innerHTML = recent.map(n => {
+    const d = new Date(n.updatedAt||n.createdAt||0).toLocaleDateString('uk-UA',{day:'numeric',month:'short'});
+    return `<div class="widget-item" onclick="go('notes');setTimeout(()=>openNote('${escHtml(n.id)}'),250)" title="${escHtml(n.title||'Без назви')}">
+      <span class="widget-item-dot" style="background:var(--accent)"></span>
+      <span class="widget-item-name">${escHtml(n.title||'Без назви')}</span>
+      <span class="widget-item-meta">${d}</span>
+    </div>`;
+  }).join('');
+}
+
+function renderWidgetFiles() {
+  const el = document.getElementById('w-files');
+  if(!el) return;
+  const recent = (cachedFiles||[]).slice().sort((a,b)=>(b.createdAt||0)-(a.createdAt||0)).slice(0,4);
+  if(!recent.length) { el.innerHTML='<div class="widget-empty">📁 Файлів ще немає</div>'; return; }
+  el.innerHTML = recent.map(f => {
+    const ext = (f.name||'').split('.').pop().toUpperCase().slice(0,4);
+    const extColors = {PDF:'#e05050',DOC:'#4080e0',XLS:'#38d07a',PPT:'#f0a030',ZIP:'#a070e0',PNG:'#60c0f0',JPG:'#60c0f0',MP4:'#f06060'};
+    const color = extColors[ext] || 'var(--text2)';
+    return `<div class="widget-item" onclick="go('files')" title="${escHtml(f.name)}">
+      <span class="widget-item-dot" style="background:${color}"></span>
+      <span class="widget-item-name">${escHtml(f.name)}</span>
+      <span class="widget-item-meta" style="color:${color};font-weight:700;">${ext}</span>
+    </div>`;
+  }).join('');
+}
+
+// ═══ EXPORT ═══
+function exportJSON() {
+  const data = {
+    exportedAt: new Date().toISOString(),
+    user: { name: userData.fullname, group: group.name },
+    deadlines: allDl.map(d => ({
+      name: d.name, course: d.course,
+      due: d.due ? new Date(d.due*1000).toISOString() : null,
+      url: d.url
+    })),
+    notes: (notes||[]).map(n => ({
+      title: n.title, content: n.content,
+      course: n.course,
+      createdAt: n.createdAt ? new Date(n.createdAt).toISOString() : null,
+      updatedAt: n.updatedAt ? new Date(n.updatedAt).toISOString() : null
+    })),
+    files: (cachedFiles||[]).map(f => ({
+      name: f.name, size: f.size,
+      uploader: f.uploader || f.uploaderName,
+      createdAt: f.createdAt ? new Date(f.createdAt).toISOString() : null
+    })),
+    materials: (cachedMats||[]).map(m => ({
+      name: m.name, subject: m.subject, link: m.link || m.desc
+    })),
+    courses: (courses||[]).map(c => ({
+      name: c.fullname || c.shortname,
+      url: c.viewurl
+    }))
+  };
+  const blob = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'studenthub-export-' + new Date().toISOString().slice(0,10) + '.json';
+  a.click(); URL.revokeObjectURL(url);
+}
+
+function exportNotesMD() {
+  if(!(notes||[]).length) { alert('Нотаток ще немає'); return; }
+  const sorted = [...notes].sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0));
+  const md = sorted.map(n => {
+    const date = n.updatedAt ? new Date(n.updatedAt).toLocaleDateString('uk-UA') : '';
+    return `# ${n.title||'Без назви'}\n_${n.course||''}${n.course&&date?' · ':''}${date}_\n\n${n.content||''}\n\n---\n`;
+  }).join('\n');
+  const header = `# StudentHub — Нотатки\n_Експорт: ${new Date().toLocaleDateString('uk-UA')} · ${userData.fullname||''}_\n\n---\n\n`;
+  const blob = new Blob([header + md], {type:'text/markdown;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'notes-' + new Date().toISOString().slice(0,10) + '.md';
+  a.click(); URL.revokeObjectURL(url);
 }

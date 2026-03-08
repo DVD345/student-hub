@@ -407,7 +407,7 @@ a { text-decoration: none; color: inherit; }
 /* ── Theme Picker ── */
 .theme-picker { padding:8px 8px 4px; }
 .theme-picker-label { font-size:9px; font-weight:700; color:var(--text2); letter-spacing:.6px; text-transform:uppercase; margin-bottom:8px; padding:0 4px; }
-.theme-swatches { display:flex; gap:5px; flex-wrap:wrap; }
+.theme-swatches { display:flex; gap:5px; flex-wrap:wrap; overflow:visible; padding-top:4px; }
 .theme-swatch {
   width:32px; height:32px; border-radius:10px; border:2px solid transparent;
   cursor:pointer; transition:transform .15s, border-color .15s, box-shadow .15s;
@@ -417,12 +417,15 @@ a { text-decoration: none; color: inherit; }
 .theme-swatch:hover { transform:scale(1.12); }
 .theme-swatch.active { border-color:var(--accent); box-shadow:0 0 0 2px var(--accent),var(--sh-glow); transform:scale(1.08); }
 .theme-swatch .sw-label {
-  position:absolute; bottom:-24px; left:50%; transform:translateX(-50%);
+  position:absolute; bottom:calc(100% + 6px); left:50%; transform:translateX(-50%);
   font-size:9px; font-weight:700; color:var(--text); white-space:nowrap;
   background:var(--card); border:1px solid var(--border); border-radius:4px;
-  padding:2px 5px; pointer-events:none; transition:bottom .15s;
+  padding:2px 5px; pointer-events:none;
+  opacity:0; visibility:hidden;
+  transition:opacity .15s, visibility .15s;
+  z-index:10;
 }
-.theme-swatch:hover .sw-label { bottom:36px; }
+.theme-swatch:hover .sw-label { opacity:1; visibility:visible; }
 .user-avatar { width:32px; height:32px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:700; color:#07070f; flex-shrink:0; }
 .user-info { flex:1; min-width:0; }
 .user-name { font-size:11px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
@@ -460,12 +463,12 @@ a { text-decoration: none; color: inherit; }
 .page.active { display:block; }
 #page-chat.active { display:flex; flex-direction:column; }
 
-/* ── Page transition animations ── */
-@keyframes pgEnterRight { from{opacity:0;transform:translateX(20px)} to{opacity:1;transform:translateX(0)} }
-@keyframes pgEnterLeft  { from{opacity:0;transform:translateX(-20px)} to{opacity:1;transform:translateX(0)} }
+/* ── Page transitions ── */
+@keyframes pgEnterRight { from{opacity:0;transform:translateX(18px)} to{opacity:1;transform:translateX(0)} }
+@keyframes pgEnterLeft  { from{opacity:0;transform:translateX(-18px)} to{opacity:1;transform:translateX(0)} }
 
-.page.pg-enter-right { animation: pgEnterRight .22s cubic-bezier(.25,.46,.45,.94) forwards; }
-.page.pg-enter-left  { animation: pgEnterLeft  .22s cubic-bezier(.25,.46,.45,.94) forwards; }
+.page.active.pg-enter-right { animation: pgEnterRight .2s cubic-bezier(.25,.46,.45,.94) forwards; }
+.page.active.pg-enter-left  { animation: pgEnterLeft  .2s cubic-bezier(.25,.46,.45,.94) forwards; }
 
 .page-header { margin-bottom:18px; }
 .page-header h2 { font-size:22px; font-weight:800; margin-bottom:3px; letter-spacing:-.4px; }

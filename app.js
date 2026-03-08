@@ -1694,24 +1694,31 @@ function go(name) {
   const prevName = _currentPage;
   if(prevName === name) return;
 
-  const prevPg = document.getElementById('page-' + prevName);
   const nextPg = document.getElementById('page-' + name);
   if(!nextPg) return;
 
   const prevIdx = PAGE_ORDER.indexOf(prevName);
   const nextIdx = PAGE_ORDER.indexOf(name);
   const forward = nextIdx === -1 || prevIdx === -1 || nextIdx > prevIdx;
+  const enterCls = forward ? 'pg-enter-right' : 'pg-enter-left';
 
-  // Hide all pages instantly, no overlap
+  // 1. Сховати всі сторінки, прибрати класи анімацій
   document.querySelectorAll('.page').forEach(p => {
-    p.classList.remove('active','pg-enter-right','pg-enter-left','pg-exit-left','pg-exit-right');
+    p.classList.remove('active','pg-enter-right','pg-enter-left');
   });
 
-  // Animate in next page
-  nextPg.classList.add('active', forward ? 'pg-enter-right' : 'pg-enter-left');
-  nextPg.addEventListener('animationend', () => {
-    nextPg.classList.remove('pg-enter-right','pg-enter-left');
-  }, {once:true});
+  // 2. Показати нову без анімації (display:block без класу)
+  nextPg.classList.add('active');
+
+  // 3. Через два кадри — додати клас анімації (браузер вже відрендерив display:block)
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      nextPg.classList.add(enterCls);
+      nextPg.addEventListener('animationend', () => {
+        nextPg.classList.remove(enterCls);
+      }, {once:true});
+    });
+  });
 
   _currentPage = name;
 
@@ -1825,62 +1832,70 @@ function renderCalendar() {
   const today=new Date(); today.setHours(0,0,0,0);
   const nowTs=Date.now()/1000;
   const dlDeleted=typeof _dlDeleted!=='undefined'?_dlDeleted:[];
+  const urgH=typeof _dlUrgentH!=='undefined'?_dlUrgentH:48;
+  const warnD=typeof _dlWarnD!=='undefined'?_dlWarnD:7;
 
-  let html='<div class="cal-grid">';
-  CAL_DAYS.forEach(d=>html+='<div class="cal-header-cell">'+d+'</div>');
+  function renderCell(dateObj, isOtherMonth) {
+    dateObj.setHours(0,0,0,0);
+    const isToday = dateObj.getTime()===today.getTime();
+    const dateStr = dateObj.getFullYear()+'-'+String(dateObj.getMonth()+1).padStart(2,'0')+'-'+String(dateObj.getDate()).padStart(2,'0');
+    const dayStart = dateObj.getTime()/1000;
+    const dayEnd = dayStart+86400;
+    const dayDl = allDl.filter(dl=>!dlDeleted.includes(String(dl.id))&&dl.due>=dayStart&&dl.due<dayEnd&&dl.due>=nowTs);
+    const dayNotes = getCalNotes(dateStr);
+    const hasAny = dayDl.length>0||dayNotes.length>0;
+    const opacity = isOtherMonth ? ' style="opacity:.55"' : '';
 
-  for(let i=0;i<startDow;i++){
-    const pDate=new Date(year,month,i-startDow+1);
-    html+='<div class="cal-cell other-month"><div class="cal-day-num">'+pDate.getDate()+'</div></div>';
-  }
-
-  for(let d=1;d<=lastDay.getDate();d++){
-    const cellDate=new Date(year,month,d); cellDate.setHours(0,0,0,0);
-    const isToday=cellDate.getTime()===today.getTime();
-    const dateStr=year+'-'+String(month+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');
-    const dayStart=cellDate.getTime()/1000;
-    const dayEnd=dayStart+86400;
-    const urgH=typeof _dlUrgentH!=='undefined'?_dlUrgentH:48;
-    const warnD=typeof _dlWarnD!=='undefined'?_dlWarnD:7;
-    const dayDl=allDl.filter(dl=>!dlDeleted.includes(String(dl.id))&&dl.due>=dayStart&&dl.due<dayEnd&&dl.due>=nowTs);
-    const dayNotes=getCalNotes(dateStr);
-    const hasAny=dayDl.length>0||dayNotes.length>0;
-
-    html+='<div class="cal-cell'+(isToday?' today':'')+(hasAny?' has-events':'')+'">';
-    html+='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:2px;">';
-    html+='<div class="cal-day-num">'+d+'</div>';
-    html+='<button data-date="'+dateStr+'" onclick="openCalNoteModal(this.dataset.date,event)" title="Нотатка" style="background:none;border:none;color:var(--text2);font-size:11px;cursor:pointer;padding:0 2px;opacity:.4;line-height:1;transition:opacity .15s;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=.4">＋</button>';
-    html+='</div>';
-    if(isToday) html+='<div style="position:absolute;bottom:3px;left:4px;right:4px;height:2px;background:var(--accent);opacity:.4;border-radius:1px;"></div>';
-
-    // Показуємо всі нотатки (з часом якщо є)
+    let h = '<div class="cal-cell'+(isOtherMonth?' other-month':'')+(isToday?' today':'')+(hasAny?' has-events':'')+'">';
+    h += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:2px;">';
+    h += '<div class="cal-day-num">'+dateObj.getDate()+'</div>';
+    h += '<button data-date="'+dateStr+'" onclick="openCalNoteModal(this.dataset.date,event)" title="Нотатка" style="background:none;border:none;color:var(--text2);font-size:11px;cursor:pointer;padding:0 2px;opacity:.4;line-height:1;transition:opacity .15s;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=.4">＋</button>';
+    h += '</div>';
+    if(isToday) h += '<div style="position:absolute;bottom:3px;left:4px;right:4px;height:2px;background:var(--accent);opacity:.4;border-radius:1px;"></div>';
     dayNotes.forEach(un => {
       const tpfx = un.time ? un.time+' ' : '';
-      const prev = (tpfx+un.text).length>22?(tpfx+un.text).slice(0,22)+'…':(tpfx+un.text);
-      html+='<div class="cal-event" data-date="'+dateStr+'" data-nid="'+escHtml(un.id)+'" onclick="openCalNoteModal(this.dataset.date,event,this.dataset.nid)" style="background:rgba(240,192,64,.15);color:var(--accent);border:1px solid rgba(240,192,64,.25);cursor:pointer;" title="'+escHtml(un.text)+'" data-full="'+escHtml(un.text)+'">✏️ '+escHtml(prev)+'</div>';
+      const prev = (tpfx+un.text).length>22?(tpfx+un.text).slice(0,22)+'\u2026':(tpfx+un.text);
+      h += '<div class="cal-event" data-date="'+dateStr+'" data-nid="'+escHtml(un.id)+'" onclick="openCalNoteModal(this.dataset.date,event,this.dataset.nid)" style="background:rgba(240,192,64,.15);color:var(--accent);border:1px solid rgba(240,192,64,.25);cursor:pointer;" title="'+escHtml(un.text)+'">\u270F\uFE0F '+escHtml(prev)+'</div>';
     });
-
-    dayDl.slice(0,2).forEach(dl=>{
-      const diff=dl.due-nowTs,isPast=dl.due<nowTs;
-      const cls=isPast?'cal-ev-past':diff<urgH*3600?'cal-ev-urgent':diff<warnD*86400?'cal-ev-soon':'cal-ev-ok';
-      const onclk=dl.url&&dl.url!=='#'?'onclick="window.open(this.dataset.url)" data-url="'+escHtml(dl.url)+'"':'';
-      html+='<div class="cal-event '+cls+'" '+onclk+' title="'+escHtml(dl.name)+'" data-full="'+escHtml(dl.name+(dl.course?'\n'+dl.course:''))+'">'+escHtml(dl.name)+'</div>';
+    dayDl.slice(0,2).forEach(dl => {
+      const diff = dl.due-nowTs;
+      const cls = diff<urgH*3600?'cal-ev-urgent':diff<warnD*86400?'cal-ev-soon':'cal-ev-ok';
+      const onclk = dl.url&&dl.url!=='#'?'onclick="window.open(this.dataset.url)" data-url="'+escHtml(dl.url)+'"':'';
+      h += '<div class="cal-event '+cls+'" '+onclk+' title="'+escHtml(dl.name)+'">'+escHtml(dl.name)+'</div>';
     });
     if(dayDl.length>2){
-      html+='<div class="cal-more" onclick="expandCalCell(this,event)" data-count="'+(dayDl.length-2)+'">+'+(dayDl.length-2)+' ще</div>';
-      dayDl.slice(2).forEach(dl=>{
-        const diff2=dl.due-nowTs,isPast2=dl.due<nowTs;
-        const cls2=isPast2?'cal-ev-past':diff2<urgH*3600?'cal-ev-urgent':diff2<warnD*86400?'cal-ev-soon':'cal-ev-ok';
+      h += '<div class="cal-more" onclick="expandCalCell(this,event)" data-count="'+(dayDl.length-2)+'">+'+(dayDl.length-2)+' \u0449\u0435</div>';
+      dayDl.slice(2).forEach(dl => {
+        const diff2=dl.due-nowTs;
+        const cls2=diff2<urgH*3600?'cal-ev-urgent':diff2<warnD*86400?'cal-ev-soon':'cal-ev-ok';
         const onclk2=dl.url&&dl.url!=='#'?'onclick="window.open(this.dataset.url)" data-url="'+escHtml(dl.url)+'"':'';
-        html+='<div class="cal-event '+cls2+' cal-hidden" '+onclk2+' title="'+escHtml(dl.name)+'" data-full="'+escHtml(dl.name+(dl.course?'\n'+dl.course:''))+'">'+escHtml(dl.name)+'</div>';
+        h += '<div class="cal-event '+cls2+' cal-hidden" '+onclk2+' title="'+escHtml(dl.name)+'">'+escHtml(dl.name)+'</div>';
       });
     }
-    html+='</div>';
+    h += '</div>';
+    return h;
   }
 
+  let html = '<div class="cal-grid">';
+  CAL_DAYS.forEach(d=>html+='<div class="cal-header-cell">'+d+'</div>');
+
+  // Попередній місяць
+  for(let i=0;i<startDow;i++){
+    html += renderCell(new Date(year,month,i-startDow+1), true);
+  }
+  // Поточний місяць
+  for(let d=1;d<=lastDay.getDate();d++){
+    html += renderCell(new Date(year,month,d), false);
+  }
+  // Наступний місяць
   const rem=(startDow+lastDay.getDate())%7;
-  if(rem>0) for(let i=1;i<=7-rem;i++) html+='<div class="cal-cell other-month"><div class="cal-day-num">'+i+'</div></div>';
-  html+='</div>';
+  if(rem>0){
+    for(let i=1;i<=7-rem;i++){
+      html += renderCell(new Date(year,month+1,i), true);
+    }
+  }
+
+  html += '</div>';
   document.getElementById('cal-grid').innerHTML=html;
 }
 

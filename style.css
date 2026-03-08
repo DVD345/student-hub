@@ -198,11 +198,7 @@ a { text-decoration: none; color: inherit; }
   margin-bottom: 8px;
 }
 .login-brand h1 span { color: var(--accent); }
-.login-brand p {
-  font-size: 12px;
-  color: var(--text2);
-  letter-spacing: .3px;
-}
+
 
 /* Card */
 .auth-box {

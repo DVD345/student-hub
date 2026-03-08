@@ -1092,7 +1092,7 @@ function applyDlFilter() {
   const now = Date.now()/1000;
   let list=allDl.filter(d=>!_dlDeleted.includes(String(d.id)));
   list=list.filter(d=>!q||d.name.toLowerCase().includes(q)||d.course.toLowerCase().includes(q));
-  if(f==='active') list=list.filter(d=>d.due > now);
+  if(f==='active') list=list.filter(d=>d.due > now && d.submitted !== 'submitted');
   else if(f==='urgent') list=list.filter(d=>d.due > now && (d.due-now)<_dlUrgentH*3600);
   else if(f==='past') list=list.filter(d=>d.due <= now);
   // Оновлюємо .past для коректного відображення

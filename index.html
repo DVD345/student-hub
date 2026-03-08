@@ -2109,12 +2109,12 @@ async function loadDeadlines() {
 // _calNotes: { 'YYYY-MM-DD': [{id, text, time}] }  (масив нотаток на день)
 // Backward compat: legacy string value автоматично мігрує в масив
 // ══════════════════════════════════════════════
-let _dlUrgentH = 48;
-let _dlWarnD   = 7;
-let _dlDeleted = [];
-let _calNotes  = {};
-let _userSettingsUnsub = null;
-let _settingsLoaded = false;
+var _dlUrgentH = 48;
+var _dlWarnD   = 7;
+var _dlDeleted = [];
+var _calNotes  = {};
+var _userSettingsUnsub = null;
+var _settingsLoaded = false;
 
 function _userSettingsDoc() {
   const { doc } = window._fb;
@@ -2996,9 +2996,9 @@ const st=localStorage.getItem('sh_theme');
 if(st){document.documentElement.setAttribute('data-theme',st);updateThemeIcon(st);}
 
 // ═══ CALENDAR ═══
-let calDate = new Date();
-let currentYear = calDate.getFullYear();
-let currentMonth = calDate.getMonth();
+var calDate = new Date();
+var currentYear = calDate.getFullYear();
+var currentMonth = calDate.getMonth();
 const CAL_DAYS = ['Пн','Вт','Ср','Чт','Пт','Сб','Нд'];
 const CAL_MONTHS = ['Січень','Лютий','Березень','Квітень','Травень','Червень','Липень','Серпень','Вересень','Жовтень','Листопад','Грудень'];
 

@@ -1370,20 +1370,20 @@ function _insertMention(name) {
 const REACTION_EMOJIS = ['👍','❤️','😂','🔥','👏','😮','😢','🎉'];
 
 function _renderReactions(m) {
-  const reactions = m.reactions || {};
-  const myUid = String(userData.userid);
-  const grouped = {};
-  Object.entries(reactions).forEach(([uid, emoji]) => {
-    if(!grouped[emoji]) grouped[emoji] = [];
-    grouped[emoji].push(uid);
+  var reactions=m.reactions||{};
+  var myUid=String(userData.userid);
+  var grouped={};
+  Object.entries(reactions).forEach(function(p){
+    if(!grouped[p[1]]) grouped[p[1]]=[];
+    grouped[p[1]].push(p[0]);
   });
-  let html = '<div class="msg-reactions">';
-  Object.entries(grouped).forEach(([emoji, uids]) => {
-    const mine = uids.includes(myUid);
-    const names = uids.length <= 3 ? uids.length+' осіб' : uids.length+' осіб';
-    html += '<button class="reaction-btn'+(mine?' mine':'')+'" onclick="toggleReaction(''+escHtml(m.id)+'',''+emoji+'')" title="'+names+'">'+emoji+'<span class="rcnt">'+uids.length+'</span></button>';
+  var html='<div class="msg-reactions">';
+  var mid=escHtml(m.id||'');
+  Object.entries(grouped).forEach(function(p){
+    var em=p[0], uids=p[1], mine=uids.includes(myUid);
+    html+='<button class="reaction-btn'+(mine?' mine':'')+'" data-mid="'+mid+'" data-em="'+escHtml(em)+'" onclick="toggleReaction(this.dataset.mid,this.dataset.em)" title="'+uids.length+' осіб">'+em+'<span class="rcnt">'+uids.length+'</span></button>';
   });
-  html += '</div>';
+  html+='</div>';
   return html;
 }
 async function toggleReaction(msgId, emoji) {
@@ -1401,25 +1401,24 @@ async function toggleReaction(msgId, emoji) {
   } catch(e) {}
 }
 
-// Long press for mobile reactions
-var _lpTimer = null;
-function _lpStart(e, el) {
+function _ctxReact(e,el){
+  e.preventDefault();
+  var mid=el.dataset.lp; if(!mid) return;
+  openEmojiPicker(e,mid);
+}
+
+var _lpTimer=null;
+function _lpStart(e,el){
   _lpEnd();
-  const msgId = el.dataset.lp;
-  if(!msgId) return;
-  _lpTimer = setTimeout(() => {
-    _lpTimer = null;
-    // simulate right-click position from touch
-    const touch = e.touches[0];
-    const fakeEvt = { currentTarget: el, clientX: touch.clientX, clientY: touch.clientY,
-      preventDefault:()=>{}, stopPropagation:()=>{} };
-    fakeEvt.currentTarget = { getBoundingClientRect: () => el.getBoundingClientRect() };
-    openEmojiPicker(fakeEvt, msgId);
-  }, 500);
+  var msgId=el.dataset.lp; if(!msgId) return;
+  _lpTimer=setTimeout(function(){
+    _lpTimer=null;
+    var touch=e.touches[0];
+    var fake={currentTarget:{getBoundingClientRect:function(){return el.getBoundingClientRect();}},stopPropagation:function(){}};
+    openEmojiPicker(fake,msgId);
+  },500);
 }
-function _lpEnd() {
-  if(_lpTimer) { clearTimeout(_lpTimer); _lpTimer = null; }
-}
+function _lpEnd(){if(_lpTimer){clearTimeout(_lpTimer);_lpTimer=null;}}
 
 function openEmojiPicker(e, msgId) {
   e.stopPropagation();
@@ -1429,15 +1428,17 @@ function openEmojiPicker(e, msgId) {
   REACTION_EMOJIS.forEach(em => {
     const btn = document.createElement('button');
     btn.textContent = em;
-    btn.title = em;
     btn.onclick = (ev) => { ev.stopPropagation(); toggleReaction(msgId, em); picker.remove(); };
     picker.appendChild(btn);
   });
   const rect = e.currentTarget.getBoundingClientRect();
-  picker.style.cssText = 'position:fixed;z-index:9999;top:'+(rect.top-64)+'px;left:'+Math.max(8,Math.min(rect.left-80, window.innerWidth-300))+'px;';
+  picker.style.position = 'fixed';
+  picker.style.top = (rect.top - 60) + 'px';
+  picker.style.left = Math.max(8, rect.left - 60) + 'px';
   document.body.appendChild(picker);
   setTimeout(() => document.addEventListener('click', () => picker.remove(), {once:true}), 10);
 }
+
 // ── Pinned messages ──
 var _pinnedUnsub = null;
 var _currentPinnedMsg = null;
@@ -1493,15 +1494,9 @@ function renderMessages(msgs) {
     const msgText = m.text ? _highlightMentions(escHtml(m.text), userData.fullname) : '';
     const pinBtn = (canMod()&&m.id) ? '<button class="msg-del" onclick="pinMessage(\''+escHtml(m.id)+'\',\''+escHtml((m.text||'').slice(0,80)).replace(/'/g,'')+'\'  ,\''+escHtml(m.author||'')+'\');" style="background:rgba(240,192,64,.12);border:1px solid rgba(240,192,64,.25);color:var(--accent);border-radius:5px;padding:2px 5px;font-size:9px;cursor:pointer;opacity:0;transition:opacity .2s;flex-shrink:0" title="Закріпити">📌</button>' : '';
     const delBtn = (canDel&&m.id) ? '<button class="msg-del" data-id="'+escHtml(m.id)+'" onclick="delMsg(this.dataset.id)" style="background:rgba(224,80,80,.15);border:1px solid rgba(224,80,80,.3);color:var(--accent2);border-radius:5px;padding:2px 5px;font-size:9px;cursor:pointer;opacity:0;transition:opacity .2s;flex-shrink:0">🗑</button>' : '';
-    const msgId = escHtml(m.id||'');
-    // long-press / right-click opens emoji picker
-    const lpAttr = msgId ? (
-      'oncontextmenu="event.preventDefault();openEmojiPicker(event,\''+msgId+'\')" '+
-      'data-lp="'+msgId+'" '+
-      'ontouchstart="_lpStart(event,this)" ontouchend="_lpEnd()" ontouchmove="_lpEnd()"'
-    ) : '';
-    return '<div class="msg '+(isMe?'me':'other')+'" style="position:relative;cursor:pointer;" '+
-      lpAttr+' '+
+    var _mid=escHtml(m.id||'');
+    var _lpA=_mid?' data-lp="'+_mid+'" oncontextmenu="_ctxReact(event,this)" ontouchstart="_lpStart(event,this)" ontouchend="_lpEnd()" ontouchmove="_lpEnd()"':'';
+    return '<div class="msg '+(isMe?'me':'other')+'" style="position:relative" '+_lpA+' '+
       'onmouseenter="this.querySelectorAll(\'.msg-del\').forEach(b=>b.style.opacity=1)" '+
       'onmouseleave="this.querySelectorAll(\'.msg-del\').forEach(b=>b.style.opacity=0)">'+
       (!isMe?'<div class="msg-author">'+escHtml(m.author)+'</div>':'')+
@@ -1513,45 +1508,38 @@ function renderMessages(msgs) {
       '<div class="msg-time">'+t+'</div></div>';
   }).join('');
   el.scrollTop=el.scrollHeight;
-  // Ping notification if @me in new messages
-  if(window._lastMsgCount !== undefined && msgs.length > window._lastMsgCount) {
-    const newMsgs = msgs.slice(window._lastMsgCount);
-    newMsgs.forEach(m => {
-      if(m.uid !== String(userData.userid) && m.text && userData.fullname &&
-         m.text.toLowerCase().includes('@'+userData.fullname.split(' ')[0].toLowerCase())) {
-        _pingNotify(m.author, m.text);
+  if(window._lastMsgCount!==undefined&&msgs.length>window._lastMsgCount){
+    msgs.slice(window._lastMsgCount).forEach(function(m){
+      if(m.uid!==String(userData.userid)&&m.text&&userData.fullname&&
+         m.text.toLowerCase().includes('@'+userData.fullname.split(' ')[0].toLowerCase())){
+        _pingNotify(m.author,m.text);
       }
     });
   }
-  window._lastMsgCount = msgs.length;
+  window._lastMsgCount=msgs.length;
 }
-function _pingNotify(author, text) {
-  // Visual flash on chat nav item
-  const chatNav = document.querySelector('[onclick*="chat"]');
-  if(chatNav && _currentPage !== 'chat') {
-    chatNav.style.background = 'rgba(240,192,64,.25)';
-    setTimeout(() => chatNav.style.background = '', 2000);
+
+function _pingNotify(author,text){
+  var chatNav=document.querySelector('.nav-item[onclick*="chat"],.bnav-item[onclick*="chat"]');
+  if(chatNav&&_currentPage!=='chat'){
+    chatNav.style.background='rgba(240,192,64,.25)';
+    setTimeout(function(){chatNav.style.background='';},2000);
   }
-  // Browser notification
-  if(Notification.permission === 'granted') {
-    try { new Notification('🔔 ' + (author||'Хтось') + ' згадав вас', {
-      body: text.slice(0,80),
-      icon: '&#x1F393;',
-      tag: 'mention_'+Date.now()
-    }); } catch(e) {}
+  if(Notification.permission==='granted'){
+    try{new Notification('🔔 '+(author||'Хтось')+' згадав вас',{body:text.slice(0,80),tag:'mention_'+Date.now()});}catch(e){}
   }
-  // Audio ping
-  try {
-    const ctx = new (window.AudioContext||window.webkitAudioContext)();
-    const osc = ctx.createOscillator(); const gain = ctx.createGain();
-    osc.connect(gain); gain.connect(ctx.destination);
-    osc.frequency.setValueAtTime(880, ctx.currentTime);
-    osc.frequency.exponentialRampToValueAtTime(440, ctx.currentTime+0.15);
-    gain.gain.setValueAtTime(0.3, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime+0.3);
-    osc.start(ctx.currentTime); osc.stop(ctx.currentTime+0.3);
-  } catch(e) {}
+  try{
+    var ctx=new(window.AudioContext||window.webkitAudioContext)();
+    var osc=ctx.createOscillator(),gain=ctx.createGain();
+    osc.connect(gain);gain.connect(ctx.destination);
+    osc.frequency.setValueAtTime(880,ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(440,ctx.currentTime+0.15);
+    gain.gain.setValueAtTime(0.25,ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+0.3);
+    osc.start(ctx.currentTime);osc.stop(ctx.currentTime+0.3);
+  }catch(e){}
 }
+
 function chatKey(e) {
   if(_mentionActive) {
     if(e.key==='Escape') { _hideMentionPopup(); return; }
@@ -1886,36 +1874,36 @@ function renderCalendar() {
   const warnD=typeof _dlWarnD!=='undefined'?_dlWarnD:7;
 
   function cellHtml(dateObj, otherMonth) {
-    dateObj=new Date(dateObj); dateObj.setHours(0,0,0,0);
-    const isToday=dateObj.getTime()===today.getTime();
-    const dateStr=dateObj.getFullYear()+'-'+String(dateObj.getMonth()+1).padStart(2,'0')+'-'+String(dateObj.getDate()).padStart(2,'0');
-    const dayStart=dateObj.getTime()/1000, dayEnd=dayStart+86400;
-    const dayDl=allDl.filter(dl=>!dlDeleted.includes(String(dl.id))&&dl.due>=dayStart&&dl.due<dayEnd&&dl.due>=nowTs);
-    const dayNotes=getCalNotes(dateStr);
-    const hasAny=dayDl.length>0||dayNotes.length>0;
-    let h='<div class="cal-cell'+(otherMonth?' other-month':'')+(isToday?' today':'')+(hasAny?' has-events':'')+'">';
+    var d2=new Date(dateObj); d2.setHours(0,0,0,0);
+    var isToday=d2.getTime()===today.getTime();
+    var dateStr=d2.getFullYear()+'-'+String(d2.getMonth()+1).padStart(2,'0')+'-'+String(d2.getDate()).padStart(2,'0');
+    var dayStart=d2.getTime()/1000, dayEnd=dayStart+86400;
+    var dayDl=allDl.filter(function(dl){return !dlDeleted.includes(String(dl.id))&&dl.due>=dayStart&&dl.due<dayEnd&&dl.due>=nowTs;});
+    var dayNotes=getCalNotes(dateStr);
+    var hasAny=dayDl.length>0||dayNotes.length>0;
+    var h='<div class="cal-cell'+(otherMonth?' other-month':'')+(isToday?' today':'')+(hasAny?' has-events':'')+'">';
     h+='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:2px;">';
-    h+='<div class="cal-day-num">'+dateObj.getDate()+'</div>';
-    h+='<button data-date="'+dateStr+'" onclick="openCalNoteModal(this.dataset.date,event)" title="Нотатка" style="background:none;border:none;color:var(--text2);font-size:11px;cursor:pointer;padding:0 2px;opacity:.4;line-height:1;transition:opacity .15s;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=.4">+</button>';
+    h+='<div class="cal-day-num">'+d2.getDate()+'</div>';
+    h+='<button data-date="'+dateStr+'" onclick="openCalNoteModal(this.dataset.date,event)" style="background:none;border:none;color:var(--text2);font-size:11px;cursor:pointer;padding:0 2px;opacity:.4;line-height:1;transition:opacity .15s;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=.4">+</button>';
     h+='</div>';
     if(isToday) h+='<div style="position:absolute;bottom:3px;left:4px;right:4px;height:2px;background:var(--accent);opacity:.4;border-radius:1px;"></div>';
-    dayNotes.forEach(un=>{
-      const tpfx=un.time?un.time+' ':'';
-      const prev=(tpfx+un.text).length>22?(tpfx+un.text).slice(0,22)+'\u2026':(tpfx+un.text);
-      h+='<div class="cal-event" data-date="'+dateStr+'" data-nid="'+escHtml(un.id)+'" onclick="openCalNoteModal(this.dataset.date,event,this.dataset.nid)" style="background:rgba(240,192,64,.15);color:var(--accent);border:1px solid rgba(240,192,64,.25);cursor:pointer;" title="'+escHtml(un.text)+'">&#9999;&#65039; '+escHtml(prev)+'</div>';
+    dayNotes.forEach(function(un){
+      var tpfx=un.time?un.time+' ':'';
+      var prev=(tpfx+un.text).length>22?(tpfx+un.text).slice(0,22)+'…':(tpfx+un.text);
+      h+='<div class="cal-event" data-date="'+dateStr+'" data-nid="'+escHtml(un.id)+'" onclick="openCalNoteModal(this.dataset.date,event,this.dataset.nid)" style="background:rgba(240,192,64,.15);color:var(--accent);border:1px solid rgba(240,192,64,.25);cursor:pointer;" title="'+escHtml(un.text)+'">✏️ '+escHtml(prev)+'</div>';
     });
-    dayDl.slice(0,2).forEach(dl=>{
-      const diff=dl.due-nowTs;
-      const cls=diff<urgH*3600?'cal-ev-urgent':diff<warnD*86400?'cal-ev-soon':'cal-ev-ok';
-      const onclk=dl.url&&dl.url!=='#'?'onclick="window.open(this.dataset.url)" data-url="'+escHtml(dl.url)+'"':'';
+    dayDl.slice(0,2).forEach(function(dl){
+      var diff=dl.due-nowTs;
+      var cls=diff<urgH*3600?'cal-ev-urgent':diff<warnD*86400?'cal-ev-soon':'cal-ev-ok';
+      var onclk=dl.url&&dl.url!=='#'?'onclick="window.open(this.dataset.url)" data-url="'+escHtml(dl.url)+'"':'';
       h+='<div class="cal-event '+cls+'" '+onclk+' title="'+escHtml(dl.name)+'">'+escHtml(dl.name)+'</div>';
     });
     if(dayDl.length>2){
-      h+='<div class="cal-more" onclick="expandCalCell(this,event)" data-count="'+(dayDl.length-2)+'">+'+(dayDl.length-2)+' \u0449\u0435</div>';
-      dayDl.slice(2).forEach(dl=>{
-        const diff2=dl.due-nowTs;
-        const cls2=diff2<urgH*3600?'cal-ev-urgent':diff2<warnD*86400?'cal-ev-soon':'cal-ev-ok';
-        const onclk2=dl.url&&dl.url!=='#'?'onclick="window.open(this.dataset.url)" data-url="'+escHtml(dl.url)+'"':'';
+      h+='<div class="cal-more" onclick="expandCalCell(this,event)" data-count="'+(dayDl.length-2)+'">+'+(dayDl.length-2)+' ще</div>';
+      dayDl.slice(2).forEach(function(dl){
+        var diff2=dl.due-nowTs;
+        var cls2=diff2<urgH*3600?'cal-ev-urgent':diff2<warnD*86400?'cal-ev-soon':'cal-ev-ok';
+        var onclk2=dl.url&&dl.url!=='#'?'onclick="window.open(this.dataset.url)" data-url="'+escHtml(dl.url)+'"':'';
         h+='<div class="cal-event '+cls2+' cal-hidden" '+onclk2+' title="'+escHtml(dl.name)+'">'+escHtml(dl.name)+'</div>';
       });
     }
@@ -1923,12 +1911,12 @@ function renderCalendar() {
     return h;
   }
 
-  let html='<div class="cal-grid">';
-  CAL_DAYS.forEach(d=>html+='<div class="cal-header-cell">'+d+'</div>');
-  for(let i=0;i<startDow;i++) html+=cellHtml(new Date(year,month,i-startDow+1), true);
-  for(let d=1;d<=lastDay.getDate();d++) html+=cellHtml(new Date(year,month,d), false);
-  const rem=(startDow+lastDay.getDate())%7;
-  if(rem>0) for(let i=1;i<=7-rem;i++) html+=cellHtml(new Date(year,month+1,i), true);
+  var html='<div class="cal-grid">';
+  CAL_DAYS.forEach(function(d){html+='<div class="cal-header-cell">'+d+'</div>';});
+  for(var i=0;i<startDow;i++) html+=cellHtml(new Date(year,month,i-startDow+1),true);
+  for(var d=1;d<=lastDay.getDate();d++) html+=cellHtml(new Date(year,month,d),false);
+  var rem=(startDow+lastDay.getDate())%7;
+  if(rem>0) for(var j=1;j<=7-rem;j++) html+=cellHtml(new Date(year,month+1,j),true);
   html+='</div>';
   document.getElementById('cal-grid').innerHTML=html;
 }
@@ -2479,7 +2467,7 @@ async function _offlineLogin(sgid){
         <div style="padding:8px 14px;border-top:1px solid var(--border);display:flex;gap:12px;align-items:center;">
           <span style="font-size:11px;color:var(--text2);">↑↓ навігація</span>
           <span style="font-size:11px;color:var(--text2);">↵ відкрити</span>
-          
+          <span style="font-size:11px;color:var(--text2);margin-left:auto;">Ctrl+K</span>
         </div>
       </div>`;
     ov.addEventListener('click',e=>{if(e.target===ov)closeSearch();});
@@ -2535,45 +2523,41 @@ function renderDashWidgets() {
 }
 
 function renderWidgetToday() {
-  const el = document.getElementById('w-today');
-  if(!el) return;
-  const now = Date.now()/1000;
-  const todayStart = new Date(); todayStart.setHours(0,0,0,0);
-  const todayEnd   = new Date(); todayEnd.setHours(23,59,59,999);
-  const dlDel = typeof _dlDeleted!=='undefined' ? _dlDeleted : [];
-  const urgH  = typeof _dlUrgentH!=='undefined' ? _dlUrgentH : 48;
-  const items = allDl.filter(d =>
-    !dlDel.includes(String(d.id)) && d.due >= now &&
-    d.due >= todayStart.getTime()/1000 && d.due <= todayEnd.getTime()/1000
-  );
-  if(!items.length) { el.innerHTML='<div class="widget-empty">🎉 Сьогодні дедлайнів немає</div>'; return; }
-  el.innerHTML = items.slice(0,4).map(d => {
-    const t = new Date(d.due*1000).toLocaleTimeString('uk-UA',{hour:'2-digit',minute:'2-digit'});
-    const diff = d.due - now;
-    const color = diff < urgH*3600 ? 'var(--accent2)' : 'var(--warning)';
-    const onclick = d.url&&d.url!=='#' ? "window.open('"+escHtml(d.url)+"','_blank')" : "go('deadlines')";
+  var el=document.getElementById('w-today'); if(!el) return;
+  var now=Date.now()/1000;
+  var todayStart=new Date(); todayStart.setHours(0,0,0,0);
+  var todayEnd=new Date(); todayEnd.setHours(23,59,59,999);
+  var dlDel=typeof _dlDeleted!=='undefined'?_dlDeleted:[];
+  var urgH=typeof _dlUrgentH!=='undefined'?_dlUrgentH:48;
+  var items=allDl.filter(function(d){
+    return !dlDel.includes(String(d.id))&&d.due>=now&&d.due>=todayStart.getTime()/1000&&d.due<=todayEnd.getTime()/1000;
+  });
+  if(!items.length){el.innerHTML='<div class="widget-empty">🎉 Сьогодні дедлайнів немає</div>';return;}
+  el.innerHTML=items.slice(0,4).map(function(d){
+    var t=new Date(d.due*1000).toLocaleTimeString('uk-UA',{hour:'2-digit',minute:'2-digit'});
+    var diff=d.due-now;
+    var color=diff<urgH*3600?'var(--accent2)':'var(--warning)';
+    var onclick=d.url&&d.url!=='#'?"window.open('"+escHtml(d.url)+"','_blank')":"go('deadlines')";
     return '<div class="widget-item" onclick="'+onclick+'" title="'+escHtml(d.name)+'"><span class="widget-item-dot" style="background:'+color+'"></span><span class="widget-item-name">'+escHtml(d.name)+'</span><span class="widget-item-meta">'+t+'</span></div>';
   }).join('');
 }
 function renderWidgetWeek() {
-  const el = document.getElementById('w-week');
-  if(!el) return;
-  const now = Date.now()/1000;
-  const tomorrowStart = new Date(); tomorrowStart.setHours(0,0,0,0); tomorrowStart.setDate(tomorrowStart.getDate()+1);
-  const weekEnd = tomorrowStart.getTime()/1000 + 6*86400;
-  const dlDel = typeof _dlDeleted!=='undefined' ? _dlDeleted : [];
-  const urgH  = typeof _dlUrgentH!=='undefined' ? _dlUrgentH : 48;
-  const warnD = typeof _dlWarnD!=='undefined'   ? _dlWarnD   : 7;
-  const items = allDl.filter(d =>
-    !dlDel.includes(String(d.id)) &&
-    d.due >= tomorrowStart.getTime()/1000 && d.due <= weekEnd
-  ).slice(0,4);
-  if(!items.length) { el.innerHTML='<div class="widget-empty">📭 Дедлайнів на тижні немає</div>'; return; }
-  el.innerHTML = items.map(d => {
-    const diff = d.due - now;
-    const color = diff < urgH*3600 ? 'var(--accent2)' : diff < warnD*86400 ? 'var(--warning)' : 'var(--success)';
-    const label = diff < 172800 ? 'Завтра' : new Date(d.due*1000).toLocaleDateString('uk-UA',{day:'numeric',month:'short'});
-    const onclick = d.url&&d.url!=='#' ? "window.open('"+escHtml(d.url)+"','_blank')" : "go('deadlines')";
+  var el=document.getElementById('w-week'); if(!el) return;
+  var now=Date.now()/1000;
+  var tomorrowStart=new Date(); tomorrowStart.setHours(0,0,0,0); tomorrowStart.setDate(tomorrowStart.getDate()+1);
+  var weekEnd=tomorrowStart.getTime()/1000+6*86400;
+  var dlDel=typeof _dlDeleted!=='undefined'?_dlDeleted:[];
+  var urgH=typeof _dlUrgentH!=='undefined'?_dlUrgentH:48;
+  var warnD=typeof _dlWarnD!=='undefined'?_dlWarnD:7;
+  var items=allDl.filter(function(d){
+    return !dlDel.includes(String(d.id))&&d.due>=tomorrowStart.getTime()/1000&&d.due<=weekEnd;
+  }).slice(0,4);
+  if(!items.length){el.innerHTML='<div class="widget-empty">📭 Дедлайнів на тижні немає</div>';return;}
+  el.innerHTML=items.map(function(d){
+    var diff=d.due-now;
+    var color=diff<urgH*3600?'var(--accent2)':diff<warnD*86400?'var(--warning)':'var(--success)';
+    var label=diff<172800?'Завтра':new Date(d.due*1000).toLocaleDateString('uk-UA',{day:'numeric',month:'short'});
+    var onclick=d.url&&d.url!=='#'?"window.open('"+escHtml(d.url)+"','_blank')":"go('deadlines')";
     return '<div class="widget-item" onclick="'+onclick+'" title="'+escHtml(d.name)+'"><span class="widget-item-dot" style="background:'+color+'"></span><span class="widget-item-name">'+escHtml(d.name)+'</span><span class="widget-item-meta">'+label+'</span></div>';
   }).join('');
 }

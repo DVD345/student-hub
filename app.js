@@ -1131,7 +1131,7 @@ function renderDashDl() {
   const el=document.getElementById('dash-dl');
   const dlDel=typeof _dlDeleted!=='undefined'?_dlDeleted:[];
   const now = Date.now()/1000;
-  const top=allDl.filter(d=>d.due>now&&!dlDel.includes(String(d.id))).slice(0,5);
+  const top=allDl.filter(d=>d.due>now&&!dlDel.includes(String(d.id))&&d.submitted!=='submitted').slice(0,5);
   if(!top.length){el.innerHTML='<div class="empty"><div class="emo">🎉</div><p>Немає активних дедлайнів!</p></div>';return;}
   renderDl(top,el);
 }

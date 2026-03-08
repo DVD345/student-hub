@@ -408,18 +408,36 @@ function setupNav() {
   }
 }
 
+async function _parseMoodleResponse(r) {
+  const text = await r.text();
+  if(text.trim().startsWith('<')) {
+    // Got HTML instead of JSON — session expired
+    console.warn('Moodle session expired');
+    throw Object.assign(new Error('SESSION_EXPIRED'), { moodleSessionExpired: true });
+  }
+  try {
+    const data = JSON.parse(text);
+    if(data && data.errorcode === 'invalidtoken') {
+      throw Object.assign(new Error('SESSION_EXPIRED'), { moodleSessionExpired: true });
+    }
+    return data;
+  } catch(e) {
+    if(e.moodleSessionExpired) throw e;
+    throw new Error('JSON parse error: ' + text.slice(0,100));
+  }
+}
+
 async function moodleCall(fn, params={}) {
   const p = new URLSearchParams({ wstoken:token, wsfunction:fn, moodlewsrestformat:'json', ...params });
   const r = await fetch(MOODLE+'/webservice/rest/server.php?'+p);
-  return r.json();
+  return _parseMoodleResponse(r);
 }
-
 
 async function moodlePost(fn, params={}) {
   const body = new URLSearchParams({ wstoken: token, wsfunction: fn, moodlewsrestformat: 'json' });
   Object.entries(params).forEach(([k,v]) => body.append(k, v));
   const r = await fetch(MOODLE+'/webservice/rest/server.php', { method:'POST', body });
-  return r.json();
+  return _parseMoodleResponse(r);
 }
 async function loadSubmissionStatuses() {
   if(!token || !userData.userid) return;

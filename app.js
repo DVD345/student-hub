@@ -1702,22 +1702,15 @@ function go(name) {
   const nextIdx = PAGE_ORDER.indexOf(name);
   const forward = nextIdx === -1 || prevIdx === -1 || nextIdx > prevIdx;
 
-  // Animate out previous page
-  if(prevPg && prevPg.classList.contains('active')) {
-    prevPg.classList.remove('active','pg-enter-right','pg-enter-left','pg-enter-up');
-    prevPg.classList.add(forward ? 'pg-exit-left' : 'pg-exit-right');
-    const cleanup = () => { prevPg.classList.remove('pg-exit-left','pg-exit-right'); };
-    prevPg.addEventListener('animationend', cleanup, {once:true});
-    setTimeout(cleanup, 250); // fallback
-  }
+  // Hide all pages instantly, no overlap
+  document.querySelectorAll('.page').forEach(p => {
+    p.classList.remove('active','pg-enter-right','pg-enter-left','pg-exit-left','pg-exit-right');
+  });
 
   // Animate in next page
-  document.querySelectorAll('.page').forEach(p => {
-    if(p !== prevPg) p.classList.remove('active','pg-enter-right','pg-enter-left','pg-enter-up','pg-exit-left','pg-exit-right');
-  });
   nextPg.classList.add('active', forward ? 'pg-enter-right' : 'pg-enter-left');
   nextPg.addEventListener('animationend', () => {
-    nextPg.classList.remove('pg-enter-right','pg-enter-left','pg-enter-up');
+    nextPg.classList.remove('pg-enter-right','pg-enter-left');
   }, {once:true});
 
   _currentPage = name;

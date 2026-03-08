@@ -461,18 +461,11 @@ a { text-decoration: none; color: inherit; }
 #page-chat.active { display:flex; flex-direction:column; }
 
 /* ── Page transition animations ── */
-@keyframes pgEnterRight  { from{opacity:0;transform:translateX(32px)}  to{opacity:1;transform:translateX(0)} }
-@keyframes pgEnterLeft   { from{opacity:0;transform:translateX(-32px)} to{opacity:1;transform:translateX(0)} }
-@keyframes pgEnterUp     { from{opacity:0;transform:translateY(18px)}  to{opacity:1;transform:translateY(0)} }
-@keyframes pgExitLeft    { from{opacity:1;transform:translateX(0)}  to{opacity:0;transform:translateX(-24px)} }
-@keyframes pgExitRight   { from{opacity:1;transform:translateX(0)}  to{opacity:0;transform:translateX(24px)} }
-@keyframes pgExitDown    { from{opacity:1;transform:translateY(0)}  to{opacity:0;transform:translateY(12px)} }
+@keyframes pgEnterRight { from{opacity:0;transform:translateX(20px)} to{opacity:1;transform:translateX(0)} }
+@keyframes pgEnterLeft  { from{opacity:0;transform:translateX(-20px)} to{opacity:1;transform:translateX(0)} }
 
-.page.pg-enter-right { animation: pgEnterRight .28s cubic-bezier(.25,.46,.45,.94) forwards; }
-.page.pg-enter-left  { animation: pgEnterLeft  .28s cubic-bezier(.25,.46,.45,.94) forwards; }
-.page.pg-enter-up    { animation: pgEnterUp    .22s cubic-bezier(.25,.46,.45,.94) forwards; }
-.page.pg-exit-left   { display:block!important; animation: pgExitLeft  .18s cubic-bezier(.55,0,1,.45) forwards; pointer-events:none; }
-.page.pg-exit-right  { display:block!important; animation: pgExitRight .18s cubic-bezier(.55,0,1,.45) forwards; pointer-events:none; }
+.page.pg-enter-right { animation: pgEnterRight .22s cubic-bezier(.25,.46,.45,.94) forwards; }
+.page.pg-enter-left  { animation: pgEnterLeft  .22s cubic-bezier(.25,.46,.45,.94) forwards; }
 
 .page-header { margin-bottom:18px; }
 .page-header h2 { font-size:22px; font-weight:800; margin-bottom:3px; letter-spacing:-.4px; }

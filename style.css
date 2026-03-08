@@ -407,7 +407,7 @@ a { text-decoration: none; color: inherit; }
 /* ── Theme Picker ── */
 .theme-picker { padding:8px 8px 4px; }
 .theme-picker-label { font-size:9px; font-weight:700; color:var(--text2); letter-spacing:.6px; text-transform:uppercase; margin-bottom:8px; padding:0 4px; }
-.theme-swatches { display:flex; gap:5px; flex-wrap:wrap; overflow:visible; padding-top:4px; }
+.theme-swatches { display:flex; gap:5px; flex-wrap:wrap; }
 .theme-swatch {
   width:32px; height:32px; border-radius:10px; border:2px solid transparent;
   cursor:pointer; transition:transform .15s, border-color .15s, box-shadow .15s;
@@ -420,10 +420,8 @@ a { text-decoration: none; color: inherit; }
   position:absolute; bottom:calc(100% + 6px); left:50%; transform:translateX(-50%);
   font-size:9px; font-weight:700; color:var(--text); white-space:nowrap;
   background:var(--card); border:1px solid var(--border); border-radius:4px;
-  padding:2px 5px; pointer-events:none;
-  opacity:0; visibility:hidden;
-  transition:opacity .15s, visibility .15s;
-  z-index:10;
+  padding:2px 5px; pointer-events:none; z-index:10;
+  opacity:0; visibility:hidden; transition:opacity .15s, visibility .15s;
 }
 .theme-swatch:hover .sw-label { opacity:1; visibility:visible; }
 .user-avatar { width:32px; height:32px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:700; color:#07070f; flex-shrink:0; }
@@ -466,7 +464,6 @@ a { text-decoration: none; color: inherit; }
 /* ── Page transitions ── */
 @keyframes pgEnterRight { from{opacity:0;transform:translateX(18px)} to{opacity:1;transform:translateX(0)} }
 @keyframes pgEnterLeft  { from{opacity:0;transform:translateX(-18px)} to{opacity:1;transform:translateX(0)} }
-
 .page.active.pg-enter-right { animation: pgEnterRight .2s cubic-bezier(.25,.46,.45,.94) forwards; }
 .page.active.pg-enter-left  { animation: pgEnterLeft  .2s cubic-bezier(.25,.46,.45,.94) forwards; }
 
@@ -723,10 +720,10 @@ a { text-decoration: none; color: inherit; }
   min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
-  padding: 14px 12px 8px;
+  padding: 10px 12px 8px;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 2px;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
 }
@@ -765,10 +762,9 @@ a { text-decoration: none; color: inherit; }
   max-width: 78%;
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  animation: msgIn .2s ease;
+  gap: 1px;
 }
-@keyframes msgIn { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
+/* msgIn removed - caused flash */
 .msg.me    { align-self:flex-end;  align-items:flex-end; }
 .msg.other { align-self:flex-start; }
 
@@ -794,25 +790,19 @@ a { text-decoration: none; color: inherit; }
 .msg-time { font-size:9px; color:var(--text2); font-family:'JetBrains Mono',monospace; padding: 0 2px; }
 
 /* ── Reactions ── */
-.msg-reactions { display:flex; flex-wrap:wrap; gap:4px; margin-top:4px; }
+.msg-reactions { display:flex; flex-wrap:wrap; gap:3px; margin-top:3px; margin-left:2px; }
 .reaction-btn {
   display:inline-flex; align-items:center; gap:3px;
   background:var(--bg3); border:1px solid var(--border);
-  border-radius:20px; padding:3px 8px; font-size:13px;
+  border-radius:20px; padding:2px 7px; font-size:14px;
   cursor:pointer; transition:all .15s; user-select:none;
-  color:var(--text); line-height:1;
+  color:var(--text); line-height:1.4;
 }
-.reaction-btn:hover { border-color:var(--accent); background:rgba(240,192,64,.08); transform:scale(1.08); }
-.reaction-btn.mine { background:rgba(240,192,64,.15); border-color:rgba(240,192,64,.4); }
-.reaction-btn .rcnt { font-size:11px; font-weight:600; color:var(--text2); }
-.reaction-add {
-  display:inline-flex; align-items:center; justify-content:center;
-  width:26px; height:26px; border-radius:50%;
-  background:var(--bg3); border:1px solid var(--border);
-  cursor:pointer; font-size:13px; opacity:0; transition:opacity .15s, transform .15s;
-}
-.msg:hover .reaction-add { opacity:1; }
-.reaction-add:hover { transform:scale(1.15); border-color:var(--accent); }
+.reaction-btn:hover { border-color:var(--accent); background:rgba(240,192,64,.1); transform:scale(1.07); }
+.reaction-btn.mine { background:rgba(100,160,255,.18); border-color:rgba(100,160,255,.5); }
+.reaction-btn .rcnt { font-size:11px; font-weight:700; color:var(--text2); }
+
+/* reactions via long-press/right-click */
 
 /* ── Emoji picker ── */
 .emoji-picker {

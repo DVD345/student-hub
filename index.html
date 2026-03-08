@@ -142,11 +142,6 @@ function _loadKaTeX() {
       <button class="close-sidebar" onclick="closeSidebar()">✕</button>
     </div>
     <div class="group-pill" id="gpill">Група: —</div>
-    <button onclick="openGlobalSearch()" style="display:flex;align-items:center;gap:8px;width:calc(100% - 16px);margin:4px 8px 2px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r-sm);padding:8px 12px;color:var(--text2);font-size:13px;cursor:pointer;transition:border-color .15s,color .15s;text-align:left;" onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--text)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text2)'">
-      <span>🔍</span>
-      <span style="flex:1;">Пошук...</span>
-      <kbd style="background:var(--bg);border:1px solid var(--border);border-radius:4px;padding:1px 5px;font-size:10px;font-family:'JetBrains Mono',monospace;">Ctrl+K</kbd>
-    </button>
     <div class="nav" id="nav">
       <div class="nav-section">Навчання</div>
       <div class="nav-item active" onclick="go('dashboard')"><span class="ni">🏠</span>Головна</div>
@@ -189,7 +184,7 @@ function _loadKaTeX() {
     <div class="topbar" id="topbar">
       <button class="topbar-menu" onclick="openSidebar()">☰</button>
       <h2 id="topbar-title">Головна</h2>
-      <button class="icon-btn" onclick="openGlobalSearch()" title="Пошук (Ctrl+K)" style="font-size:16px;">🔍</button>
+      <button class="icon-btn" onclick="openGlobalSearch()" title="Пошук" style="font-size:16px;">🔍</button>
       <button class="icon-btn" id="theme-btn-top" onclick="toggleTheme()">🌙</button>
       <button class="icon-btn" id="bell-btn" onclick="go('notifications')" style="position:relative">🔔<span id="bell-count" style="display:none;position:absolute;top:-2px;right:-2px;background:var(--accent2);color:#fff;font-size:8px;font-weight:700;padding:1px 4px;border-radius:10px;min-width:14px;text-align:center"></span></button>
     </div>
@@ -225,7 +220,6 @@ function _loadKaTeX() {
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;flex-wrap:wrap;">
           <div class="sync-badge"><div class="sync-dot"></div>Moodle</div>
           <button class="btn" onclick="syncMoodle()">🔄 Оновити</button>
-
         </div>
         <div class="stats-grid">
           <div class="stat-card"><div class="stat-ico si-y">📚</div><div><div class="stat-val" id="s-courses">—</div><div class="stat-lbl">Курсів</div></div></div>

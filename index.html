@@ -996,7 +996,7 @@ a { text-decoration: none; color: inherit; }
 </style>
 <script>
 // KaTeX lazy load — завантажується лише при першому відкритті Асистента або Нотаток
-let _katexLoaded = false, _katexLoading = false, _katexQueue = [];
+var _katexLoaded = false, _katexLoading = false, _katexQueue = [];
 function _loadKaTeX() {
   return new Promise((resolve) => {
     if(_katexLoaded) { resolve(); return; }
@@ -1412,7 +1412,7 @@ window._loadGroupsForLogin = loadGroupsForLogin;
 </script>
 
 <script>
-const MOODLE = 'https://moodle-proxy.dvdkunec.workers.dev';
+var MOODLE = 'https://moodle-proxy.dvdkunec.workers.dev';
 let token='', userData={}, allDl=[], courses=[], group={}, userRole='student';
 let unsubs=[], cachedFiles=[], cachedMats=[], currentChatRoom=null, chatUnsub=null;
 let cvMode='grid', csMode='name';
@@ -1433,8 +1433,8 @@ function getGroupCourse(g) {
 }
 
 // ── ROLES ──
-const ROLES = { superadmin:'🔴 Супер-адмін', admin:'🟠 Адмін', moderator:'🟡 Модератор', student:'🟢 Студент' };
-const ROLE_COLORS = { superadmin:'#e05050', admin:'#f0a030', moderator:'#f0c040', student:'#40d080' };
+var ROLES = { superadmin:'🔴 Супер-адмін', admin:'🟠 Адмін', moderator:'🟡 Модератор', student:'🟢 Студент' };
+var ROLE_COLORS = { superadmin:'#e05050', admin:'#f0a030', moderator:'#f0c040', student:'#40d080' };
 function canAdmin() { return ['superadmin','admin'].includes(userRole); }
 function canMod() { return ['superadmin','admin','moderator'].includes(userRole); }
 
@@ -1599,7 +1599,7 @@ document.getElementById('li').addEventListener('keydown', e => { if(e.key==='Ent
   if (!canvas) return;
   const ctx = canvas.getContext('2d');
   let W, H, particles = [], rails = [], trains = [];
-  const COLORS = ['#f0c040','#3a7fff','#38c870','rgba(255,255,255,.6)'];
+  const COLORS = ['#f0c040','#3a7fff','#38c870','#cccccc'];
 
   function resize() {
     W = canvas.width = window.innerWidth;
@@ -1888,7 +1888,7 @@ async function openCourseContents(courseId, btn) {
 async function syncMoodle() { await loadCourses(); await loadDeadlines(); renderCalendar(); }
 
 // ── COURSES — FIX 4: hidden courses ──
-let _hiddenCourses = [];
+var _hiddenCourses = [];
 
 function _loadHiddenCourses() {
   try {
@@ -2144,7 +2144,7 @@ function startUserSettingsSync() {
   });
 }
 
-let _saveSettingsTimer = null;
+var _saveSettingsTimer = null;
 async function _saveUserSettings() {
   if(!window._db || !userData.userid) return;
   clearTimeout(_saveSettingsTimer);
@@ -2610,8 +2610,8 @@ function renderMats(list,q='') {
   ).join('')+'</div>';
 }
 
-let _groupModalMode = 'create';
-let _groupEditId = null;
+var _groupModalMode = 'create';
+var _groupEditId = null;
 
 function groupModalAction() {
   if(_groupModalMode === 'edit' && _groupEditId) _doEditGroup(_groupEditId);
@@ -2694,7 +2694,7 @@ function _highlightMentions(text, myName) {
 }
 
 // @-autocomplete
-let _mentionActive = false, _mentionStart = 0, _mentionQuery = '';
+var _mentionActive = false, _mentionStart = 0, _mentionQuery = '';
 function _getChatMembers() {
   // Збираємо імена з останніх повідомлень
   const msgs = document.querySelectorAll('.msg-author');
@@ -2784,7 +2784,7 @@ function chatInputHandler(e) {
 }
 function autoResizeChat(el) { el.style.height='auto'; el.style.height=Math.min(el.scrollHeight,140)+'px'; }
 
-let _chatFile = null;
+var _chatFile = null;
 function handleChatFile(inp) {
   const file = inp.files[0];
   if(!file) return;
@@ -2913,7 +2913,7 @@ function renderAdminGroups(groups) {
     '</div></div>'
   ).join('');
 }
-let _allAdminUsers=[];
+var _allAdminUsers=[];
 function filterAdminUsers(q){ const filtered=q?_allAdminUsers.filter(u=>(u.name||'').toLowerCase().includes(q.toLowerCase())):_allAdminUsers; renderAdminUsers(filtered); }
 function renderAdminUsers(users) {
   const el=document.getElementById('admin-users-list');
@@ -2954,7 +2954,7 @@ function editGroup(id,name,faculty,course){
 async function delGroup(id){ if(!confirm('Видалити групу?'))return; const {doc,deleteDoc}=window._fb; await deleteDoc(doc(window._db,'groups',id)); }
 
 // ── NAV ──
-const PAGE_TITLES={dashboard:'Головна',deadlines:'Дедлайни',courses:'Курси',files:'Файли',materials:'Матеріали',chat:'Чати',admin:'Адмін-панель',calendar:'Календар',notes:'Нотатки',assistant:'Асистент',notifications:'Сповіщення'};
+var PAGE_TITLES={dashboard:'Головна',deadlines:'Дедлайни',courses:'Курси',files:'Файли',materials:'Матеріали',chat:'Чати',admin:'Адмін-панель',calendar:'Календар',notes:'Нотатки',assistant:'Асистент',notifications:'Сповіщення'};
 function go(name) {
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   const pg=document.getElementById('page-'+name);
@@ -2999,8 +2999,8 @@ if(st){document.documentElement.setAttribute('data-theme',st);updateThemeIcon(st
 var calDate = new Date();
 var currentYear = calDate.getFullYear();
 var currentMonth = calDate.getMonth();
-const CAL_DAYS = ['Пн','Вт','Ср','Чт','Пт','Сб','Нд'];
-const CAL_MONTHS = ['Січень','Лютий','Березень','Квітень','Травень','Червень','Липень','Серпень','Вересень','Жовтень','Листопад','Грудень'];
+var CAL_DAYS = ['Пн','Вт','Ср','Чт','Пт','Сб','Нд'];
+var CAL_MONTHS = ['Січень','Лютий','Березень','Квітень','Травень','Червень','Липень','Серпень','Вересень','Жовтень','Листопад','Грудень'];
 
 // Безпечний парсинг дати в локальній таймзоні (уникаємо UTC-зсуву)
 function parseLocalDate(dateStr) {
@@ -3128,7 +3128,7 @@ function calToday(){
 }
 
 // ═══ NOTES ═══
-let notes=[], currentNoteId=null;
+var notes=[], currentNoteId=null;
 
 function loadNotes(){
   const raw=localStorage.getItem('sh_notes_'+String(userData.userid||'local'));
@@ -3225,8 +3225,8 @@ function updateNotePreview(){
 }
 
 // ═══ AI ASSISTANT ═══
-let aiHistory=[];
-let aiImageBase64=null, aiImageMime='image/jpeg';
+var aiHistory=[];
+var aiImageBase64=null, aiImageMime='image/jpeg';
 
 function setAIImage(base64,mime){
   aiImageBase64=base64; aiImageMime=mime||'image/jpeg';
@@ -3258,7 +3258,7 @@ function aiKey(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendAI();}
 // Cloudflare Worker приклад: https://developers.cloudflare.com/workers/
 // ENV змінна: GROQ_API_KEY=gsk_...
 // Worker код: export default { async fetch(req) { const body=await req.json(); const r=await fetch('https://api.groq.com/openai/v1/chat/completions',{method:'POST',headers:{'Authorization':'Bearer '+env.GROQ_API_KEY,'Content-Type':'application/json'},body:JSON.stringify(body)}); return new Response(await r.text(),{headers:{'Content-Type':'application/json','Access-Control-Allow-Origin':'*'}}); } }
-const _AI_PROXY = 'https://groq-proxy.dvdkunec.workers.dev';
+var _AI_PROXY = 'https://groq-proxy.dvdkunec.workers.dev';
 function _getAIToken() {
   if(_AI_PROXY) return 'proxy';
   return localStorage.getItem('sh_ai_key') || '';
@@ -3362,7 +3362,7 @@ function appendAIMsg(side,text,imgSrc){
 }
 
 // ═══ NOTIFICATIONS ═══
-let notifList=[];
+var notifList=[];
 function loadNotifications(){
   const raw=localStorage.getItem('sh_notifs_'+String(userData.userid||'local'));
   notifList=raw?JSON.parse(raw):[];
@@ -3435,7 +3435,7 @@ function scheduleDeadlineNotifs(){
     }
   });
 }
-let prevFileCount=0;
+var prevFileCount=0;
 function checkFileNotifs(files){
   if(prevFileCount>0&&files.length>prevFileCount){
     const newFiles=files.slice(0,files.length-prevFileCount);
@@ -3470,7 +3470,7 @@ function previewFile(id){
   document.getElementById('preview-modal').classList.add('show');
 }
 
-let filesSearchQuery='';
+var filesSearchQuery='';
 
 // ── LOGOUT ──
 function doLogout(){

@@ -142,6 +142,11 @@ function _loadKaTeX() {
       <button class="close-sidebar" onclick="closeSidebar()">✕</button>
     </div>
     <div class="group-pill" id="gpill">Група: —</div>
+    <button onclick="openGlobalSearch()" style="display:flex;align-items:center;gap:8px;width:calc(100% - 16px);margin:4px 8px 2px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r-sm);padding:8px 12px;color:var(--text2);font-size:13px;cursor:pointer;transition:border-color .15s,color .15s;text-align:left;" onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--text)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text2)'">
+      <span>🔍</span>
+      <span style="flex:1;">Пошук...</span>
+      <kbd style="background:var(--bg);border:1px solid var(--border);border-radius:4px;padding:1px 5px;font-size:10px;font-family:'JetBrains Mono',monospace;">Ctrl+K</kbd>
+    </button>
     <div class="nav" id="nav">
       <div class="nav-section">Навчання</div>
       <div class="nav-item active" onclick="go('dashboard')"><span class="ni">🏠</span>Головна</div>

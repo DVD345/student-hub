@@ -1957,26 +1957,64 @@ function renderCalendar() {
 }
 function expandCalCell(btn,e){
   e.stopPropagation();
+  // Remove any existing popup
+  _closeCalPopup();
   const cell=btn.closest('.cal-cell');
-  const isExpanded=!cell.classList.contains('expanded');
-  cell.classList.toggle('expanded',isExpanded);
-  cell.querySelectorAll('.cal-hidden').forEach(el=>{ el.style.display=isExpanded?'flex':'none'; el.style.flexDirection=isExpanded?'column':''; });
-  // Swap more-btn for hide-btn
-  if(isExpanded){
-    btn.style.display='none';
-    const hideBtn=document.createElement('div');
-    hideBtn.className='cal-hide-btn';
-    hideBtn.textContent='▲ Сховати';
-    hideBtn.onclick=function(ev){ev.stopPropagation();collapseCalCell(cell,btn);};
-    cell.appendChild(hideBtn);
-  }
+  const rect=cell.getBoundingClientRect();
+
+  // Collect all events from cell
+  const allEvents=Array.from(cell.querySelectorAll('.cal-event,.cal-hidden'));
+  const dateNum=cell.querySelector('.cal-day-num');
+  const dateStr=dateNum?dateNum.textContent:'';
+
+  // Overlay to close on click outside
+  const overlay=document.createElement('div');
+  overlay.className='cal-popup-overlay';
+  overlay.onclick=_closeCalPopup;
+  document.body.appendChild(overlay);
+
+  // Popup
+  const popup=document.createElement('div');
+  popup.className='cal-popup';
+  popup.id='cal-popup';
+
+  // Title
+  const title=document.createElement('div');
+  title.className='cal-popup-title';
+  title.textContent=dateStr+' '+(['','Пн','Вт','Ср','Чт','Пт','Сб','Нд'][new Date().getDay()]||'');
+  popup.appendChild(title);
+
+  // Clone all events (visible + hidden)
+  allEvents.forEach(function(ev){
+    const clone=ev.cloneNode(true);
+    clone.style.display='';
+    clone.classList.remove('cal-hidden');
+    popup.appendChild(clone);
+  });
+
+  // Close button at bottom
+  const closeBtn=document.createElement('div');
+  closeBtn.className='cal-popup-close';
+  closeBtn.textContent='▲ Закрити';
+  closeBtn.onclick=_closeCalPopup;
+  popup.appendChild(closeBtn);
+
+  // Position popup near cell, keep on screen
+  document.body.appendChild(popup);
+  const pw=popup.offsetWidth, ph=popup.offsetHeight;
+  const vw=window.innerWidth, vh=window.innerHeight;
+  let left=rect.left, top=rect.bottom+4;
+  if(left+pw>vw-8) left=vw-pw-8;
+  if(top+ph>vh-8) top=rect.top-ph-4;
+  if(top<8) top=8;
+  popup.style.left=left+'px';
+  popup.style.top=top+'px';
 }
-function collapseCalCell(cell,moreBtn){
-  cell.classList.remove('expanded');
-  cell.querySelectorAll('.cal-hidden').forEach(el=>{ el.style.display='none'; });
-  const hideBtn=cell.querySelector('.cal-hide-btn');
-  if(hideBtn) hideBtn.remove();
-  if(moreBtn) moreBtn.style.display='';
+function _closeCalPopup(){
+  const p=document.getElementById('cal-popup');
+  if(p) p.remove();
+  const o=document.querySelector('.cal-popup-overlay');
+  if(o) o.remove();
 }
 
 function calPrev(){

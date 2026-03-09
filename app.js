@@ -1888,124 +1888,144 @@ function renderCalendar() {
   document.getElementById('cal-title').textContent=CAL_MONTHS[month]+' '+year;
   const firstDay=new Date(year,month,1);
   const lastDay=new Date(year,month+1,0);
-  let startDow=(firstDay.getDay()+6)%7;
+  const startDow=(firstDay.getDay()+6)%7;
   const today=new Date(); today.setHours(0,0,0,0);
   const nowTs=Date.now()/1000;
   const dlDeleted=typeof _dlDeleted!=='undefined'?_dlDeleted:[];
   const urgH=typeof _dlUrgentH!=='undefined'?_dlUrgentH:48;
   const warnD=typeof _dlWarnD!=='undefined'?_dlWarnD:7;
 
-  function cellHtml(dateObj, otherMonth) {
-    var d2=new Date(dateObj); d2.setHours(0,0,0,0);
-    var isToday=d2.getTime()===today.getTime();
-    var dateStr=d2.getFullYear()+'-'+String(d2.getMonth()+1).padStart(2,'0')+'-'+String(d2.getDate()).padStart(2,'0');
-    var dayStart=d2.getTime()/1000, dayEnd=dayStart+86400;
-    var dayDl=allDl.filter(function(dl){return !dlDeleted.includes(String(dl.id))&&dl.due>=dayStart&&dl.due<dayEnd&&dl.due>=nowTs;});
-    var dayNotes=getCalNotes(dateStr);
-    var hasAny=dayDl.length>0||dayNotes.length>0;
-    var h='<div class="cal-cell'+(otherMonth?' other-month':'')+(isToday?' today':'')+(hasAny?' has-events':'')+'">';
-    h+='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:2px;">';
-    h+='<div class="cal-day-num">'+d2.getDate()+'</div>';
-    h+='<button data-date="'+dateStr+'" onclick="openCalNoteModal(this.dataset.date,event)" style="background:none;border:none;color:var(--text2);font-size:11px;cursor:pointer;padding:0 2px;opacity:.4;line-height:1;transition:opacity .15s;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=.4">+</button>';
-    h+='</div>';
-    if(isToday) h+='<div style="position:absolute;bottom:3px;left:4px;right:4px;height:2px;background:var(--accent);opacity:.4;border-radius:1px;"></div>';
-    // Show max 3 items total (notes + deadlines), rest in popup
-    var allItems=[];
-    dayNotes.forEach(function(un){
-      var tpfx=un.time?un.time+' ':'';
-      var prev=(tpfx+un.text).length>20?(tpfx+un.text).slice(0,20)+'…':(tpfx+un.text);
-      allItems.push('<div class="cal-event" data-date="'+dateStr+'" data-nid="'+escHtml(un.id)+'" onclick="openCalNoteModal(this.dataset.date,event,this.dataset.nid)" style="background:rgba(240,192,64,.15);color:var(--accent);border:1px solid rgba(240,192,64,.25);cursor:pointer;" title="'+escHtml(un.text)+'">&#9999;&#65039; '+escHtml(prev)+'</div>');
-    });
-    dayDl.forEach(function(dl){
-      var diff=dl.due-nowTs;
-      var cls=diff<urgH*3600?'cal-ev-urgent':diff<warnD*86400?'cal-ev-soon':'cal-ev-ok';
-      var onclk=dl.url&&dl.url!=='#'?'onclick="window.open(this.dataset.url)" data-url="'+escHtml(dl.url)+'"':'';
-      allItems.push('<div class="cal-event '+cls+'" '+onclk+' title="'+escHtml(dl.name)+'">'+escHtml(dl.name)+'</div>');
-    });
-    var maxVisible=3;
-    allItems.slice(0,maxVisible).forEach(function(ev){ h+=ev; });
-    var hidden=allItems.length-maxVisible;
-    if(hidden>0){
-      h+='<div class="cal-more" onclick="expandCalCell(this,event)" data-count="'+hidden+'">+'+hidden+' ще</div>';
-      allItems.slice(maxVisible).forEach(function(ev){
-        h+=ev.replace('class="cal-event','class="cal-event cal-hidden');
-      });
-    }
-    h+='</div>';
-    return h;
+  // Unified events array
+  function getEventsForDate(dateStr, dayStart, dayEnd) {
+    const dls = allDl.filter(dl=>
+      !dlDeleted.includes(String(dl.id)) &&
+      dl.due>=dayStart && dl.due<dayEnd && dl.due>=nowTs
+    );
+    const nts = getCalNotes(dateStr);
+    return { dls, nts };
   }
 
-  var html='<div class="cal-grid">';
+  function cellHtml(dateObj, otherMonth) {
+    const d2=new Date(dateObj); d2.setHours(0,0,0,0);
+    const isToday=d2.getTime()===today.getTime();
+    const dateStr=d2.getFullYear()+'-'+String(d2.getMonth()+1).padStart(2,'0')+'-'+String(d2.getDate()).padStart(2,'0');
+    const dayStart=d2.getTime()/1000, dayEnd=dayStart+86400;
+    const {dls,nts}=getEventsForDate(dateStr,dayStart,dayEnd);
+    const hasEvents=dls.length>0||nts.length>0;
+
+    // Color indicators
+    let dots='';
+    const maxDots=4;
+    let dotsCount=0;
+    if(nts.length>0){dots+='<span class="cal-dot cal-dot-note"></span>';dotsCount++;}
+    dls.forEach(function(dl){
+      if(dotsCount>=maxDots) return;
+      const diff=dl.due-nowTs;
+      const color=diff<urgH*3600?'var(--accent2)':diff<warnD*86400?'var(--accent)':'var(--success)';
+      dots+='<span class="cal-dot" style="background:'+color+'"></span>';
+      dotsCount++;
+    });
+    const totalEvents=dls.length+(nts.length>0?1:0);
+    if(totalEvents>maxDots) dots+='<span class="cal-dot-more">+'+(totalEvents-maxDots)+'</span>';
+
+    return '<div class="cal-cell'+(otherMonth?' other-month':'')+(isToday?' today':'')+(hasEvents?' has-events':'')+'" '
+      +'data-date="'+dateStr+'" onclick="openCalDayPopup(\''+dateStr+'\')">'
+      +'<div class="cal-day-num">'+d2.getDate()+'</div>'
+      +(dots?'<div class="cal-dots">'+dots+'</div>':'')
+      +'</div>';
+  }
+
+  let html='<div class="cal-grid" id="cal-grid-inner">';
   CAL_DAYS.forEach(function(d){html+='<div class="cal-header-cell">'+d+'</div>';});
-  for(var i=0;i<startDow;i++) html+=cellHtml(new Date(year,month,i-startDow+1),true);
-  for(var d=1;d<=lastDay.getDate();d++) html+=cellHtml(new Date(year,month,d),false);
-  var rem=(startDow+lastDay.getDate())%7;
-  if(rem>0) for(var j=1;j<=7-rem;j++) html+=cellHtml(new Date(year,month+1,j),true);
+  for(let i=0;i<startDow;i++) html+=cellHtml(new Date(year,month,i-startDow+1),true);
+  for(let d=1;d<=lastDay.getDate();d++) html+=cellHtml(new Date(year,month,d),false);
+  const rem=(startDow+lastDay.getDate())%7;
+  if(rem>0) for(let i=1;i<=7-rem;i++) html+=cellHtml(new Date(year,month+1,i),true);
   html+='</div>';
   document.getElementById('cal-grid').innerHTML=html;
 }
-function expandCalCell(btn,e){
-  e.stopPropagation();
-  // Remove any existing popup
+
+function openCalDayPopup(dateStr) {
   _closeCalPopup();
-  const cell=btn.closest('.cal-cell');
-  const rect=cell.getBoundingClientRect();
+  const nowTs=Date.now()/1000;
+  const dlDeleted=typeof _dlDeleted!=='undefined'?_dlDeleted:[];
+  const urgH=typeof _dlUrgentH!=='undefined'?_dlUrgentH:48;
+  const warnD=typeof _dlWarnD!=='undefined'?_dlWarnD:7;
+  const d2=new Date(dateStr); d2.setHours(0,0,0,0);
+  const dayStart=d2.getTime()/1000, dayEnd=dayStart+86400;
+  const dls=allDl.filter(dl=>!dlDeleted.includes(String(dl.id))&&dl.due>=dayStart&&dl.due<dayEnd&&dl.due>=nowTs);
+  const nts=getCalNotes(dateStr);
+  if(!dls.length&&!nts.length) {
+    // empty day — just open note modal
+    openCalNoteModal(dateStr, {stopPropagation:function(){}});
+    return;
+  }
 
-  // Collect all events from cell
-  const allEvents=Array.from(cell.querySelectorAll('.cal-event,.cal-hidden'));
-  const dateNum=cell.querySelector('.cal-day-num');
-  const dateStr=dateNum?dateNum.textContent:'';
-
-  // Overlay to close on click outside
+  const cell=document.querySelector('[data-date="'+dateStr+'"]');
   const overlay=document.createElement('div');
   overlay.className='cal-popup-overlay';
   overlay.onclick=_closeCalPopup;
   document.body.appendChild(overlay);
 
-  // Popup
   const popup=document.createElement('div');
   popup.className='cal-popup';
   popup.id='cal-popup';
 
   // Title
+  const DAY_NAMES=['\u041d\u0434','\u041f\u043d','\u0412\u0442','\u0421\u0440','\u0427\u0442','\u041f\u0442','\u0421\u0431'];
   const title=document.createElement('div');
   title.className='cal-popup-title';
-  title.textContent=dateStr+' '+(['','Пн','Вт','Ср','Чт','Пт','Сб','Нд'][new Date().getDay()]||'');
+  title.innerHTML='<span>'+dateStr.split('-').reverse().slice(0,2).join('.')+'</span>'
+    +'<span style="color:var(--text2);font-weight:400">'+DAY_NAMES[d2.getDay()]+'</span>'
+    +'<button onclick="_closeCalPopup()" style="margin-left:auto;background:none;border:none;color:var(--text2);cursor:pointer;font-size:14px;padding:0 2px;">✕</button>';
   popup.appendChild(title);
 
-  // Clone all events (visible + hidden)
-  allEvents.forEach(function(ev){
-    const clone=ev.cloneNode(true);
-    clone.style.display='';
-    clone.classList.remove('cal-hidden');
-    popup.appendChild(clone);
+  // Notes
+  nts.forEach(function(un){
+    const row=document.createElement('div');
+    row.className='cal-popup-row cal-popup-note';
+    row.innerHTML='<span class="cal-dot cal-dot-note" style="flex-shrink:0"></span>'
+      +'<span class="cal-popup-row-text">'+(un.time?'<b>'+un.time+'</b> ':'')+escHtml(un.text)+'</span>'
+      +'<button onclick="_closeCalPopup();openCalNoteModal(\''+dateStr+'\',{stopPropagation:function(){}},\''+un.id+'\')" class="cal-popup-edit">\u270f\ufe0f</button>';
+    popup.appendChild(row);
   });
 
-  // Close button at bottom
-  const closeBtn=document.createElement('div');
-  closeBtn.className='cal-popup-close';
-  closeBtn.textContent='▲ Закрити';
-  closeBtn.onclick=_closeCalPopup;
-  popup.appendChild(closeBtn);
+  // Deadlines
+  dls.forEach(function(dl){
+    const diff=dl.due-nowTs;
+    const color=diff<urgH*3600?'var(--accent2)':diff<warnD*86400?'var(--accent)':'var(--success)';
+    const time=new Date(dl.due*1000).toLocaleTimeString('uk-UA',{hour:'2-digit',minute:'2-digit'});
+    const row=document.createElement('div');
+    row.className='cal-popup-row';
+    row.innerHTML='<span class="cal-dot" style="background:'+color+';flex-shrink:0"></span>'
+      +'<span class="cal-popup-row-text"><b>'+time+'</b> '+escHtml(dl.name)+'</span>'
+      +(dl.url&&dl.url!=='#'?'<button onclick="window.open(\''+escHtml(dl.url)+'\',\'_blank\')" class="cal-popup-edit">\u2197\ufe0f</button>':'');
+    popup.appendChild(row);
+  });
 
-  // Position popup near cell, keep on screen
+  // Add note button
+  const addBtn=document.createElement('div');
+  addBtn.className='cal-popup-add';
+  addBtn.innerHTML='+ \u0414\u043e\u0434\u0430\u0442\u0438 \u043d\u043e\u0442\u0430\u0442\u043a\u0443';
+  addBtn.onclick=function(){_closeCalPopup();openCalNoteModal(dateStr,{stopPropagation:function(){}});};
+  popup.appendChild(addBtn);
+
+  document.body.appendChild(popup);
+
+  // Position near cell
+  const rect=cell?cell.getBoundingClientRect():{left:window.innerWidth/2,bottom:window.innerHeight/2};
+  popup.style.cssText='position:fixed;z-index:901;';
   document.body.appendChild(popup);
   const pw=popup.offsetWidth, ph=popup.offsetHeight;
   const vw=window.innerWidth, vh=window.innerHeight;
-  let left=rect.left, top=rect.bottom+4;
+  let left=rect.left, top=(rect.bottom||rect.top)+4;
   if(left+pw>vw-8) left=vw-pw-8;
-  if(top+ph>vh-8) top=rect.top-ph-4;
+  if(left<8) left=8;
+  if(top+ph>vh-8) top=(rect.top||0)-ph-4;
   if(top<8) top=8;
   popup.style.left=left+'px';
   popup.style.top=top+'px';
 }
-function _closeCalPopup(){
-  const p=document.getElementById('cal-popup');
-  if(p) p.remove();
-  const o=document.querySelector('.cal-popup-overlay');
-  if(o) o.remove();
-}
-
 function calPrev(){
   calDate.setMonth(calDate.getMonth()-1);
   currentYear=calDate.getFullYear(); currentMonth=calDate.getMonth();
@@ -2633,7 +2653,7 @@ function renderWidgetWeek() {
   if(!items.length){el.innerHTML='<div class="widget-empty">📭 Дедлайнів на тижні немає</div>';return;}
   el.innerHTML=items.map(function(d){
     var diff=d.due-now;
-    var color=diff<urgH*3600?'var(--accent2)':diff<warnD*86400?'var(--warning)':'var(--success)';
+    var color=diff<urgH*3600?'var(--accent2)':diff<warnD*86400?'var(--accent)':'var(--success)';
     var label=diff<172800?'Завтра':new Date(d.due*1000).toLocaleDateString('uk-UA',{day:'numeric',month:'short'});
     var onclick=d.url&&d.url!=='#'?"window.open('"+escHtml(d.url)+"','_blank')":"go('deadlines')";
     return '<div class="widget-item" onclick="'+onclick+'" title="'+escHtml(d.name)+'"><span class="widget-item-dot" style="background:'+color+'"></span><span class="widget-item-name">'+escHtml(d.name)+'</span><span class="widget-item-meta">'+label+'</span></div>';

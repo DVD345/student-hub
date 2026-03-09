@@ -1061,7 +1061,8 @@ a { text-decoration: none; color: inherit; }
 [data-theme="light"] .cal-ev-soon{background:#e67e22;color:#fff;}
 [data-theme="light"] .cal-ev-ok{background:#27ae60;color:#fff;}
 [data-theme="light"] .cal-ev-past{background:#bbb;color:#555;}
-.cal-more{font-size:9px;padding:1px 4px;border-radius:4px;background:rgba(240,192,64,.1);border:1px solid rgba(240,192,64,.2);color:var(--accent);cursor:pointer;font-weight:600;text-align:center;transition:background .15s;flex-shrink:0;}
+.cal-more{font-size:9px;padding:2px 4px;border-radius:4px;background:rgba(240,192,64,.1);border:1px solid rgba(240,192,64,.2);color:var(--accent);cursor:pointer;font-weight:600;text-align:center;transition:background .15s;flex-shrink:0;position:relative;z-index:2;pointer-events:all;}
+.cal-more:hover{background:rgba(240,192,64,.25);}
 
 
 .cal-hidden{display:none;}

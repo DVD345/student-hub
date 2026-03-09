@@ -1925,7 +1925,7 @@ function renderCalendar() {
     allItems.slice(0,MAX_VISIBLE).forEach(function(it){ h+=it.html; });
     if(allItems.length>MAX_VISIBLE){
       const hidden=allItems.length-MAX_VISIBLE;
-      h+='<div class="cal-more" onclick="event.stopPropagation();openCalDayPopup(this.closest(\'[data-date]\').dataset.date)">+'+hidden+' ще</div>';
+      h+='<div class="cal-more" onclick="event.stopPropagation();openCalDayPopup(\''+dateStr+'\')">+'+hidden+' ще</div>';
     }
     h+='</div>';
     return h;

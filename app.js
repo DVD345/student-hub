@@ -1940,6 +1940,12 @@ function renderCalendar() {
   html+='</div>';
   document.getElementById('cal-grid').innerHTML=html;
 }
+function _closeCalPopup(){
+  var p=document.getElementById('cal-popup');
+  if(p)p.remove();
+  var o=document.querySelector('.cal-popup-overlay');
+  if(o)o.remove();
+}
 function openCalDayPopup(dateStr) {
   _closeCalPopup();
   const nowTs=Date.now()/1000;

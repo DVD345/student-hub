@@ -1921,7 +1921,7 @@ function renderCalendar() {
     });
 
     let h='<div class="cal-cell'+(otherMonth?' other-month':'')+(isToday?' today':'')+(hasEvents?' has-events':'')+'" data-date="'+dateStr+'" onclick="openCalDayPopup(this.dataset.date)">';
-    h+='<div class="cal-day-num">'+d2.getDate()+'</div>';
+    h+='<div class="cal-day-num">'+d2.getDate()+'<span class="cal-add-btn" onclick="event.stopPropagation();openCalNoteModal(\''+dateStr+'\',event)" title="Додати нотатку">+</span></div>';
     allItems.slice(0,MAX_VISIBLE).forEach(function(it){ h+=it.html; });
     if(allItems.length>MAX_VISIBLE){
       const hidden=allItems.length-MAX_VISIBLE;

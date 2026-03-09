@@ -1104,8 +1104,11 @@ a { text-decoration: none; color: inherit; }
 .cal-note-item-del:hover { opacity:1; }
 
 /* ── Calendar dots ── */
-.cal-day-num{font-size:12px;color:var(--text2);font-weight:700;line-height:1;margin-bottom:4px;}
-.cal-cell.today .cal-day-num{color:var(--accent);font-size:13px;}
+.cal-day-num{font-size:11px;color:var(--text2);font-weight:700;line-height:1;margin-bottom:3px;display:flex;justify-content:space-between;align-items:center;width:100%;}
+.cal-cell.today .cal-day-num{color:var(--accent);font-size:12px;}
+.cal-add-btn{opacity:0;font-size:13px;line-height:1;cursor:pointer;transition:opacity .15s,color .15s;padding:0 1px;}
+.cal-cell:hover .cal-add-btn{opacity:1;}
+.cal-add-btn:hover{color:var(--accent);}
 .cal-dots{display:flex;flex-wrap:wrap;gap:3px;align-items:center;}
 .cal-dot{width:7px;height:7px;border-radius:50%;display:inline-block;flex-shrink:0;}
 .cal-dot-note{background:var(--accent);}

@@ -1894,48 +1894,44 @@ function renderCalendar() {
   const dlDeleted=typeof _dlDeleted!=='undefined'?_dlDeleted:[];
   const urgH=typeof _dlUrgentH!=='undefined'?_dlUrgentH:48;
   const warnD=typeof _dlWarnD!=='undefined'?_dlWarnD:7;
-
-  // Unified events array
-  function getEventsForDate(dateStr, dayStart, dayEnd) {
-    const dls = allDl.filter(dl=>
-      !dlDeleted.includes(String(dl.id)) &&
-      dl.due>=dayStart && dl.due<dayEnd && dl.due>=nowTs
-    );
-    const nts = getCalNotes(dateStr);
-    return { dls, nts };
-  }
+  const MAX_VISIBLE=4;
 
   function cellHtml(dateObj, otherMonth) {
     const d2=new Date(dateObj); d2.setHours(0,0,0,0);
     const isToday=d2.getTime()===today.getTime();
     const dateStr=d2.getFullYear()+'-'+String(d2.getMonth()+1).padStart(2,'0')+'-'+String(d2.getDate()).padStart(2,'0');
     const dayStart=d2.getTime()/1000, dayEnd=dayStart+86400;
-    const {dls,nts}=getEventsForDate(dateStr,dayStart,dayEnd);
+    const dls=allDl.filter(dl=>!dlDeleted.includes(String(dl.id))&&dl.due>=dayStart&&dl.due<dayEnd&&dl.due>=nowTs);
+    const nts=getCalNotes(dateStr);
     const hasEvents=dls.length>0||nts.length>0;
 
-    // Color indicators
-    let dots='';
-    const maxDots=4;
-    let dotsCount=0;
-    if(nts.length>0){dots+='<span class="cal-dot cal-dot-note"></span>';dotsCount++;}
-    dls.forEach(function(dl){
-      if(dotsCount>=maxDots) return;
-      const diff=dl.due-nowTs;
-      const color=diff<urgH*3600?'var(--accent2)':diff<warnD*86400?'var(--accent)':'var(--success)';
-      dots+='<span class="cal-dot" style="background:'+color+'"></span>';
-      dotsCount++;
+    // Build unified list: notes first, then deadlines
+    const allItems=[];
+    nts.forEach(function(un){
+      const tpfx=un.time?un.time+' ':'';
+      const txt=(tpfx+un.text).length>18?(tpfx+un.text).slice(0,18)+'…':(tpfx+un.text);
+      allItems.push({type:'note',html:'<div class="cal-event cal-ev-note" data-date="'+dateStr+'" data-nid="'+escHtml(un.id)+'" onclick="event.stopPropagation();openCalNoteModal(this.dataset.date,event,this.dataset.nid)" title="'+escHtml(un.text)+'">✏️ '+escHtml(txt)+'</div>'});
     });
-    const totalEvents=dls.length+(nts.length>0?1:0);
-    if(totalEvents>maxDots) dots+='<span class="cal-dot-more">+'+(totalEvents-maxDots)+'</span>';
+    dls.forEach(function(dl){
+      const diff=dl.due-nowTs;
+      const cls=diff<urgH*3600?'cal-ev-urgent':diff<warnD*86400?'cal-ev-soon':'cal-ev-ok';
+      const name=dl.name.length>18?dl.name.slice(0,18)+'…':dl.name;
+      const urlData=dl.url&&dl.url!=='#'?' data-url="'+escHtml(dl.url)+'"':'';
+      allItems.push({type:'dl',html:'<div class="cal-event '+cls+'"'+urlData+' onclick="event.stopPropagation();if(this.dataset.url)window.open(this.dataset.url,\'_blank\')" title="'+escHtml(dl.name)+'">'+escHtml(name)+'</div>'});
+    });
 
-    return '<div class="cal-cell'+(otherMonth?' other-month':'')+(isToday?' today':'')+(hasEvents?' has-events':'')+'" '
-      +'data-date="'+dateStr+'" onclick="openCalDayPopup(\''+dateStr+'\')">'
-      +'<div class="cal-day-num">'+d2.getDate()+'</div>'
-      +(dots?'<div class="cal-dots">'+dots+'</div>':'')
-      +'</div>';
+    let h='<div class="cal-cell'+(otherMonth?' other-month':'')+(isToday?' today':'')+(hasEvents?' has-events':'')+'" data-date="'+dateStr+'" onclick="openCalDayPopup(this.dataset.date)">';
+    h+='<div class="cal-day-num">'+d2.getDate()+'</div>';
+    allItems.slice(0,MAX_VISIBLE).forEach(function(it){ h+=it.html; });
+    if(allItems.length>MAX_VISIBLE){
+      const hidden=allItems.length-MAX_VISIBLE;
+      h+='<div class="cal-more" onclick="event.stopPropagation();openCalDayPopup(this.closest(\'[data-date]\').dataset.date)">+'+hidden+' ще</div>';
+    }
+    h+='</div>';
+    return h;
   }
 
-  let html='<div class="cal-grid" id="cal-grid-inner">';
+  let html='<div class="cal-grid">';
   CAL_DAYS.forEach(function(d){html+='<div class="cal-header-cell">'+d+'</div>';});
   for(let i=0;i<startDow;i++) html+=cellHtml(new Date(year,month,i-startDow+1),true);
   for(let d=1;d<=lastDay.getDate();d++) html+=cellHtml(new Date(year,month,d),false);
@@ -1944,7 +1940,6 @@ function renderCalendar() {
   html+='</div>';
   document.getElementById('cal-grid').innerHTML=html;
 }
-
 function openCalDayPopup(dateStr) {
   _closeCalPopup();
   const nowTs=Date.now()/1000;

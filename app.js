@@ -1909,37 +1909,26 @@ function renderCalendar() {
     h+='<button data-date="'+dateStr+'" onclick="openCalNoteModal(this.dataset.date,event)" style="background:none;border:none;color:var(--text2);font-size:11px;cursor:pointer;padding:0 2px;opacity:.4;line-height:1;transition:opacity .15s;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=.4">+</button>';
     h+='</div>';
     if(isToday) h+='<div style="position:absolute;bottom:3px;left:4px;right:4px;height:2px;background:var(--accent);opacity:.4;border-radius:1px;"></div>';
-    // Show max 1 note, then deadlines, total visible = 2
-    var visibleCount=0, maxVisible=2;
-    dayNotes.slice(0,1).forEach(function(un){
-      if(visibleCount>=maxVisible) return;
+    // Show max 3 items total (notes + deadlines), rest in popup
+    var allItems=[];
+    dayNotes.forEach(function(un){
       var tpfx=un.time?un.time+' ':'';
-      var prev=(tpfx+un.text).length>18?(tpfx+un.text).slice(0,18)+'…':(tpfx+un.text);
-      h+='<div class="cal-event" data-date="'+dateStr+'" data-nid="'+escHtml(un.id)+'" onclick="openCalNoteModal(this.dataset.date,event,this.dataset.nid)" style="background:rgba(240,192,64,.15);color:var(--accent);border:1px solid rgba(240,192,64,.25);cursor:pointer;" title="'+escHtml(un.text)+'">✏️ '+escHtml(prev)+'</div>';
-      visibleCount++;
+      var prev=(tpfx+un.text).length>20?(tpfx+un.text).slice(0,20)+'…':(tpfx+un.text);
+      allItems.push('<div class="cal-event" data-date="'+dateStr+'" data-nid="'+escHtml(un.id)+'" onclick="openCalNoteModal(this.dataset.date,event,this.dataset.nid)" style="background:rgba(240,192,64,.15);color:var(--accent);border:1px solid rgba(240,192,64,.25);cursor:pointer;" title="'+escHtml(un.text)+'">&#9999;&#65039; '+escHtml(prev)+'</div>');
     });
-    var extraNotes=dayNotes.length>1?dayNotes.length-1:0;
-    var dlVisible=maxVisible-visibleCount;
-    dayDl.slice(0,dlVisible).forEach(function(dl){
+    dayDl.forEach(function(dl){
       var diff=dl.due-nowTs;
       var cls=diff<urgH*3600?'cal-ev-urgent':diff<warnD*86400?'cal-ev-soon':'cal-ev-ok';
       var onclk=dl.url&&dl.url!=='#'?'onclick="window.open(this.dataset.url)" data-url="'+escHtml(dl.url)+'"':'';
-      h+='<div class="cal-event '+cls+'" '+onclk+' title="'+escHtml(dl.name)+'">'+escHtml(dl.name)+'</div>';
-      visibleCount++;
+      allItems.push('<div class="cal-event '+cls+'" '+onclk+' title="'+escHtml(dl.name)+'">'+escHtml(dl.name)+'</div>');
     });
-    var hiddenTotal=(dayDl.length-dlVisible)+extraNotes;
-    if(hiddenTotal>0){
-      h+='<div class="cal-more" onclick="expandCalCell(this,event)" data-count="'+hiddenTotal+'">+'+hiddenTotal+' ще</div>';
-      dayDl.slice(dlVisible).forEach(function(dl){
-        var diff2=dl.due-nowTs;
-        var cls2=diff2<urgH*3600?'cal-ev-urgent':diff2<warnD*86400?'cal-ev-soon':'cal-ev-ok';
-        var onclk2=dl.url&&dl.url!=='#'?'onclick="window.open(this.dataset.url)" data-url="'+escHtml(dl.url)+'"':'';
-        h+='<div class="cal-event '+cls2+' cal-hidden" '+onclk2+' title="'+escHtml(dl.name)+'">'+escHtml(dl.name)+'</div>';
-      });
-      dayNotes.slice(1).forEach(function(un){
-        var tpfx=un.time?un.time+' ':'';
-        var prev=(tpfx+un.text).length>18?(tpfx+un.text).slice(0,18)+'…':(tpfx+un.text);
-        h+='<div class="cal-event cal-hidden" data-date="'+dateStr+'" data-nid="'+escHtml(un.id)+'" onclick="openCalNoteModal(this.dataset.date,event,this.dataset.nid)" style="background:rgba(240,192,64,.15);color:var(--accent);border:1px solid rgba(240,192,64,.25);cursor:pointer;" title="'+escHtml(un.text)+'">✏️ '+escHtml(prev)+'</div>';
+    var maxVisible=3;
+    allItems.slice(0,maxVisible).forEach(function(ev){ h+=ev; });
+    var hidden=allItems.length-maxVisible;
+    if(hidden>0){
+      h+='<div class="cal-more" onclick="expandCalCell(this,event)" data-count="'+hidden+'">+'+hidden+' ще</div>';
+      allItems.slice(maxVisible).forEach(function(ev){
+        h+=ev.replace('class="cal-event','class="cal-event cal-hidden');
       });
     }
     h+='</div>';

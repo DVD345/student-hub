@@ -1958,9 +1958,25 @@ function renderCalendar() {
 function expandCalCell(btn,e){
   e.stopPropagation();
   const cell=btn.closest('.cal-cell');
-  cell.classList.toggle('expanded');
-  cell.querySelectorAll('.cal-hidden').forEach(el=>{ el.style.display=cell.classList.contains('expanded')?'block':'none'; });
-  btn.textContent=cell.classList.contains('expanded')?'▲ Сховати':'+'+btn.dataset.count+' ще';
+  const isExpanded=!cell.classList.contains('expanded');
+  cell.classList.toggle('expanded',isExpanded);
+  cell.querySelectorAll('.cal-hidden').forEach(el=>{ el.style.display=isExpanded?'flex':'none'; el.style.flexDirection=isExpanded?'column':''; });
+  // Swap more-btn for hide-btn
+  if(isExpanded){
+    btn.style.display='none';
+    const hideBtn=document.createElement('div');
+    hideBtn.className='cal-hide-btn';
+    hideBtn.textContent='▲ Сховати';
+    hideBtn.onclick=function(ev){ev.stopPropagation();collapseCalCell(cell,btn);};
+    cell.appendChild(hideBtn);
+  }
+}
+function collapseCalCell(cell,moreBtn){
+  cell.classList.remove('expanded');
+  cell.querySelectorAll('.cal-hidden').forEach(el=>{ el.style.display='none'; });
+  const hideBtn=cell.querySelector('.cal-hide-btn');
+  if(hideBtn) hideBtn.remove();
+  if(moreBtn) moreBtn.style.display='';
 }
 
 function calPrev(){

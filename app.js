@@ -2407,12 +2407,12 @@ async function sendAI(){
       body:JSON.stringify({model,max_tokens:4096,messages})
     });
     let data=await resp.json();
-    // If maverick unavailable — fallback to 90b-vision
+    // If maverick unavailable — fallback to scout
     if(data.error && hasImage){
       resp=await fetch(_getAIEndpoint(),{
         method:'POST',
         headers:{'Content-Type':'application/json','Authorization':'Bearer '+_getAIToken()},
-        body:JSON.stringify({model:'llama-3.2-90b-vision-preview',max_tokens:4096,messages})
+        body:JSON.stringify({model:'meta-llama/llama-4-scout-17b-16e-instruct',max_tokens:4096,messages})
       });
       data=await resp.json();
     }

@@ -344,6 +344,11 @@ async function initApp() {
 
   _loadCachedData();
   _setupDebouncedInputs();
+  // Clear any browser-restored input values
+  var chatInp = document.getElementById('chat-inp');
+  if(chatInp) chatInp.value = '';
+  var aiInp = document.getElementById('ai-inp');
+  if(aiInp) aiInp.value = '';
 
   await loadUserInfo();
   await loadUserRole();
@@ -1343,6 +1348,7 @@ function setupChatRooms() {
 }
 function openChatRoom(roomId, label) {
   currentChatRoom=roomId;
+  _cancelReply(); // clear any leftover edit/reply state and input
   _listenRoomPresence(roomId);
   document.getElementById('chat-room-title').textContent=label;
   document.querySelectorAll('.chat-room').forEach(r=>r.classList.remove('active'));
@@ -1471,17 +1477,8 @@ function _cancelReply() {
 function _startEditMsg(msgId, msgEl) {
   _replyTo = null;
   _editingMsgId = msgId;
-  // Clone bubble and remove reply-quote before reading text
-  var bubble = msgEl.querySelector('.msg-bubble');
-  var text = '';
-  if (bubble) {
-    var clone = bubble.cloneNode(true);
-    var replyEl = clone.querySelector('.msg-reply');
-    if (replyEl) replyEl.remove();
-    var editedEl = clone.querySelector('.msg-edited-mark');
-    if (editedEl) editedEl.remove();
-    text = clone.textContent.trim();
-  }
+  // Read original text from data attribute — avoids grabbing reply/edited marks
+  var text = msgEl.dataset.msgtext || '';
   var inp = document.getElementById('chat-inp');
   inp.value = text;
   inp.focus();
@@ -1631,7 +1628,8 @@ function renderMessages(msgs) {
     const pinBtn = (canMod()&&m.id) ? '<button class="msg-del" onclick="pinMessage(\''+escHtml(m.id)+'\',\''+escHtml((m.text||'').slice(0,80)).replace(/'/g,'')+'\'  ,\''+escHtml(m.author||'')+'\');" style="background:rgba(240,192,64,.12);border:1px solid rgba(240,192,64,.25);color:var(--accent);border-radius:5px;padding:2px 5px;font-size:9px;cursor:pointer;opacity:0;transition:opacity .2s;flex-shrink:0" title="Закріпити">📌</button>' : '';
     const delBtn = (canDel&&m.id) ? '<button class="msg-del" data-id="'+escHtml(m.id)+'" onclick="delMsg(this.dataset.id)" style="background:rgba(224,80,80,.15);border:1px solid rgba(224,80,80,.3);color:var(--accent2);border-radius:5px;padding:2px 5px;font-size:9px;cursor:pointer;opacity:0;transition:opacity .2s;flex-shrink:0">🗑</button>' : '';
     var _mid=escHtml(m.id||'');
-    var _lpA=_mid?' data-lp="'+_mid+'" oncontextmenu="_ctxReact(event,this)" ontouchstart="_lpStart(event,this)" ontouchend="_lpEnd()" ontouchmove="_lpEnd()"':'';
+    var _msgText=escHtml(m.text||'');
+    var _lpA=_mid?' data-lp="'+_mid+'" data-msgtext="'+_msgText+'" oncontextmenu="_ctxReact(event,this)" ontouchstart="_lpStart(event,this)" ontouchend="_lpEnd()" ontouchmove="_lpEnd()"':'';
     return '<div class="msg '+(isMe?'me':'other')+'" style="position:relative" '+_lpA+' '+
       'onmouseenter="this.querySelectorAll(\'.msg-del\').forEach(b=>b.style.opacity=1)" '+
       'onmouseleave="this.querySelectorAll(\'.msg-del\').forEach(b=>b.style.opacity=0)">'+

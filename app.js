@@ -1506,7 +1506,7 @@ function _openMsgMenu(cx, cy, msgId, msgEl) {
 
   // Pin (mods)
   if(typeof canMod==='function' && canMod())
-    _ctxItem(menu, '📌', 'Закріпити', function(){ _closeMsgMenu(); pinMessage(msgId, msgText.slice(0,80), (msgEl.querySelector('.msg-author')||{}).textContent||''); });
+    _ctxItem(menu, '📌', 'Закріпити', function(){ _closeMsgMenu(); var auth=(msgEl.querySelector('.msg-author')||{}).textContent||(isMe?(userData.fullname||'?'):'?'); pinMessage(msgId, msgText.slice(0,80), auth.trim()); });
 
   // Delete
   if(isMe || (typeof canMod==='function' && canMod()))
@@ -1784,19 +1784,29 @@ function _startPresence() {
 var _presenceUnsub = null;
 function _listenRoomPresence(roomId) {
   if(_presenceUnsub) { _presenceUnsub(); _presenceUnsub = null; }
-  var bar = document.getElementById('chat-online-bar');
   var cnt = document.getElementById('chat-online-count');
-  if(!bar || !cnt) return;
-  if(!roomId) { bar.style.display='none'; return; }
+  if(!roomId) { if(cnt) cnt.style.display='none'; return; }
   const {collection, onSnapshot} = window._fb;
-  var cutoff = Date.now() - 90000; // 90s = online
   _presenceUnsub = onSnapshot(collection(window._db, 'presence'), function(snap) {
     var online = snap.docs.filter(function(d){
-      var p = d.data();
-      return p.lastSeen > Date.now() - 90000;
+      var p = d.data(); return p.lastSeen > Date.now() - 90000;
     });
-    bar.style.display = online.length ? 'flex' : 'none';
-    cnt.textContent = online.length + ' онлайн';
+    if(cnt) {
+      cnt.textContent = online.length + ' онлайн';
+      cnt.style.display = online.length ? '' : 'none';
+    }
+    // green dots next to names
+    var nameMap = {};
+    online.forEach(function(d){ nameMap[d.data().name] = true; });
+    document.querySelectorAll('.msg-author').forEach(function(el){
+      var name = el.dataset.name || el.textContent.replace('🟢','').trim();
+      el.dataset.name = name;
+      var dot = el.querySelector('.online-dot');
+      if(nameMap[name] && !dot){
+        var d = document.createElement('span');
+        d.className = 'online-dot'; el.appendChild(d);
+      } else if(!nameMap[name] && dot){ dot.remove(); }
+    });
   });
 }
 async function sendMsg() {
@@ -2766,7 +2776,7 @@ async function _offlineLogin(sgid){
 // ── Scroll to pinned message in chat ──
 function scrollToPinned() {
   if(!_currentPinnedMsg||!_currentPinnedMsg.msgId) return;
-  const el = document.querySelector('[data-msgid="'+_currentPinnedMsg.msgId+'"]');
+  const el = document.querySelector('[data-lp="'+_currentPinnedMsg.msgId+'"]');
   if(el) { el.scrollIntoView({behavior:'smooth',block:'center'}); el.style.background='rgba(240,192,64,.18)'; setTimeout(()=>el.style.background='',1200); }
 }
 

@@ -2402,23 +2402,23 @@ async function sendAI(){
 
     const VISION_MODELS = [
       'meta-llama/llama-4-scout-17b-16e-instruct',
-      'meta-llama/llama-4-maverick-17b-128e-instruct',
       'llama-3.2-90b-vision-preview',
       'llama-3.2-11b-vision-preview',
     ];
     const TEXT_MODEL = 'llama-3.3-70b-versatile';
 
     async function _tryAIRequest(model, messages) {
-      const resp = await fetch(_getAIEndpoint(), {
-        method: 'POST',
-        headers: {'Content-Type':'application/json','Authorization':'Bearer '+_getAIToken()},
-        body: JSON.stringify({model, max_tokens:4096, messages})
-      });
-      const data = await resp.json();
-      if(data.error && (data.error.code === 'model_not_found' || (data.error.message||'').includes('does not exist') || (data.error.message||'').includes('no access'))) {
-        return null; // signal to try next model
-      }
-      return data;
+      try {
+        const resp = await fetch(_getAIEndpoint(), {
+          method: 'POST',
+          headers: {'Content-Type':'application/json','Authorization':'Bearer '+_getAIToken()},
+          body: JSON.stringify({model, max_tokens:4096, messages})
+        });
+        const data = await resp.json();
+        // Any model-level error → try next
+        if(data.error) return null;
+        return data;
+      } catch(e) { return null; }
     }
 
     let data = null;
@@ -2429,6 +2429,7 @@ async function sendAI(){
       }
       // If all vision models fail, strip image and use text model
       if(data === null) {
+        appendAIMsg('other', '⚠️ Vision-моделі недоступні, відповідаю без зображення...');
         const textHistory = historyForAPI.map(m => ({
           ...m,
           content: Array.isArray(m.content)

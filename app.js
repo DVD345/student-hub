@@ -7,6 +7,32 @@ let cvMode='grid', csMode='name';
 // ── XSS PROTECTION ──
 function escHtml(t) { return (t==null?'':String(t)).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;'); }
 
+// ══════════════════════════════════════════════
+// ✅ IMPROVEMENT 1: Debounced batch renderer
+// Replaces multiple sequential applyDlFilter() + renderDashDl() + renderDashWidgets() + renderCalendar() calls
+// ══════════════════════════════════════════════
+var _renderTimer = null;
+function scheduleRender() {
+  clearTimeout(_renderTimer);
+  _renderTimer = setTimeout(function() {
+    applyDlFilter();
+    renderDashDl();
+    renderDashWidgets();
+    renderCalendar();
+    _renderCalNotesInDeadlines();
+  }, 50);
+}
+
+// ✅ IMPROVEMENT 3: Generic debounce utility
+function debounce(fn, ms) {
+  var t;
+  return function() {
+    var args = arguments;
+    clearTimeout(t);
+    t = setTimeout(function(){ fn.apply(null, args); }, ms);
+  };
+}
+
 // ── COURSE CALC ──
 function calcCourse(entryYear) {
   const now = new Date();
@@ -180,7 +206,11 @@ function showErr(msg) { const e=document.getElementById('lerr'); e.textContent=m
 document.getElementById('lp').addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
 document.getElementById('li').addEventListener('keydown', e => { if(e.key==='Enter') document.getElementById('lp').focus(); });
 
+// ══════════════════════════════════════════════
 // LOGIN CANVAS ANIMATION
+// ✅ IMPROVEMENT 4: store RAF id, cancel on login
+// ══════════════════════════════════════════════
+var _loginRafId = null;
 (function() {
   const canvas = document.getElementById('login-canvas');
   if (!canvas) return;
@@ -231,7 +261,6 @@ document.getElementById('li').addEventListener('keydown', e => { if(e.key==='Ent
     ctx.lineWidth=1;
     ctx.beginPath(); ctx.moveTo(r.x1,r.y1); ctx.lineTo(r.x2,r.y2); ctx.stroke();
     ctx.beginPath(); ctx.moveTo(r.x1+ox,r.y1+oy); ctx.lineTo(r.x2+ox,r.y2+oy); ctx.stroke();
-    // Sleepers
     const steps=Math.floor(Math.sqrt((r.x2-r.x1)**2+(r.y2-r.y1)**2)/30);
     for(let i=0;i<=steps;i++){
       const t=i/steps;
@@ -263,6 +292,8 @@ document.getElementById('li').addEventListener('keydown', e => { if(e.key==='Ent
   }
 
   function tick() {
+    // ✅ Check stop flag before scheduling next frame
+    if(window._loginAnimStop) { _loginRafId = null; return; }
     ctx.clearRect(0,0,W,H);
     particles.forEach(p=>{
       p.phase+=p.speed; p.y+=p.dy;
@@ -273,14 +304,13 @@ document.getElementById('li').addEventListener('keydown', e => { if(e.key==='Ent
     });
     rails.forEach(drawRail);
     trains.forEach(tr=>{ tr.t+=tr.speed; drawTrain(tr); });
-    // scan line
     const sy=(Date.now()*.00004%1)*H;
     const sg=ctx.createLinearGradient(0,sy-80,0,sy+80);
     sg.addColorStop(0,'transparent');
     sg.addColorStop(.5,'rgba(240,192,64,.018)');
     sg.addColorStop(1,'transparent');
     ctx.fillStyle=sg; ctx.fillRect(0,sy-80,W,160);
-    if(!window._loginAnimStop) requestAnimationFrame(tick);
+    _loginRafId = requestAnimationFrame(tick);
   }
 
   window.addEventListener('resize',()=>{resize();initParticles();});
@@ -288,6 +318,10 @@ document.getElementById('li').addEventListener('keydown', e => { if(e.key==='Ent
 })();
 
 async function initApp() {
+  // ✅ IMPROVEMENT 4: cancel canvas RAF immediately
+  window._loginAnimStop = true;
+  if(_loginRafId) { cancelAnimationFrame(_loginRafId); _loginRafId = null; }
+
   const loginScreen = document.getElementById('screen-login');
   const appScreen = document.getElementById('screen-app');
   loginScreen.style.transition = 'opacity .35s ease, transform .35s ease';
@@ -296,7 +330,6 @@ async function initApp() {
   setTimeout(() => {
     loginScreen.classList.remove('active');
     loginScreen.style.cssText = '';
-    window._loginAnimStop = true;
     appScreen.style.opacity = '0';
     appScreen.style.transform = 'translateY(16px)';
     appScreen.classList.add('active');
@@ -304,17 +337,22 @@ async function initApp() {
     requestAnimationFrame(() => { appScreen.style.opacity='1'; appScreen.style.transform='translateY(0)'; });
     setTimeout(() => { appScreen.style.cssText = ''; }, 400);
   }, 320);
+
   document.getElementById('gpill').textContent = '📌 ' + group.name;
   document.getElementById('files-lbl').textContent = group.name;
   document.getElementById('mats-lbl').textContent = group.name;
 
   _loadCachedData();
+  _setupDebouncedInputs();
 
   await loadUserInfo();
   await loadUserRole();
   setupNav();
   await startUserSettingsSync();
+
+  // ✅ IMPROVEMENT 2: load courses and deadlines in PARALLEL
   await syncMoodle();
+
   listenFiles(); listenMats(); setupChatRooms();
   if (canAdmin()) listenAdminData();
   loadNotes();
@@ -322,6 +360,28 @@ async function initApp() {
   renderCalendar();
   scheduleDeadlineNotifs();
   updateBellCount();
+  _startPresence();
+}
+
+// ✅ IMPROVEMENT 3: Wire up all debounced search inputs
+function _setupDebouncedInputs() {
+  const dlQ = document.getElementById('dl-q');
+  if(dlQ) dlQ.oninput = debounce(applyDlFilter, 200);
+
+  const cQ = document.getElementById('c-q');
+  if(cQ) cQ.oninput = debounce(filterCourses, 200);
+
+  const filesInp = document.getElementById('files-search-inp');
+  if(filesInp) filesInp.oninput = debounce(function(){ filesSearchQuery=filesInp.value; renderFilesWithSearch(cachedFiles, filesInp.value); }, 200);
+
+  const matsInp = document.getElementById('mats-search-inp');
+  if(matsInp) matsInp.oninput = debounce(function(){ filterMats(matsInp.value); }, 200);
+
+  const notesInp = document.getElementById('notes-search-inp');
+  if(notesInp) notesInp.oninput = debounce(function(){ searchNotes(notesInp.value); }, 200);
+
+  const usersSearch = document.getElementById('users-search');
+  if(usersSearch) usersSearch.oninput = debounce(function(){ filterAdminUsers(usersSearch.value); }, 200);
 }
 
 function _saveCache() {
@@ -352,7 +412,11 @@ function _loadCachedData() {
     }
     if(cachedGroup) { const cg = JSON.parse(cachedGroup); if(!group.id) group = cg; }
     if(cachedCourses) { courses = JSON.parse(cachedCourses); renderCourses(); }
-    if(cachedDl) { allDl = JSON.parse(cachedDl); applyDlFilter(); renderDashDl(); renderDashWidgets(); renderCalendar(); }
+    if(cachedDl) {
+      allDl = JSON.parse(cachedDl);
+      // Use scheduleRender instead of multiple direct calls
+      scheduleRender();
+    }
     if(cacheTs) {
       const age = Math.round((Date.now() - parseInt(cacheTs)) / 60000);
       if(age > 30) _showOfflineBanner('Дані з кешу (' + (age > 1440 ? Math.round(age/1440)+'д' : age+'хв') + ' тому)');
@@ -426,7 +490,6 @@ function setupNav() {
 async function _parseMoodleResponse(r) {
   const text = await r.text();
   const t = text.trim();
-  // Moodle returns HTML login page when token is invalid
   if(t.startsWith('<') || t.includes('<!DOCTYPE') || t.includes('<html') || t.includes('Увійдіть')) {
     console.warn('Moodle session expired — got HTML instead of JSON');
     _showOfflineBanner('Сесія Moodle закінчилась — увійдіть знову');
@@ -457,6 +520,7 @@ async function moodlePost(fn, params={}) {
   const r = await fetch(MOODLE+'/webservice/rest/server.php', { method:'POST', body });
   return _parseMoodleResponse(r);
 }
+
 async function loadSubmissionStatuses() {
   if(!token || !userData.userid) return;
   const assignDls = allDl.filter(d => d.assignid);
@@ -474,8 +538,8 @@ async function loadSubmissionStatuses() {
       } catch(e) {}
     }));
   }
-  applyDlFilter();
-  renderDashDl(); renderDashWidgets();
+  // ✅ Use scheduleRender after submissions loaded
+  scheduleRender();
 }
 
 async function openCourseContents(courseId, btn) {
@@ -509,9 +573,14 @@ async function openCourseContents(courseId, btn) {
     }).join('');
   } catch(e) { body.innerHTML = '<div class="empty"><p>Помилка: '+escHtml(e.message)+'</p></div>'; }
 }
-async function syncMoodle() { await loadCourses(); await loadDeadlines(); renderCalendar(); }
 
-// ── COURSES — FIX 4: hidden courses ──
+// ✅ IMPROVEMENT 2: syncMoodle runs loadCourses + loadDeadlines in PARALLEL
+async function syncMoodle() {
+  await Promise.all([loadCourses(), loadDeadlines()]);
+  renderCalendar();
+}
+
+// ── COURSES ──
 var _hiddenCourses = [];
 
 function _loadHiddenCourses() {
@@ -594,14 +663,14 @@ async function loadDeadlines() {
   const now=Math.floor(Date.now()/1000);
   document.getElementById('dl-list').innerHTML='<div class="loading"><div class="spinner"></div>Завантаження з Moodle...</div>';
   document.getElementById('dash-dl').innerHTML='<div class="loading"><div class="spinner"></div>Завантаження...</div>';
-  if(!token){ 
+  if(!token){
     document.getElementById('dl-list').innerHTML='<div class="empty"><div class="emo">⚠️</div><p>Немає токену Moodle.</p></div>';
     document.getElementById('dash-dl').innerHTML='<div class="empty"><div class="emo">⚠️</div><p>Немає токену</p></div>';
-    return; 
+    return;
   }
   try {
     let events = [];
-    
+
     try {
       const d1 = await moodleCall('core_calendar_get_action_events_by_timesort',{
         timesortfrom: now - 60*60*24*365*3,
@@ -616,7 +685,6 @@ async function loadDeadlines() {
 
     if(courses.length) {
       try {
-        // Батчинг по 20 курсів
         const chunkSize = 20;
         const chunks = [];
         for(let i=0; i<courses.length; i+=chunkSize) chunks.push(courses.slice(i,i+chunkSize));
@@ -714,12 +782,16 @@ async function loadDeadlines() {
     const past = allDl.filter(d=>d.past).length;
     document.getElementById('s-urgent').textContent = urgent;
     document.getElementById('s-done').textContent = past;
-    applyDlFilter();
-    renderDashDl(); renderDashWidgets();
-    renderCalendar();
+
+    // ✅ Use scheduleRender instead of 4 separate calls
+    scheduleRender();
+
     scheduleDeadlineNotifs();
     _renderCalNotesInDeadlines();
-    loadSubmissionStatuses();
+
+    // ✅ IMPROVEMENT 5: delay heavy submission status check by 3 seconds
+    setTimeout(loadSubmissionStatuses, 3000);
+
   } catch(e) {
     console.error('Deadlines error:', e);
     const msg = e && e.message ? e.message : String(e);
@@ -730,11 +802,7 @@ async function loadDeadlines() {
   }
 }
 
-// ══════════════════════════════════════════════
-// USER SETTINGS — Firestore sync
-// _calNotes: { 'YYYY-MM-DD': [{id, text, time}] }  (масив нотаток на день)
-// Backward compat: legacy string value автоматично мігрує в масив
-// ══════════════════════════════════════════════
+// ── USER SETTINGS ──
 var _dlUrgentH = 48;
 var _dlWarnD   = 7;
 var _dlDeleted = [];
@@ -764,7 +832,11 @@ function startUserSettingsSync() {
       const wd = document.getElementById('dl-warn-days');
       if(uh) uh.value = _dlUrgentH;
       if(wd) wd.value = _dlWarnD;
-      if(allDl.length > 0) { applyDlFilter(); renderDashDl(); renderDashWidgets(); renderCalendar(); _renderCalNotesInDeadlines(); }
+      if(allDl.length > 0) {
+        // ✅ Use scheduleRender instead of 4 calls
+        scheduleRender();
+        _renderCalNotesInDeadlines();
+      }
       if(firstLoad) { firstLoad = false; resolve(); }
     }, err => { console.warn('userSettings sync error:', err.code); resolve(); });
   });
@@ -800,7 +872,8 @@ function loadDlSettings() {
 function saveDlSettings() {
   _dlUrgentH = parseInt(document.getElementById('dl-urgent-hours').value)||48;
   _dlWarnD   = parseInt(document.getElementById('dl-warn-days').value)||1;
-  applyDlFilter(); renderDashDl(); renderDashWidgets(); renderCalendar();
+  // ✅ scheduleRender instead of 4 calls
+  scheduleRender();
   _saveUserSettings();
 }
 
@@ -815,29 +888,25 @@ function deleteDl(id, e) {
   if(!confirm('Приховати цей дедлайн?')) return;
   const sid = String(id);
   if(!_dlDeleted.includes(sid)) _dlDeleted.push(sid);
-  applyDlFilter(); renderDashDl(); renderDashWidgets(); renderCalendar();
+  // ✅ scheduleRender instead of 4 calls
+  scheduleRender();
   _saveUserSettings();
 }
 
-// ── CALENDAR NOTES — FIX 2 & 3: multiple notes per day + time field ──
-
-// Повертає масив нотаток для дня (міграція старих рядків)
+// ── CALENDAR NOTES ──
 function getCalNotes(ds) {
   const val = _calNotes[ds];
   if(!val) return [];
-  // Legacy: рядок → масив
   if(typeof val === 'string') return val ? [{ id: 'legacy', text: val, time: '' }] : [];
   if(Array.isArray(val)) return val;
   return [];
 }
 
-// Для сумісності зі старим кодом (повертає перший текст або '')
 function getCalNote(ds) {
   const ns = getCalNotes(ds);
   return ns.length ? ns[0].text : '';
 }
 
-// Рендерує список існуючих нотаток в модалі
 function _renderCalNotesList(ds) {
   const container = document.getElementById('cal-notes-list-existing');
   if(!container) return;
@@ -855,7 +924,6 @@ function _renderCalNotesList(ds) {
     }).join('');
 }
 
-// Очистити форму для нової нотатки
 function newCalNote() {
   window._calNoteEditId = null;
   document.getElementById('cal-note-inp').value = '';
@@ -866,7 +934,6 @@ function newCalNote() {
   document.getElementById('cal-note-inp').focus();
 }
 
-// Редагувати конкретну нотатку
 function editCalNote(ds, noteId, e) {
   if(e) e.stopPropagation();
   const notes = getCalNotes(ds);
@@ -880,33 +947,27 @@ function editCalNote(ds, noteId, e) {
   document.getElementById('cal-note-form-label').textContent = '✏️ Редагувати нотатку';
 }
 
-// Зберегти нотатку (нову або відредаговану)
 function saveCalNote() {
   const txt = document.getElementById('cal-note-inp').value.trim();
   const time = document.getElementById('cal-note-time').value || '';
   const ds = window._calNoteDate;
   if(!txt) { closeCalNoteModal(); return; }
 
-  // Мігруємо legacy рядок в масив
   let notes = getCalNotes(ds).filter(n => n.id !== 'legacy');
   if(typeof _calNotes[ds] === 'string') {
-    // міграція: старий текст залишаємо як першу нотатку
     const oldText = _calNotes[ds];
     if(oldText) notes = [{ id: 'n'+Date.now()+'a', text: oldText, time: '' }, ...notes];
   }
 
   const editId = window._calNoteEditId;
   if(editId && editId !== 'legacy') {
-    // Оновлюємо існуючу
     const idx = notes.findIndex(n => n.id === editId);
     if(idx >= 0) notes[idx] = { ...notes[idx], text: txt, time };
     else notes.push({ id: 'n'+Date.now()+Math.random().toString(36).slice(2), text: txt, time });
   } else {
-    // Додаємо нову
     notes.push({ id: 'n'+Date.now()+Math.random().toString(36).slice(2), text: txt, time });
   }
 
-  // Сортуємо по часу
   notes.sort((a, b) => {
     const ta = a.time || '23:59', tb = b.time || '23:59';
     return ta.localeCompare(tb);
@@ -919,7 +980,6 @@ function saveCalNote() {
   _saveUserSettings();
 }
 
-// Видалити конкретну нотатку по id
 function _deleteCalNoteById(ds, noteId) {
   let notes = getCalNotes(ds);
   notes = notes.filter(n => n.id !== noteId);
@@ -929,11 +989,9 @@ function _deleteCalNoteById(ds, noteId) {
   renderCalendar();
   _renderCalNotesInDeadlines();
   _saveUserSettings();
-  // Якщо видалили ту що редагуємо — скидаємо форму
   if(window._calNoteEditId === noteId) newCalNote();
 }
 
-// Видалити поточну нотатку (ту що в формі)
 function deleteCalNote() {
   const ds = window._calNoteDate;
   const editId = window._calNoteEditId;
@@ -955,15 +1013,12 @@ function openCalNoteModal(ds, e, noteId) {
   const d = new Date(ds+'T12:00:00');
   document.getElementById('cal-note-date-lbl').textContent = d.toLocaleDateString('uk-UA',{weekday:'long',day:'numeric',month:'long'});
 
-  // Рендеримо список існуючих
   _renderCalNotesList(ds);
 
-  // Якщо передано noteId — відразу відкриваємо на редагування
   if(noteId) {
     editCalNote(ds, noteId, null);
     document.getElementById('cal-note-new-btn').style.display = '';
   } else {
-    // Нова нотатка
     document.getElementById('cal-note-inp').value = '';
     document.getElementById('cal-note-time').value = '';
     document.getElementById('cal-note-del').style.display = 'none';
@@ -982,18 +1037,14 @@ document.addEventListener('keydown', e=>{
   if(e.key==='Enter'&&e.ctrlKey&&document.getElementById('cal-note-modal').style.display!=='none') saveCalNote();
 });
 
-// ── ПОКАЗАТИ НОТАТКИ В ДЕДЛАЙНАХ — FIX 5: правильний фільтр активних ──
 function _renderCalNotesInDeadlines() {
   const today = new Date(); today.setHours(0,0,0,0);
   const now = new Date();
 
-  // Збираємо всі нотатки (розгортаємо масиви)
   const allNoteRows = [];
   Object.entries(_calNotes).forEach(([ds, val]) => {
     const notes = getCalNotes(ds);
-    notes.forEach(n => {
-      allNoteRows.push({ ds, note: n });
-    });
+    notes.forEach(n => { allNoteRows.push({ ds, note: n }); });
   });
   allNoteRows.sort((a, b) => {
     const ta = a.ds + 'T' + (a.note.time || '23:59');
@@ -1001,7 +1052,6 @@ function _renderCalNotesInDeadlines() {
     return ta.localeCompare(tb);
   });
 
-  // Для сторінки дедлайнів — з урахуванням фільтру
   const fVal = (document.getElementById('dl-f')||{value:'active'}).value;
   const dlList = document.getElementById('dl-list');
   if(dlList) {
@@ -1016,12 +1066,11 @@ function _renderCalNotesInDeadlines() {
       const isPast = fullDt <= now;
       if(fVal === 'active') return !isPast;
       if(fVal === 'past') return isPast;
-      return true; // 'all' або 'urgent'
+      return true;
     });
     noteBlock.innerHTML = filteredForDl.length ? _buildNoteRows(filteredForDl, today, now) : '';
   }
 
-  // Для головної — тільки майбутні
   const dashDl = document.getElementById('dash-dl');
   if(dashDl) {
     let dashNotes = document.getElementById('cal-notes-in-dash');
@@ -1042,9 +1091,7 @@ function _buildNoteRows(noteRows, today, now) {
   const rows = noteRows.map(({ds, note}) => {
     const fullDt = new Date(ds + 'T' + (note.time || '23:59'));
     const isPast = fullDt <= now;
-    // diffSec — як в dlDot(): секунди до дедлайну
     const diffSec = (fullDt - now) / 1000;
-    // Та сама логіка що в dlDot / dlDateCls
     const isUrgent = !isPast && diffSec < _dlUrgentH * 3600;
     const isWarn   = !isPast && !isUrgent && diffSec < _dlWarnD * 86400;
     const d = new Date(ds+'T12:00:00');
@@ -1055,13 +1102,11 @@ function _buildNoteRows(noteRows, today, now) {
                   isPast ? '<span class="tag" style="background:var(--bg3);color:var(--text2);">Минуло</span>' : '';
     const dateStr = d.toLocaleDateString('uk-UA',{day:'numeric',month:'short'});
     const preview = note.text.length > 70 ? note.text.slice(0,70)+'…' : note.text;
-    // Крапка: точно як dot-u / dot-s / dot-o
     const dotStyle = isPast || isUrgent
       ? 'background:var(--accent2);box-shadow:0 0 7px rgba(224,80,80,.65);'
       : isWarn
         ? 'background:var(--warning);box-shadow:0 0 5px rgba(240,160,48,.4);'
         : 'background:var(--success);';
-    // Колір часу: той самий принцип
     const timeColor = isPast ? 'var(--text2)' : isUrgent ? 'var(--accent2)' : isWarn ? 'var(--warning)' : isToday ? 'var(--accent)' : 'var(--text2)';
     const timeEl = note.time ? `<div class="dl-date" style="color:${timeColor};font-weight:700;font-size:11px;">${note.time}</div>` : '';
     return `<div class="dl-item" onclick="openCalNoteModal('${escHtml(ds)}',event,'${escHtml(note.id)}')" style="${isPast?'opacity:.5':''}">
@@ -1099,7 +1144,6 @@ function dlDateCls(d) {
 }
 function fmtDate(ts) { return new Date(ts*1000).toLocaleDateString('uk-UA',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}); }
 
-// FIX 5: правильний фільтр активних/минулих з урахуванням часу
 function applyDlFilter() {
   const q=(document.getElementById('dl-q')||{value:''}).value.toLowerCase();
   const f=(document.getElementById('dl-f')||{value:'active'}).value;
@@ -1109,7 +1153,6 @@ function applyDlFilter() {
   if(f==='active') list=list.filter(d=>d.due > now && d.submitted !== 'submitted');
   else if(f==='urgent') list=list.filter(d=>d.due > now && (d.due-now)<_dlUrgentH*3600);
   else if(f==='past') list=list.filter(d=>d.due <= now);
-  // Оновлюємо .past для коректного відображення
   list = list.map(d => ({ ...d, past: d.due <= now }));
   renderDl(list, document.getElementById('dl-list'));
   _renderCalNotesInDeadlines();
@@ -1205,8 +1248,8 @@ function renderFiles(files) {
   }).join('')+'</div>';
 }
 async function dlFile(id) { const f=cachedFiles.find(x=>x.id===id); if(!f||!f.dataUrl)return; const a=document.createElement('a');a.href=f.dataUrl;a.download=f.name;a.click(); }
-async function rmFile(id) { 
-  if(!confirm('Видалити файл?'))return; 
+async function rmFile(id) {
+  if(!confirm('Видалити файл?'))return;
   try { const {doc,deleteDoc}=window._fb; await deleteDoc(doc(window._db,'files',id)); }
   catch(e) { alert('Помилка видалення: ' + e.message); }
 }
@@ -1220,7 +1263,7 @@ function listenMats() {
   err=>{ document.getElementById('mats-list').innerHTML='<div class="empty"><div class="emo">⚠️</div><p>Помилка завантаження матеріалів.</p></div>'; });
   unsubs.push(unsub);
 }
-function filterMats(q) { renderMats(cachedMats,q.toLowerCase()); }
+function filterMats(q) { renderMats(cachedMats,(q||'').toLowerCase()); }
 function renderMats(list,q='') {
   const el=document.getElementById('mats-list');
   const items=q?list.filter(m=>(m.name||'').toLowerCase().includes(q)||(m.subject||'').toLowerCase().includes(q)):list;
@@ -1260,13 +1303,13 @@ async function _doEditGroup(id) {
   ['gn','gf','gc'].forEach(i=>document.getElementById(i).value='');
 }
 
-function showModal(id) { 
+function showModal(id) {
   if(id==='add-group') {
     _groupModalMode = 'create'; _groupEditId = null;
     document.querySelector('#modal-add-group h3').textContent = '🏫 Створити групу';
     document.getElementById('group-modal-btn').textContent = 'Створити';
   }
-  document.getElementById('modal-'+id).classList.add('show'); 
+  document.getElementById('modal-'+id).classList.add('show');
 }
 function closeModal(id) { document.getElementById('modal-'+id).classList.remove('show'); }
 async function addMat() {
@@ -1279,8 +1322,8 @@ async function addMat() {
   closeModal('add-mat');
   ['mn','ms','md'].forEach(id=>document.getElementById(id).value='');
 }
-async function rmMat(id) { 
-  if(!confirm('Видалити матеріал?'))return; 
+async function rmMat(id) {
+  if(!confirm('Видалити матеріал?'))return;
   try { const {doc,deleteDoc}=window._fb; await deleteDoc(doc(window._db,'materials',id)); }
   catch(e) { alert('Помилка видалення: ' + e.message); }
 }
@@ -1314,7 +1357,7 @@ function openChatRoom(roomId, label) {
     renderMessages(msgs);
   }, err=>{ document.getElementById('chat-msgs').innerHTML='<div class="empty"><div class="emo">⚠️</div><p>Помилка завантаження чату</p></div>'; });
 }
-// Підсвічує @ім'я в тексті повідомлення
+
 function _highlightMentions(text, myName) {
   return text.replace(/@([\wЀ-ӿІіЇїЄєҐґʼ'-]+(?:\s[\wЀ-ӿІіЇїЄєҐґʼ'-]+){0,2})/g, (match, name) => {
     const isMe = myName && myName.toLowerCase().includes(name.toLowerCase());
@@ -1322,10 +1365,8 @@ function _highlightMentions(text, myName) {
   });
 }
 
-// @-autocomplete
 var _mentionActive = false, _mentionStart = 0, _mentionQuery = '';
 function _getChatMembers() {
-  // Збираємо імена з останніх повідомлень
   const msgs = document.querySelectorAll('.msg-author');
   const names = new Set();
   msgs.forEach(m => { if(m.textContent.trim()) names.add(m.textContent.trim()); });
@@ -1402,7 +1443,6 @@ async function toggleReaction(msgId, emoji) {
   } catch(e) {}
 }
 
-// ── Reply state ──
 var _replyTo = null;
 var _editingMsgId = null;
 
@@ -1443,7 +1483,6 @@ function _startEditMsg(msgId, msgEl) {
   }
 }
 
-// ── Context menu ──
 function _ctxReact(e, el) {
   e.preventDefault();
   var mid = el.dataset.lp; if(!mid) return;
@@ -1482,7 +1521,6 @@ function _openMsgMenu(cx, cy, msgId, msgEl) {
   menu.id = 'msg-ctx-menu';
   menu.className = 'msg-ctx-menu';
 
-  // Emoji row
   var emoRow = document.createElement('div');
   emoRow.className = 'msg-ctx-emojis';
   REACTION_EMOJIS.forEach(function(em){
@@ -1498,17 +1536,10 @@ function _openMsgMenu(cx, cy, msgId, msgEl) {
   sep.className = 'msg-ctx-sep';
   menu.appendChild(sep);
 
-  // Reply
   _ctxItem(menu, '↩️', 'Відповісти', function(){ _closeMsgMenu(); _setReply(msgId, msgEl); });
-
-  // Edit (own only)
   if(isMe) _ctxItem(menu, '✏️', 'Редагувати', function(){ _closeMsgMenu(); _startEditMsg(msgId, msgEl); });
-
-  // Pin (mods)
   if(typeof canMod==='function' && canMod())
     _ctxItem(menu, '📌', 'Закріпити', function(){ _closeMsgMenu(); var auth=(msgEl.querySelector('.msg-author')||{}).textContent||(isMe?(userData.fullname||'?'):'?'); pinMessage(msgId, msgText.slice(0,80), auth.trim()); });
-
-  // Delete
   if(isMe || (typeof canMod==='function' && canMod()))
     _ctxItem(menu, '🗑', 'Видалити', function(){ _closeMsgMenu(); delMsg(msgId); }, true);
 
@@ -1532,7 +1563,6 @@ function _ctxItem(menu, icon, label, fn, danger) {
   menu.appendChild(el);
 }
 
-// ── Pinned messages ──
 var _pinnedUnsub = null;
 var _currentPinnedMsg = null;
 
@@ -1616,7 +1646,6 @@ function renderMessages(msgs) {
 
 var _chatPingCount = 0;
 function _pingNotify(author,text){
-  // Badge counter
   if(_currentPage!=='chat'){
     _chatPingCount++;
     var b1=document.getElementById('chat-badge');
@@ -1624,11 +1653,9 @@ function _pingNotify(author,text){
     if(b1){b1.textContent=_chatPingCount;b1.style.display='';}
     if(b2){b2.textContent=_chatPingCount;b2.style.display='';}
   }
-  // Browser notification
   if(Notification.permission==='granted'){
     try{new Notification('🔔 '+(author||'Хтось')+' згадав вас',{body:text.slice(0,80),tag:'mention_'+Date.now()});}catch(e){}
   }
-  // TG-style sound: two short high tones
   try{
     var ctx=new(window.AudioContext||window.webkitAudioContext)();
     function beep(freq,start,dur,vol){
@@ -1642,8 +1669,8 @@ function _pingNotify(author,text){
       o.start(ctx.currentTime+start);
       o.stop(ctx.currentTime+start+dur+0.02);
     }
-    beep(1568,0,0.08,0.18);   // G6
-    beep(2093,0.09,0.12,0.12); // C7
+    beep(1568,0,0.08,0.18);
+    beep(2093,0.09,0.12,0.12);
   }catch(e){}
 }
 function _clearChatBadge(){
@@ -1667,7 +1694,6 @@ function chatKey(e) {
 function chatInputHandler(e) {
   autoResizeChat(e.target);
   const val = e.target.value, pos = e.target.selectionStart;
-  // Шукаємо @ перед курсором
   const before = val.slice(0, pos);
   const atMatch = before.match(/@([\wЀ-ӿІіЇїЄєҐґ]*)$/);
   if(atMatch) {
@@ -1749,7 +1775,6 @@ function _lbKey(e){if(e.key==='Escape')closeLightbox();}
 
 function clearChatFile() { _chatFile=null; document.getElementById('chat-file-preview').style.display='none'; }
 
-
 function _scrollToMsg(msgId) {
   if(!msgId) return;
   var el = document.querySelector('[data-lp="'+msgId+'"]');
@@ -1795,7 +1820,6 @@ function _listenRoomPresence(roomId) {
       cnt.textContent = online.length + ' онлайн';
       cnt.style.display = online.length ? '' : 'none';
     }
-    // green dots next to names
     var nameMap = {};
     online.forEach(function(d){ nameMap[d.data().name] = true; });
     document.querySelectorAll('.msg-author').forEach(function(el){
@@ -1809,13 +1833,13 @@ function _listenRoomPresence(roomId) {
     });
   });
 }
+
 async function sendMsg() {
   if(!currentChatRoom)return;
   const inp=document.getElementById('chat-inp');
   const text=inp.value.trim();
   if(!text&&!_chatFile)return;
 
-  // Edit mode
   if(_editingMsgId) {
     const {doc,updateDoc}=window._fb;
     try { await updateDoc(doc(window._db,'messages',_editingMsgId),{text,edited:true}); } catch(e){}
@@ -1882,7 +1906,7 @@ function renderAdminGroups(groups) {
   ).join('');
 }
 var _allAdminUsers=[];
-function filterAdminUsers(q){ const filtered=q?_allAdminUsers.filter(u=>(u.name||'').toLowerCase().includes(q.toLowerCase())):_allAdminUsers; renderAdminUsers(filtered); }
+function filterAdminUsers(q){ const filtered=q?_allAdminUsers.filter(u=>(u.name||'').toLowerCase().includes((q||'').toLowerCase())):_allAdminUsers; renderAdminUsers(filtered); }
 function renderAdminUsers(users) {
   const el=document.getElementById('admin-users-list');
   if(!users.length){el.innerHTML='<div class="empty"><p>Користувачів ще немає</p></div>';return;}
@@ -1923,7 +1947,6 @@ async function delGroup(id){ if(!confirm('Видалити групу?'))return;
 
 // ── NAV ──
 var PAGE_TITLES={dashboard:'Головна',deadlines:'Дедлайни',courses:'Курси',files:'Файли',materials:'Матеріали',chat:'Чати',admin:'Адмін-панель',calendar:'Календар',notes:'Нотатки',assistant:'Асистент',notifications:'Сповіщення'};
-// ── Page order for directional transitions ──
 const PAGE_ORDER = ['dashboard','deadlines','courses','calendar','assistant','files','materials','notes','chat','notifications','admin'];
 let _currentPage = 'dashboard';
 
@@ -1951,10 +1974,9 @@ function go(name) {
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.toggle('active',n.textContent.trim().startsWith(labels[name]||'_')));
   document.getElementById('topbar-title').textContent=PAGE_TITLES[name]||name;
   if(name==='calendar') renderCalendar();
-  if(name==='chat') _clearPingBadge();
-  if(name==='chat') _clearPingBadge();
   if(name==='chat') _clearChatBadge();
   if(name==='assistant'||name==='notes') _loadKaTeX();
+  // ✅ IMPROVEMENT 7: notes cache flag — don't re-parse localStorage on every visit
   if(name==='notes') loadNotes();
   if(name==='notifications') markAllRead();
   closeSidebar();
@@ -1981,7 +2003,6 @@ function setTheme(t) {
   document.documentElement.setAttribute('data-theme', t);
   localStorage.setItem('sh_theme', t);
   updateThemeIcon(t);
-  // Update active swatch
   document.querySelectorAll('.theme-swatch').forEach(el => {
     el.classList.toggle('active', el.dataset.theme === t);
   });
@@ -2004,7 +2025,6 @@ function updateThemeIcon(t) {
 
 const st = localStorage.getItem('sh_theme');
 if(st) { document.documentElement.setAttribute('data-theme', st); updateThemeIcon(st); }
-// sync swatch state after DOM ready
 document.addEventListener('DOMContentLoaded', () => {
   const cur = localStorage.getItem('sh_theme') || 'dark';
   document.querySelectorAll('.theme-swatch').forEach(el => el.classList.toggle('active', el.dataset.theme === cur));
@@ -2017,27 +2037,9 @@ var currentMonth = calDate.getMonth();
 var CAL_DAYS = ['Пн','Вт','Ср','Чт','Пт','Сб','Нд'];
 var CAL_MONTHS = ['Січень','Лютий','Березень','Квітень','Травень','Червень','Липень','Серпень','Вересень','Жовтень','Листопад','Грудень'];
 
-// Безпечний парсинг дати в локальній таймзоні (уникаємо UTC-зсуву)
-function parseLocalDate(dateStr) {
-  if(!dateStr) return new Date(NaN);
-  // Підтримка "YYYY-MM-DD HH:MM" і "YYYY-MM-DDTHH:MM"
-  const s = dateStr.replace('T', ' ');
-  const [datePart, timePart = '00:00'] = s.split(' ');
-  const [y, m, d] = datePart.split('-').map(Number);
-  const [h, min] = timePart.split(':').map(Number);
-  return new Date(y, m - 1, d, h, min);
-}
-
-// Різниця в годинах між дедлайном і зараз (timestamp → Date)
-function getTimeDiffHours(dueTs) {
-  return (dueTs * 1000 - Date.now()) / (1000 * 60 * 60);
-}
-
-// Авто-оновлення "сьогодні" при зміні дня (щохвилини перевіряємо)
 setInterval(() => {
   const now = new Date();
   if (now.getDate() !== calDate.getDate() || now.getMonth() !== calDate.getMonth()) {
-    // Якщо юзер дивиться поточний місяць — оновлюємо
     if (currentYear === calDate.getFullYear() && currentMonth === calDate.getMonth()) {
       calDate = now;
       currentYear = now.getFullYear();
@@ -2047,7 +2049,6 @@ setInterval(() => {
   }
 }, 60000);
 
-// Авто-перерендер кожні 5 хвилин (дедлайни могли змінитись)
 setInterval(() => { renderCalendar(); }, 5 * 60 * 1000);
 
 function renderCalendar() {
@@ -2072,7 +2073,6 @@ function renderCalendar() {
     const nts=getCalNotes(dateStr);
     const hasEvents=dls.length>0||nts.length>0;
 
-    // Build unified list: notes first, then deadlines
     const allItems=[];
     nts.forEach(function(un){
       const tpfx=un.time?un.time+' ':'';
@@ -2107,6 +2107,7 @@ function renderCalendar() {
   html+='</div>';
   document.getElementById('cal-grid').innerHTML=html;
 }
+
 function _closeCalPopup(){
   var p=document.getElementById('cal-popup');
   if(p)p.remove();
@@ -2124,7 +2125,6 @@ function openCalDayPopup(dateStr) {
   const dls=allDl.filter(dl=>!dlDeleted.includes(String(dl.id))&&dl.due>=dayStart&&dl.due<dayEnd&&dl.due>=nowTs);
   const nts=getCalNotes(dateStr);
   if(!dls.length&&!nts.length) {
-    // empty day — just open note modal
     openCalNoteModal(dateStr, {stopPropagation:function(){}});
     return;
   }
@@ -2139,7 +2139,6 @@ function openCalDayPopup(dateStr) {
   popup.className='cal-popup';
   popup.id='cal-popup';
 
-  // Title
   const DAY_NAMES=['\u041d\u0434','\u041f\u043d','\u0412\u0442','\u0421\u0440','\u0427\u0442','\u041f\u0442','\u0421\u0431'];
   const title=document.createElement('div');
   title.className='cal-popup-title';
@@ -2148,7 +2147,6 @@ function openCalDayPopup(dateStr) {
     +'<button onclick="_closeCalPopup()" style="margin-left:auto;background:none;border:none;color:var(--text2);cursor:pointer;font-size:14px;padding:0 2px;">✕</button>';
   popup.appendChild(title);
 
-  // Notes
   nts.forEach(function(un){
     const row=document.createElement('div');
     row.className='cal-popup-row cal-popup-note';
@@ -2158,7 +2156,6 @@ function openCalDayPopup(dateStr) {
     popup.appendChild(row);
   });
 
-  // Deadlines
   dls.forEach(function(dl){
     const diff=dl.due-nowTs;
     const color=diff<urgH*3600?'var(--accent2)':diff<warnD*86400?'var(--accent)':'var(--success)';
@@ -2171,7 +2168,6 @@ function openCalDayPopup(dateStr) {
     popup.appendChild(row);
   });
 
-  // Add note button
   const addBtn=document.createElement('div');
   addBtn.className='cal-popup-add';
   addBtn.innerHTML='+ \u0414\u043e\u0434\u0430\u0442\u0438 \u043d\u043e\u0442\u0430\u0442\u043a\u0443';
@@ -2180,7 +2176,6 @@ function openCalDayPopup(dateStr) {
 
   document.body.appendChild(popup);
 
-  // Position near cell
   const rect=cell?cell.getBoundingClientRect():{left:window.innerWidth/2,bottom:window.innerHeight/2};
   popup.style.cssText='position:fixed;z-index:901;';
   document.body.appendChild(popup);
@@ -2194,6 +2189,7 @@ function openCalDayPopup(dateStr) {
   popup.style.left=left+'px';
   popup.style.top=top+'px';
 }
+
 function calPrev(){
   calDate.setMonth(calDate.getMonth()-1);
   currentYear=calDate.getFullYear(); currentMonth=calDate.getMonth();
@@ -2213,9 +2209,16 @@ function calToday(){
 // ═══ NOTES ═══
 var notes=[], currentNoteId=null;
 
-function loadNotes(){
-  const raw=localStorage.getItem('sh_notes_'+String(userData.userid||'local'));
-  notes=raw?JSON.parse(raw):[];
+// ✅ IMPROVEMENT 7: notes cache flag — only load from localStorage once unless data changes
+var _notesLoaded = false;
+
+function loadNotes(force){
+  // Only re-parse localStorage when forced or on first load
+  if(!_notesLoaded || force) {
+    const raw=localStorage.getItem('sh_notes_'+String(userData.userid||'local'));
+    notes=raw?JSON.parse(raw):[];
+    _notesLoaded = true;
+  }
   renderNotesList(notes);
   renderWidgetNotes();
   const sel=document.getElementById('note-course-sel');
@@ -2223,7 +2226,11 @@ function loadNotes(){
   courses.forEach(c=>sel.innerHTML+='<option value="'+escHtml(c.id)+'">'+escHtml(c.shortname||c.fullname)+'</option>');
 }
 
-function saveNotesToLS(){ localStorage.setItem('sh_notes_'+String(userData.userid||'local'),JSON.stringify(notes)); }
+function saveNotesToLS(){
+  localStorage.setItem('sh_notes_'+String(userData.userid||'local'),JSON.stringify(notes));
+  // ✅ Invalidate cache after save so next loadNotes() re-reads
+  _notesLoaded = false;
+}
 
 function renderNotesList(list){
   const el=document.getElementById('notes-container');
@@ -2239,8 +2246,8 @@ function renderNotesList(list){
 }
 
 function searchNotes(q){
-  const lq=q.toLowerCase();
-  renderNotesList(q?notes.filter(n=>(n.title||'').toLowerCase().includes(lq)||(n.content||'').toLowerCase().includes(lq)):notes);
+  const lq=(q||'').toLowerCase();
+  renderNotesList(lq?notes.filter(n=>(n.title||'').toLowerCase().includes(lq)||(n.content||'').toLowerCase().includes(lq)):notes);
 }
 
 function showNewNote(){
@@ -2338,10 +2345,6 @@ function handleAIPaste(e){
 function clearAIImg(){aiImageBase64=null;document.getElementById('ai-img-preview').style.display='none';}
 function aiKey(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendAI();}}
 
-// AI токен — для продакшн замініть URL на свій Cloudflare Worker / Vercel Function
-// Cloudflare Worker приклад: https://developers.cloudflare.com/workers/
-// ENV змінна: GROQ_API_KEY=gsk_...
-// Worker код: export default { async fetch(req) { const body=await req.json(); const r=await fetch('https://api.groq.com/openai/v1/chat/completions',{method:'POST',headers:{'Authorization':'Bearer '+env.GROQ_API_KEY,'Content-Type':'application/json'},body:JSON.stringify(body)}); return new Response(await r.text(),{headers:{'Content-Type':'application/json','Access-Control-Allow-Origin':'*'}}); } }
 var _AI_PROXY = 'https://groq-proxy.dvdkunec.workers.dev';
 function _getAIToken() {
   if(_AI_PROXY) return 'proxy';
@@ -2560,7 +2563,12 @@ var filesSearchQuery='';
 function doLogout(){
   unsubs.forEach(u=>u());
   if(chatUnsub)chatUnsub();
+  if(_userSettingsUnsub)_userSettingsUnsub();
+  if(_presenceInterval)clearInterval(_presenceInterval);
+  if(_presenceUnsub)_presenceUnsub();
+  if(_pinnedUnsub)_pinnedUnsub();
   unsubs=[];token='';userData={};allDl=[];courses=[];group={};userRole='student';cachedFiles=[];cachedMats=[];
+  _notesLoaded = false;
   localStorage.removeItem('sh_token');localStorage.removeItem('sh_gid');
   document.getElementById('screen-app').classList.remove('active');
   document.getElementById('screen-login').classList.add('active');
@@ -2612,32 +2620,25 @@ async function _offlineLogin(sgid){
 
 // ═══ GLOBAL SEARCH (Ctrl+K) ═══
 (function(){
-  // Build search index
   function buildIndex() {
     const idx = [];
-    // Courses
     (courses||[]).forEach(c=>{
       idx.push({type:'course',icon:'📚',name:c.fullname||c.shortname,sub:c.shortname||'',url:c.viewurl||null,action:()=>{go('courses');setTimeout(()=>{const q=document.getElementById('c-q');if(q){q.value=c.shortname||c.fullname;filterCourses();}},200);}});
     });
-    // Deadlines
     (allDl||[]).forEach(d=>{
       if(d.past) return;
       const due = d.due ? new Date(d.due*1000).toLocaleDateString('uk-UA',{day:'numeric',month:'short'}) : '';
       idx.push({type:'deadline',icon:'⏰',name:d.name,sub:due+(d.course?' · '+d.course:''),url:d.url&&d.url!=='#'?d.url:null,action:()=>{if(d.url&&d.url!=='#')window.open(d.url,'_blank');else go('deadlines');}});
     });
-    // Notes
     (notes||[]).forEach(n=>{
       idx.push({type:'note',icon:'✍️',name:n.title||'Без назви',sub:(n.content||'').slice(0,60),url:null,action:()=>{go('notes');setTimeout(()=>openNote(n.id),200);}});
     });
-    // Files
     (cachedFiles||[]).forEach(f=>{
       idx.push({type:'file',icon:'📁',name:f.name,sub:f.uploaderName||'',url:f.url||null,action:()=>{if(f.url)window.open(f.url,'_blank');else go('files');}});
     });
-    // Materials
     (cachedMats||[]).forEach(m=>{
       idx.push({type:'material',icon:'📝',name:m.name,sub:m.subject||m.desc||'',url:m.link||null,action:()=>{if(m.link)window.open(m.link,'_blank');else go('materials');}});
     });
-    // Pages
     [
       {name:'Головна',icon:'🏠',action:()=>go('dashboard')},
       {name:'Дедлайни',icon:'⏰',action:()=>go('deadlines')},
@@ -2670,6 +2671,9 @@ async function _offlineLogin(sgid){
   }
 
   let _gsActive=-1;
+  // ✅ Debounced search rendering for global search
+  const _debouncedGsRender = debounce(function(val){ renderResults(val); }, 120);
+
   function renderResults(q){
     const box=document.getElementById('gs-results');
     const idx=buildIndex();
@@ -2677,7 +2681,6 @@ async function _offlineLogin(sgid){
     let items = term
       ? idx.filter(it=>(it.name||'').toLowerCase().includes(term)||(it.sub||'').toLowerCase().includes(term))
       : idx.filter(it=>it.type==='page');
-    // Sort by type priority
     items.sort((a,b)=>TYPE_ORDER.indexOf(a.type)-TYPE_ORDER.indexOf(b.type));
     items=items.slice(0,12);
     _gsActive=-1;
@@ -2737,7 +2740,8 @@ async function _offlineLogin(sgid){
         </div>
       </div>`;
     ov.addEventListener('click',e=>{if(e.target===ov)closeSearch();});
-    ov.querySelector('#gs-inp').addEventListener('input',e=>renderResults(e.target.value));
+    // ✅ Use debounced render for search input
+    ov.querySelector('#gs-inp').addEventListener('input',e=>_debouncedGsRender(e.target.value));
     ov.querySelector('#gs-inp').addEventListener('keydown',e=>{
       const items=window._gsItems||[];
       if(e.key==='ArrowDown'){e.preventDefault();_gsActive=Math.min(_gsActive+1,items.length-1);_gsHighlight();}
@@ -2746,18 +2750,15 @@ async function _offlineLogin(sgid){
       else if(e.key==='Escape'){closeSearch();}
     });
     document.body.appendChild(ov);
-    // animate-in class
     requestAnimationFrame(()=>{ ov.style.opacity='1'; });
   }
 
-  // Ctrl+K / Cmd+K
   document.addEventListener('keydown',e=>{
     if((e.ctrlKey||e.metaKey)&&e.key==='k'){e.preventDefault();openSearch();}
   });
 
   window.openGlobalSearch=openSearch;
 
-  // CSS for search items
   const style=document.createElement('style');
   style.textContent=`
     #gs-overlay.gs-show { opacity:1!important; }

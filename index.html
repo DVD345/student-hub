@@ -8,6 +8,11 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="StudentHub">
 <link rel="manifest" id="pwa-manifest">
+
+<!-- ✅ IMPROVEMENT 6: preconnect to font origins to eliminate render-blocking -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
 <script>
 // PWA Manifest inline
 const _manifest = {
@@ -40,7 +45,6 @@ self.addEventListener('activate', e => {
 self.addEventListener('fetch', e => {
   if(e.request.method !== 'GET') return;
   const url = new URL(e.request.url);
-  // Кешуємо лише свої ресурси, не Firebase/Moodle/Groq
   if(url.origin !== location.origin) return;
   e.respondWith(
     caches.match(e.request).then(cached => {
@@ -65,10 +69,12 @@ self.addEventListener('fetch', e => {
 </script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Student Hub — УкрДУЗТ</title>
+
+<!-- ✅ IMPROVEMENT 6: font-display=swap already present, preconnect added above -->
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 <script>
-// KaTeX lazy load — завантажується лише при першому відкритті Асистента або Нотаток
+// KaTeX lazy load
 var _katexLoaded = false, _katexLoading = false, _katexQueue = [];
 function _loadKaTeX() {
   return new Promise((resolve) => {
@@ -230,7 +236,6 @@ function _loadKaTeX() {
 
         <!-- WIDGETS -->
         <div class="dash-widgets">
-          <!-- Today's deadlines -->
           <div class="widget">
             <div class="widget-header">
               <span class="widget-icon">⏰</span>
@@ -239,7 +244,6 @@ function _loadKaTeX() {
             </div>
             <div class="widget-body" id="w-today"></div>
           </div>
-          <!-- Upcoming this week -->
           <div class="widget">
             <div class="widget-header">
               <span class="widget-icon">📅</span>
@@ -248,7 +252,6 @@ function _loadKaTeX() {
             </div>
             <div class="widget-body" id="w-week"></div>
           </div>
-          <!-- Recent notes -->
           <div class="widget">
             <div class="widget-header">
               <span class="widget-icon">✍️</span>
@@ -257,7 +260,6 @@ function _loadKaTeX() {
             </div>
             <div class="widget-body" id="w-notes"></div>
           </div>
-          <!-- Recent files -->
           <div class="widget">
             <div class="widget-header">
               <span class="widget-icon">📁</span>
@@ -276,7 +278,7 @@ function _loadKaTeX() {
       <div class="page" id="page-deadlines">
         <div class="page-header"><h2>⏰ Дедлайни</h2><p>З Moodle — натисніть щоб відкрити завдання</p></div>
         <div class="toolbar">
-          <input class="tb-input" id="dl-q" placeholder="🔍 Пошук..." oninput="applyDlFilter()">
+          <input class="tb-input" id="dl-q" placeholder="🔍 Пошук...">
           <select class="tb-select" id="dl-f" onchange="applyDlFilter()">
             <option value="all">Всі</option>
             <option value="active" selected>Активні</option>
@@ -313,7 +315,7 @@ function _loadKaTeX() {
       <div class="page" id="page-courses">
         <div class="page-header"><h2>📚 Курси</h2><p>З Moodle — натисніть щоб відкрити</p></div>
         <div class="toolbar">
-          <input class="tb-input" id="c-q" placeholder="🔍 Пошук курсу..." oninput="filterCourses()">
+          <input class="tb-input" id="c-q" placeholder="🔍 Пошук курсу...">
           <button class="ftab on" id="cs-n" onclick="setCS('name')">А-Я</button>
           <button class="ftab" id="cs-num" onclick="setCS('num')">#</button>
           <div class="tb-right" style="display:flex;gap:4px;">
@@ -334,7 +336,7 @@ function _loadKaTeX() {
         </div>
         <input type="file" id="file-input" multiple onchange="handleFileSelect(this)">
         <div class="file-search-row">
-          <input class="tb-input" placeholder="🔍 Пошук файлу..." oninput="filesSearchQuery=this.value;renderFilesWithSearch(cachedFiles,this.value)" style="flex:1;max-width:260px;">
+          <input class="tb-input" id="files-search-inp" placeholder="🔍 Пошук файлу..." style="flex:1;max-width:260px;">
         </div>
         <div id="files-list"><div class="loading"><div class="spinner"></div>Завантаження...</div></div>
       </div>
@@ -343,7 +345,7 @@ function _loadKaTeX() {
       <div class="page" id="page-materials">
         <div class="page-header"><h2>📝 Матеріали</h2><p id="mats-lbl">Конспекти та посилання групи</p></div>
         <div class="toolbar">
-          <input class="tb-input" placeholder="🔍 Пошук..." oninput="filterMats(this.value)">
+          <input class="tb-input" id="mats-search-inp" placeholder="🔍 Пошук...">
           <div class="tb-right"><button class="btn a" onclick="showModal('add-mat')">+ Додати</button></div>
         </div>
         <div id="mats-list"><div class="loading"><div class="spinner"></div>Завантаження...</div></div>
@@ -375,13 +377,6 @@ function _loadKaTeX() {
                 <span id="chat-file-name" style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text2);"></span>
                 <button onclick="clearChatFile()" style="background:none;border:none;color:var(--accent2);cursor:pointer;font-size:16px;line-height:1;flex-shrink:0;">✕</button>
               </div>
-              <div id="reply-bar" style="display:none;align-items:center;gap:8px;padding:6px 10px;background:var(--bg3);border-radius:8px;border-left:3px solid var(--accent);font-size:12px;">
-                <div style="flex:1;overflow:hidden;">
-                  <div id="reply-bar-author" style="font-weight:700;color:var(--accent);font-size:11px;"></div>
-                  <div id="reply-bar-text" style="color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"></div>
-                </div>
-                <button onclick="_cancelReply()" style="background:none;border:none;color:var(--text2);cursor:pointer;font-size:16px;line-height:1;flex-shrink:0;">✕</button>
-              </div>
               <div style="display:flex;gap:6px;align-items:flex-end;">
                 <button onclick="document.getElementById('chat-file-input').click()" title="Додати файл/фото" style="width:38px;height:38px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);font-size:18px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;">📎</button>
                 <textarea class="chat-input" id="chat-inp" placeholder="Напишіть або вставте фото (Ctrl+V)..." rows="1" onkeydown="chatKey(event)" onpaste="handleChatPaste(event)" oninput="chatInputHandler(event)" style="flex:1;"></textarea>
@@ -411,9 +406,7 @@ function _loadKaTeX() {
               <div id="cal-note-date-lbl" style="font-size:15px;font-weight:700;"></div>
               <button onclick="closeCalNoteModal()" style="background:none;border:none;color:var(--text2);font-size:20px;cursor:pointer;line-height:1;">✕</button>
             </div>
-            <!-- Existing notes list -->
             <div id="cal-notes-list-existing"></div>
-            <!-- New/Edit note form -->
             <div id="cal-note-form">
               <div style="font-size:10px;font-weight:700;color:var(--text2);letter-spacing:.5px;text-transform:uppercase;margin-bottom:8px;" id="cal-note-form-label">➕ Нова нотатка</div>
               <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
@@ -431,12 +424,12 @@ function _loadKaTeX() {
         </div>
       </div>
 
-      <!-- NOTES — FIX 1: removed subtitle "Особисті конспекти з Markdown підтримкою" -->
+      <!-- NOTES -->
       <div class="page" id="page-notes">
         <div class="page-header"><h2>✍️ Нотатки</h2></div>
         <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;align-items:center;">
           <button class="btn a" onclick="showNewNote()">+ Нова нотатка</button>
-          <input class="tb-input" placeholder="🔍 Пошук..." oninput="searchNotes(this.value)" style="flex:1;max-width:260px;">
+          <input class="tb-input" id="notes-search-inp" placeholder="🔍 Пошук..." style="flex:1;max-width:260px;">
         </div>
         <div id="notes-container" style="display:flex;gap:14px;flex-wrap:wrap;"></div>
       </div>
@@ -484,7 +477,7 @@ function _loadKaTeX() {
           </div>
           <div class="admin-card">
             <h3>👥 Користувачі</h3>
-            <input class="tb-input" id="users-search" placeholder="🔍 Пошук по імені..." oninput="filterAdminUsers(this.value)" style="width:100%;margin-bottom:10px;max-width:100%;">
+            <input class="tb-input" id="users-search" placeholder="🔍 Пошук по імені..." style="width:100%;margin-bottom:10px;max-width:100%;">
             <div id="admin-users-list"><div class="loading"><div class="spinner"></div></div></div>
           </div>
           <div class="admin-card">
@@ -557,7 +550,6 @@ window._loadGroupsForLogin = loadGroupsForLogin;
 
 <script src="app.js"></script>
 
-
 <div id="course-contents-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:1000;overflow-y:auto;padding:16px;backdrop-filter:blur(4px);">
   <div style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;max-width:640px;margin:0 auto;overflow:hidden;">
     <div style="padding:16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;">
@@ -567,6 +559,7 @@ window._loadGroupsForLogin = loadGroupsForLogin;
     <div id="cc-body" style="padding:16px;max-height:75vh;overflow-y:auto;"></div>
   </div>
 </div>
+
 <!-- NOTE EDITOR -->
 <div class="note-editor-overlay" id="note-editor-overlay">
   <div class="note-editor">

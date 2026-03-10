@@ -1478,6 +1478,8 @@ function _startEditMsg(msgId, msgEl) {
     var clone = bubble.cloneNode(true);
     var replyEl = clone.querySelector('.msg-reply');
     if (replyEl) replyEl.remove();
+    var editedEl = clone.querySelector('.msg-edited-mark');
+    if (editedEl) editedEl.remove();
     text = clone.textContent.trim();
   }
   var inp = document.getElementById('chat-inp');
@@ -1625,7 +1627,7 @@ function renderMessages(msgs) {
       : '';
     const msgText = m.text ? _highlightMentions(escHtml(m.text), userData.fullname) : '';
     const replyHtml = m.replyTo ? '<div class="msg-reply" onclick="event.stopPropagation();_scrollToMsg(\''+escHtml(m.replyTo.id||'')+'\')"><b>'+escHtml(m.replyTo.author||'')+'</b> '+escHtml((m.replyTo.text||'').slice(0,60))+'</div>' : '';
-    const editedMark = m.edited ? ' <span style="font-size:9px;opacity:.5;font-style:italic">(ред.)</span>' : '';
+    const editedMark = m.edited ? ' <span class="msg-edited-mark" style="font-size:9px;opacity:.5;font-style:italic">(ред.)</span>' : '';
     const pinBtn = (canMod()&&m.id) ? '<button class="msg-del" onclick="pinMessage(\''+escHtml(m.id)+'\',\''+escHtml((m.text||'').slice(0,80)).replace(/'/g,'')+'\'  ,\''+escHtml(m.author||'')+'\');" style="background:rgba(240,192,64,.12);border:1px solid rgba(240,192,64,.25);color:var(--accent);border-radius:5px;padding:2px 5px;font-size:9px;cursor:pointer;opacity:0;transition:opacity .2s;flex-shrink:0" title="Закріпити">📌</button>' : '';
     const delBtn = (canDel&&m.id) ? '<button class="msg-del" data-id="'+escHtml(m.id)+'" onclick="delMsg(this.dataset.id)" style="background:rgba(224,80,80,.15);border:1px solid rgba(224,80,80,.3);color:var(--accent2);border-radius:5px;padding:2px 5px;font-size:9px;cursor:pointer;opacity:0;transition:opacity .2s;flex-shrink:0">🗑</button>' : '';
     var _mid=escHtml(m.id||'');

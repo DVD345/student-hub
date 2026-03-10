@@ -355,7 +355,7 @@ function _loadKaTeX() {
         <div class="chat-wrap">
           <div class="chat-sidebar" id="chat-rooms"></div>
           <div class="chat-main">
-            <div class="chat-header" id="chat-room-title">Оберіть кімнату</div>
+            <div class="chat-header" id="chat-room-title" style="display:flex;align-items:center;justify-content:space-between;">Оберіть кімнату<span id="chat-online-count" style="display:none;font-size:10px;font-weight:500;color:#4caf50;padding:2px 8px;background:rgba(76,175,80,.1);border-radius:10px;border:1px solid rgba(76,175,80,.2);">0 онлайн</span></div>
             <div class="pinned-bar" id="pinned-bar" style="display:none" onclick="scrollToPinned()">
               <span class="pinned-bar-icon">📌</span>
               <span class="pinned-bar-label">Закріплено</span>
@@ -364,9 +364,23 @@ function _loadKaTeX() {
             </div>
             <div class="chat-messages" id="chat-msgs"><div class="empty"><div class="emo">💬</div><p>Оберіть чат зліва</p></div></div>
             <div class="chat-input-wrap" style="flex-direction:column;gap:6px;padding:10px;">
+              <div id="reply-bar" style="display:none;align-items:center;gap:8px;padding:5px 10px;background:var(--bg3);border-radius:8px;border-left:3px solid var(--accent);font-size:11px;">
+                <div style="flex:1;overflow:hidden;">
+                  <div id="reply-bar-author" style="font-weight:700;color:var(--accent);font-size:10px;"></div>
+                  <div id="reply-bar-text" style="color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"></div>
+                </div>
+                <button onclick="_cancelEdit();_clearReply()" style="background:none;border:none;color:var(--text2);cursor:pointer;font-size:16px;line-height:1;flex-shrink:0;">✕</button>
+              </div>
               <div id="chat-file-preview" style="display:none;align-items:center;gap:8px;padding:6px 10px;background:var(--bg3);border-radius:8px;font-size:12px;">
                 <span id="chat-file-name" style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text2);"></span>
                 <button onclick="clearChatFile()" style="background:none;border:none;color:var(--accent2);cursor:pointer;font-size:16px;line-height:1;flex-shrink:0;">✕</button>
+              </div>
+              <div id="reply-bar" style="display:none;align-items:center;gap:8px;padding:6px 10px;background:var(--bg3);border-radius:8px;border-left:3px solid var(--accent);font-size:12px;">
+                <div style="flex:1;overflow:hidden;">
+                  <div id="reply-bar-author" style="font-weight:700;color:var(--accent);font-size:11px;"></div>
+                  <div id="reply-bar-text" style="color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"></div>
+                </div>
+                <button onclick="_cancelReply()" style="background:none;border:none;color:var(--text2);cursor:pointer;font-size:16px;line-height:1;flex-shrink:0;">✕</button>
               </div>
               <div style="display:flex;gap:6px;align-items:flex-end;">
                 <button onclick="document.getElementById('chat-file-input').click()" title="Додати файл/фото" style="width:38px;height:38px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);font-size:18px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;">📎</button>

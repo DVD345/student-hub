@@ -2392,7 +2392,6 @@ async function sendAI(){
       if(upcomingDl.length) contextParts.push('Найближчі дедлайни: '+upcomingDl.map(d=>d.name+' ('+fmtDate(d.due)+')').join(', '));
     }
     const systemPrompt=`Ти навчальний асистент для студентів університету УкрДУЗТ.\nПРАВИЛА:\n- Відповідай ЗАВЖДИ українською мовою\n- Давай ТОЧНІ та ПОВНІ відповіді\n- Якщо на фото задача — розв'яжи ПОВНІСТЮ покроково\n- Використовуй markdown: **жирний**, ## заголовки, - списки, \`код\`\n- При математичних розрахунках показуй кожен крок\n- В кінці ЗАВЖДИ давай чітку фінальну відповідь\n${contextParts.length?'\nКонтекст: '+contextParts.join('. '):''}`;
-    const model=hasImage?'meta-llama/llama-4-scout-17b-16e-instruct':'llama-3.3-70b-versatile';
     const historyForAPI=aiHistory.slice(-12).map((m,i,arr)=>{
       if(i<arr.length-1&&Array.isArray(m.content)){
         const textOnly=m.content.filter(p=>p.type==='text').map(p=>p.text).join(' ');
@@ -2400,12 +2399,47 @@ async function sendAI(){
       }
       return m;
     });
-    const resp=await fetch(_getAIEndpoint(),{
-      method:'POST',
-      headers:{'Content-Type':'application/json','Authorization':'Bearer '+_getAIToken()},
-      body:JSON.stringify({model,max_tokens:4096,messages:[{role:'system',content:systemPrompt},...historyForAPI]})
-    });
-    const data=await resp.json();
+
+    const VISION_MODELS = [
+      'meta-llama/llama-4-scout-17b-16e-instruct',
+      'meta-llama/llama-4-maverick-17b-128e-instruct',
+      'llama-3.2-90b-vision-preview',
+      'llama-3.2-11b-vision-preview',
+    ];
+    const TEXT_MODEL = 'llama-3.3-70b-versatile';
+
+    async function _tryAIRequest(model, messages) {
+      const resp = await fetch(_getAIEndpoint(), {
+        method: 'POST',
+        headers: {'Content-Type':'application/json','Authorization':'Bearer '+_getAIToken()},
+        body: JSON.stringify({model, max_tokens:4096, messages})
+      });
+      const data = await resp.json();
+      if(data.error && (data.error.code === 'model_not_found' || (data.error.message||'').includes('does not exist') || (data.error.message||'').includes('no access'))) {
+        return null; // signal to try next model
+      }
+      return data;
+    }
+
+    let data = null;
+    if(hasImage) {
+      for(const m of VISION_MODELS) {
+        data = await _tryAIRequest(m, [{role:'system',content:systemPrompt},...historyForAPI]);
+        if(data !== null) break;
+      }
+      // If all vision models fail, strip image and use text model
+      if(data === null) {
+        const textHistory = historyForAPI.map(m => ({
+          ...m,
+          content: Array.isArray(m.content)
+            ? m.content.filter(p=>p.type==='text').map(p=>p.text).join(' ') || '[зображення]'
+            : m.content
+        }));
+        data = await _tryAIRequest(TEXT_MODEL, [{role:'system',content:systemPrompt},...textHistory]);
+      }
+    } else {
+      data = await _tryAIRequest(TEXT_MODEL, [{role:'system',content:systemPrompt},...historyForAPI]);
+    }
     if(data.error){thinkingDiv.remove();appendAIMsg('other','⚠️ Помилка: '+(data.error.message||JSON.stringify(data.error)));document.getElementById('ai-send').disabled=false;return;}
     const reply=data.choices?.[0]?.message?.content||'Вибачте, не вдалося отримати відповідь.';
     aiHistory.push({role:'assistant',content:reply});

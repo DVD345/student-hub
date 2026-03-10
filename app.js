@@ -2403,7 +2403,6 @@ async function sendAI(){
     const VISION_MODELS = [
       'meta-llama/llama-4-scout-17b-16e-instruct',
       'llama-3.2-90b-vision-preview',
-      'llama-3.2-11b-vision-preview',
     ];
     const TEXT_MODEL = 'llama-3.3-70b-versatile';
 

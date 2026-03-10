@@ -1464,13 +1464,9 @@ function _cancelReply() {
   _editingMsgId = null;
   var bar = document.getElementById('reply-bar');
   if(bar) { bar.style.display = 'none'; bar.style.borderLeftColor = ''; }
-  document.getElementById('chat-inp').value = '';
   var inp = document.getElementById('chat-inp');
-  if(inp) { inp.style.height = 'auto'; }
+  if(inp) { inp.value = ''; inp.style.height = 'auto'; }
 }
-// Aliases used in HTML onclick
-var _cancelEdit = _cancelReply;
-var _clearReply = function() {};
 
 function _startEditMsg(msgId, msgEl) {
   _replyTo = null;

@@ -1463,14 +1463,27 @@ function _cancelReply() {
   _replyTo = null;
   _editingMsgId = null;
   var bar = document.getElementById('reply-bar');
-  if(bar) bar.style.display = 'none';
+  if(bar) { bar.style.display = 'none'; bar.style.borderLeftColor = ''; }
   document.getElementById('chat-inp').value = '';
+  var inp = document.getElementById('chat-inp');
+  if(inp) { inp.style.height = 'auto'; }
 }
+// Aliases used in HTML onclick
+var _cancelEdit = _cancelReply;
+var _clearReply = function() {};
 
 function _startEditMsg(msgId, msgEl) {
   _replyTo = null;
   _editingMsgId = msgId;
-  var text = (msgEl.querySelector('.msg-bubble')||{}).textContent || '';
+  // Clone bubble and remove reply-quote before reading text
+  var bubble = msgEl.querySelector('.msg-bubble');
+  var text = '';
+  if (bubble) {
+    var clone = bubble.cloneNode(true);
+    var replyEl = clone.querySelector('.msg-reply');
+    if (replyEl) replyEl.remove();
+    text = clone.textContent.trim();
+  }
   var inp = document.getElementById('chat-inp');
   inp.value = text;
   inp.focus();

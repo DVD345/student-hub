@@ -2094,7 +2094,7 @@ function go(name) {
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.toggle('active',n.textContent.trim().startsWith(labels[name]||'_')));
   document.getElementById('topbar-title').textContent=PAGE_TITLES[name]||name;
   if(name==='calendar') renderCalendar();
-  if(name==='chat') _clearChatBadge();
+  if(name==='chat') { _clearChatBadge(); setTimeout(_fixChatLayout, 50); }
   if(name==='assistant'||name==='notes') _loadKaTeX();
   if(name==='notes') loadNotes();
   if(name==='notifications') markAllRead();
@@ -2109,6 +2109,25 @@ function setBnav(name){
 function topbarBack() {
   go('dashboard'); setBnav('dashboard');
 }
+
+function _fixChatLayout() {
+  if(window.innerWidth > 767) return;
+  var page = document.getElementById('page-chat');
+  if(!page || !page.classList.contains('active')) return;
+  var topbar = document.getElementById('topbar');
+  var bnav = document.getElementById('bottom-nav');
+  var top = topbar ? topbar.getBoundingClientRect().bottom : 0;
+  var bottom = bnav ? window.innerHeight - bnav.getBoundingClientRect().top : 0;
+  page.style.top = top + 'px';
+  page.style.bottom = bottom + 'px';
+}
+
+// Run on page switch and resize
+var _origGo = null;
+document.addEventListener('DOMContentLoaded', function() {
+  setTimeout(_fixChatLayout, 100);
+  window.addEventListener('resize', _fixChatLayout);
+});
 
 // Hide bottom nav when keyboard opens (mobile)
 (function() {

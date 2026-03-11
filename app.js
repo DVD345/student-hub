@@ -2084,8 +2084,6 @@ function go(name) {
     });
   });
   _currentPage = name;
-  // Mobile: hide bottom nav in chat for more space
-  document.body.classList.toggle('chat-open', name === 'chat');
   const labels={dashboard:'Голов',deadlines:'Дедл',courses:'Курс',files:'Файл',materials:'Матер',chat:'Чат',admin:'Адмін',calendar:'Календ',notes:'Нотат',assistant:'Асист',notifications:'Сповіщ'};
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.toggle('active',n.textContent.trim().startsWith(labels[name]||'_')));
   document.getElementById('topbar-title').textContent=PAGE_TITLES[name]||name;

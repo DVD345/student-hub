@@ -503,11 +503,16 @@ async function loadUserInfo() {
 
 async function loadUserRole() {
   if (!window._db || !userData.userid) return;
-  const { doc, getDoc } = window._fb;
+  const { doc, getDoc, updateDoc } = window._fb;
   try {
     const snap = await getDoc(doc(window._db,'users',String(userData.userid)));
-    if (snap.exists() && snap.data().role) userRole = snap.data().role;
-    else userRole = 'student';
+    if (snap.exists() && snap.data().role) {
+      userRole = snap.data().role;
+    } else {
+      // No role yet — assign student and save to Firestore
+      userRole = 'student';
+      try { await updateDoc(doc(window._db,'users',String(userData.userid)), { role: 'student' }); } catch(e) {}
+    }
   } catch(e) { userRole = 'student'; }
   document.getElementById('urole').textContent = ROLES[userRole] || 'Студент';
   document.getElementById('uav').style.background = ROLE_COLORS[userRole] || '#f0c040';

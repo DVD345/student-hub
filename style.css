@@ -1004,6 +1004,17 @@ a { text-decoration: none; color: inherit; }
   .topbar-menu { display:none; }
   .close-sidebar { display:block; }
   .bottom-nav { display:block; }
+  /* Content always above bottom nav */
+  .content { padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px)) !important; }
+  /* Chat page — full height minus topbar, messages scroll inside */
+  #page-chat { padding: 0 !important; display:flex; flex-direction:column; height:100%; }
+  .chat-wrap { flex:1; min-height:0; overflow:hidden; }
+  .chat-main { height:100%; display:flex; flex-direction:column; }
+  .chat-messages { flex:1; min-height:0; overflow-y:auto; }
+  /* Chat input sits above bottom nav in standalone PWA */
+  @media (display-mode: standalone) {
+    .chat-input-wrap { padding-bottom: max(12px, env(safe-area-inset-bottom, 12px)); }
+  }
   #dl-settings > div:nth-child(2) { flex-direction:column; gap:12px; }
   #dl-settings label { justify-content:space-between; }
   #dl-urgent-hours, #dl-warn-days {

@@ -1004,6 +1004,17 @@ a { text-decoration: none; color: inherit; }
   .topbar-menu { display:none; }
   .close-sidebar { display:block; }
   .bottom-nav { display:block; }
+  /* Content always above bottom nav */
+  .content { padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px)) !important; }
+  /* Chat page — full height minus topbar, messages scroll inside */
+  #page-chat { padding: 0 !important; display:flex; flex-direction:column; height:100%; }
+  .chat-wrap { flex:1; min-height:0; overflow:hidden; }
+  .chat-main { height:100%; display:flex; flex-direction:column; }
+  .chat-messages { flex:1; min-height:0; overflow-y:auto; }
+  /* Chat input sits above bottom nav in standalone PWA */
+  @media (display-mode: standalone) {
+    .chat-input-wrap { padding-bottom: max(12px, env(safe-area-inset-bottom, 12px)); }
+  }
   #dl-settings > div:nth-child(2) { flex-direction:column; gap:12px; }
   #dl-settings label { justify-content:space-between; }
   #dl-urgent-hours, #dl-warn-days {
@@ -1175,3 +1186,19 @@ a { text-decoration: none; color: inherit; }
 .chat-header-wrap{display:flex;align-items:center;justify-content:space-between;padding:0 14px;}
 .chat-online-bar{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text2);}
 .chat-online-dot{width:7px;height:7px;border-radius:50%;background:#4caf50;flex-shrink:0;box-shadow:0 0 6px #4caf50;}
+
+/* ── PWA Standalone mode (Add to Home Screen) ── */
+@media (display-mode: standalone) {
+  /* Bottom nav accounts for iPhone Home Indicator */
+  .bottom-nav {
+    padding-bottom: max(16px, env(safe-area-inset-bottom, 16px)) !important;
+  }
+  /* Content doesn't go under nav */
+  .content {
+    padding-bottom: calc(80px + env(safe-area-inset-bottom, 16px)) !important;
+  }
+  /* Topbar accounts for Dynamic Island / notch */
+  .topbar {
+    padding-top: max(12px, env(safe-area-inset-top, 12px)) !important;
+  }
+}

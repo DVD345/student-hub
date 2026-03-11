@@ -1661,6 +1661,8 @@ function _showCopyToast() {
   clearTimeout(t._timer);
   t._timer = setTimeout(function(){ t.style.opacity = '0'; }, 1500);
 }
+
+function _ctxItem(menu, icon, label, fn, danger) {
   var el = document.createElement('div');
   el.className = 'msg-ctx-item' + (danger ? ' msg-ctx-danger' : '');
   el.innerHTML = '<span>'+icon+'</span> '+label;

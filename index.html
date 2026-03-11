@@ -77,33 +77,10 @@ self.addEventListener('fetch', e => {
 /* Prevent text selection during long-press on messages */
 .msg { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
 .msg-bubble { -webkit-user-select: none; user-select: none; }
-
-/* ── MOBILE CHAT FIXES ── */
-@media (max-width: 768px) {
-  /* Chat uses all available space above bottom nav */
-  #page-chat { padding: 0 !important; display: flex; flex-direction: column; }
-  .chat-wrap {
-    flex: 1;
-    min-height: 0;
-    height: calc(100dvh - 52px - 60px) !important;
-  }
-  .chat-main {
-    display: flex !important;
-    flex-direction: column !important;
-    min-height: 0 !important;
-    height: 100% !important;
-  }
-  .chat-messages {
-    flex: 1 !important;
-    min-height: 0 !important;
-    overflow-y: auto !important;
-    -webkit-overflow-scrolling: touch !important;
-  }
-  /* Bigger tap targets for reactions */
-  .msg-ctx-emoji-btn { min-width: 40px !important; min-height: 40px !important; font-size: 22px !important; }
-  /* Prevents iOS zoom on input focus */
-  .chat-input { font-size: 16px !important; }
-}
+/* Prevents iOS zoom on input focus */
+.chat-input { font-size: 16px !important; }
+/* Bigger tap targets for reactions */
+.msg-ctx-emoji-btn { min-width: 40px !important; min-height: 40px !important; font-size: 22px !important; }
 </style>
 <style>
 /* Prevent text selection and callout on long press for messages */
@@ -237,7 +214,8 @@ function _loadKaTeX() {
 
   <div class="main">
     <div class="topbar" id="topbar">
-      <button class="topbar-menu" onclick="openSidebar()">☰</button>
+      <button class="topbar-menu" id="topbar-back" onclick="topbarBack()" style="display:none">←</button>
+      <button class="topbar-menu" id="topbar-hamburger" onclick="openSidebar()">☰</button>
       <h2 id="topbar-title">Головна</h2>
       <button class="icon-btn" onclick="openGlobalSearch()" title="Пошук (Ctrl+K)" style="font-size:16px;">🔍</button>
       <button class="icon-btn" id="theme-btn-top" onclick="toggleTheme()">🌙</button>

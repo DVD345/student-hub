@@ -2084,6 +2084,12 @@ function go(name) {
     });
   });
   _currentPage = name;
+  // Show back arrow instead of hamburger when in chat (mobile)
+  const backBtn = document.getElementById('topbar-back');
+  const hamburger = document.getElementById('topbar-hamburger');
+  const inChat = name === 'chat';
+  if(backBtn) backBtn.style.display = inChat ? '' : 'none';
+  if(hamburger) hamburger.style.display = inChat ? 'none' : '';
   const labels={dashboard:'Голов',deadlines:'Дедл',courses:'Курс',files:'Файл',materials:'Матер',chat:'Чат',admin:'Адмін',calendar:'Календ',notes:'Нотат',assistant:'Асист',notifications:'Сповіщ'};
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.toggle('active',n.textContent.trim().startsWith(labels[name]||'_')));
   document.getElementById('topbar-title').textContent=PAGE_TITLES[name]||name;
@@ -2099,6 +2105,28 @@ function setBnav(name){
   const el=document.getElementById('bn-'+name);
   if(el) el.classList.add('active');
 }
+
+function topbarBack() {
+  go('dashboard'); setBnav('dashboard');
+}
+
+// Swipe right to go back (from chat to dashboard)
+(function() {
+  var _swipeStartX = 0, _swipeStartY = 0;
+  document.addEventListener('touchstart', function(e) {
+    _swipeStartX = e.touches[0].clientX;
+    _swipeStartY = e.touches[0].clientY;
+  }, {passive: true});
+  document.addEventListener('touchend', function(e) {
+    if(_currentPage !== 'chat') return;
+    var dx = e.changedTouches[0].clientX - _swipeStartX;
+    var dy = Math.abs(e.changedTouches[0].clientY - _swipeStartY);
+    // Swipe right from left edge (like iOS back gesture)
+    if(_swipeStartX < 40 && dx > 60 && dy < 80) {
+      go('dashboard'); setBnav('dashboard');
+    }
+  }, {passive: true});
+})();
 
 function openSidebar(){document.getElementById('sidebar').classList.add('open');document.getElementById('sov').classList.add('show');}
 function closeSidebar(){document.getElementById('sidebar').classList.remove('open');document.getElementById('sov').classList.remove('show');}

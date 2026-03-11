@@ -85,25 +85,22 @@ self.addEventListener('fetch', e => {
 
 /* ── Chat layout fix ── */
 @media (max-width: 767px) {
-  .content:has(#page-chat.active) {
-    padding: 0 !important;
-    overflow: hidden !important;
-    height: calc(100dvh - 52px - 60px) !important;
-    display: flex;
-    flex-direction: column;
-  }
   #page-chat.active {
-    flex: 1;
-    min-height: 0;
-    overflow: hidden;
+    position: fixed !important;
+    top: 52px;
+    left: 0; right: 0;
+    bottom: 60px;
     display: flex !important;
     flex-direction: column;
+    overflow: hidden;
     padding: 0 !important;
+    background: var(--bg);
+    z-index: 10;
   }
   #page-chat.active .page-header { flex-shrink: 0; padding: 10px 14px 6px; }
   #page-chat.active .chat-wrap { flex: 1; min-height: 0; overflow: hidden; display: flex; flex-direction: column; }
   #page-chat.active .chat-main { flex: 1; min-height: 0; display: flex; flex-direction: column; overflow: hidden; }
-  #page-chat.active .chat-messages { flex: 1; min-height: 0; overflow-y: auto; }
+  #page-chat.active .chat-messages { flex: 1; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; }
   #page-chat.active .chat-input-wrap { flex-shrink: 0; }
 }
 </style>

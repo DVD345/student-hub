@@ -322,16 +322,12 @@ async function initApp() {
   window._loginAnimStop = true;
   if(_loginRafId) { cancelAnimationFrame(_loginRafId); _loginRafId = null; }
 
-  // Fix black gap — measure real safe-area-inset-bottom and apply to nav
+  // Fix black gap under bottom nav on iPhone
   setTimeout(function() {
     var nav = document.getElementById('bottom-nav');
     if(!nav) return;
-    var probe = document.createElement('div');
-    probe.style.cssText = 'position:fixed;bottom:0;left:0;width:1px;height:env(safe-area-inset-bottom,0px);pointer-events:none;visibility:hidden;';
-    document.body.appendChild(probe);
-    var inset = probe.offsetHeight || 0;
-    document.body.removeChild(probe);
-    if(inset > 4) nav.style.paddingBottom = inset + 'px';
+    // Force re-apply padding with !important via inline style
+    nav.style.setProperty('padding-bottom', 'max(20px, env(safe-area-inset-bottom, 20px))', 'important');
   }, 300);
 
   const loginScreen = document.getElementById('screen-login');
@@ -1885,7 +1881,11 @@ function openLightbox(src, filename) {
   document.addEventListener('keydown',_lbKey);
   lb.onclick=function(e){if(e.target===lb||e.target===lb.firstElementChild)closeLightbox();};
   const closeBtn=document.getElementById('lightbox-close');
-  if(closeBtn){closeBtn.onclick=closeBtn.ontouchend=function(e){e.stopPropagation();closeLightbox();};}
+  if(closeBtn){
+    closeBtn.ontouchstart=function(e){e.stopPropagation();e.preventDefault();};
+    closeBtn.ontouchend=function(e){e.stopPropagation();e.preventDefault();closeLightbox();};
+    closeBtn.onclick=function(e){e.stopPropagation();closeLightbox();};
+  }
   let _lbScale=1,_lbDist0=0;
   img.addEventListener('touchstart',function(e){if(e.touches.length===2)_lbDist0=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);},{passive:true});
   img.addEventListener('touchmove',function(e){if(e.touches.length===2){const d=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);if(_lbDist0){_lbScale=Math.min(Math.max(_lbScale*(d/_lbDist0),.5),4);img.style.transform='scale('+_lbScale+')';_lbDist0=d;}}},{passive:true});

@@ -322,6 +322,18 @@ async function initApp() {
   window._loginAnimStop = true;
   if(_loginRafId) { cancelAnimationFrame(_loginRafId); _loginRafId = null; }
 
+  // Fix black gap — measure real safe-area-inset-bottom and apply to nav
+  setTimeout(function() {
+    var nav = document.getElementById('bottom-nav');
+    if(!nav) return;
+    var probe = document.createElement('div');
+    probe.style.cssText = 'position:fixed;bottom:0;left:0;width:1px;height:env(safe-area-inset-bottom,0px);pointer-events:none;visibility:hidden;';
+    document.body.appendChild(probe);
+    var inset = probe.offsetHeight || 0;
+    document.body.removeChild(probe);
+    if(inset > 4) nav.style.paddingBottom = inset + 'px';
+  }, 300);
+
   const loginScreen = document.getElementById('screen-login');
   const appScreen = document.getElementById('screen-app');
   loginScreen.style.transition = 'opacity .35s ease, transform .35s ease';
@@ -1884,8 +1896,11 @@ function closeLightbox(){
   if(!lb)return;
   if(img.src&&img.src.startsWith('blob:'))URL.revokeObjectURL(img.src);
   img.src='';img.style.transform='scale(1)';lb.style.display='none';
-  document.body.style.overflow='';document.body.style.position='';document.body.style.width='';
   document.removeEventListener('keydown',_lbKey);
+  // Delay restoring body scroll to prevent touchend firing on elements underneath
+  setTimeout(function(){
+    document.body.style.overflow='';document.body.style.position='';document.body.style.width='';
+  }, 50);
 }
 function _lbKey(e){if(e.key==='Escape')closeLightbox();}
 

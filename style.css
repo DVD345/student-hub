@@ -729,6 +729,7 @@ a { text-decoration: none; color: inherit; }
   gap: 2px;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
+  scroll-behavior: smooth;
 }
 
 .chat-input-wrap {

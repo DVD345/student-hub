@@ -2094,7 +2094,7 @@ function go(name) {
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.toggle('active',n.textContent.trim().startsWith(labels[name]||'_')));
   document.getElementById('topbar-title').textContent=PAGE_TITLES[name]||name;
   if(name==='calendar') renderCalendar();
-  if(name==='chat') { _clearChatBadge(); setTimeout(_fixChatLayout, 50); setTimeout(_fixChatLayout, 300); }
+  if(name==='chat') _clearChatBadge();
   if(name==='assistant'||name==='notes') _loadKaTeX();
   if(name==='notes') loadNotes();
   if(name==='notifications') markAllRead();
@@ -2109,17 +2109,6 @@ function setBnav(name){
 function topbarBack() {
   go('dashboard'); setBnav('dashboard');
 }
-
-function _fixChatLayout() {
-  if(window.innerWidth > 767) return;
-  var topbar = document.getElementById('topbar');
-  var page = document.getElementById('page-chat');
-  if(!page || !page.classList.contains('active')) return;
-  var topH = topbar ? topbar.getBoundingClientRect().bottom : 0;
-  page.style.top = topH + 'px';
-}
-
-window.addEventListener('resize', _fixChatLayout);
 
 // Hide bottom nav when keyboard opens (mobile)
 (function() {

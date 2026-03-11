@@ -463,27 +463,6 @@ a { text-decoration: none; color: inherit; }
 
 .page { display:none; }
 .page.active { display:block; }
-
-/* Chat page special layout on mobile */
-@media (max-width: 767px) {
-  #page-chat.active {
-    display: flex !important;
-    flex-direction: column;
-    /* Sits between topbar and bottom nav */
-    position: fixed;
-    top: 0; left: 0; right: 0;
-    bottom: calc(60px + env(safe-area-inset-bottom, 0px));
-    z-index: 10;
-    background: var(--bg);
-    padding: 0;
-    /* Will be adjusted by JS to account for actual topbar height */
-  }
-  #page-chat.active .page-header { flex-shrink: 0; padding: 10px 14px 6px; }
-  #page-chat.active .chat-wrap { flex: 1; min-height: 0; display: flex; flex-direction: column; overflow: hidden; }
-  #page-chat.active .chat-main { flex: 1; min-height: 0; display: flex; flex-direction: column; overflow: hidden; }
-  #page-chat.active .chat-messages { flex: 1; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; }
-  #page-chat.active .chat-input-wrap { flex-shrink: 0; }
-}
 #page-chat.active { display:flex; flex-direction:column; }
 
 @keyframes pgEnterRight { from{opacity:0;transform:translateX(16px)} to{opacity:1;transform:translateX(0)} }
@@ -1025,17 +1004,6 @@ a { text-decoration: none; color: inherit; }
   .topbar-menu { display:none; }
   .close-sidebar { display:block; }
   .bottom-nav { display:block; }
-  /* Content always above bottom nav */
-  .content { padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px)) !important; }
-  /* Chat page — full height minus topbar, messages scroll inside */
-  #page-chat { padding: 0 !important; display:flex; flex-direction:column; height:100%; }
-  .chat-wrap { flex:1; min-height:0; overflow:hidden; }
-  .chat-main { height:100%; display:flex; flex-direction:column; }
-  .chat-messages { flex:1; min-height:0; overflow-y:auto; }
-  /* Chat input sits above bottom nav in standalone PWA */
-  @media (display-mode: standalone) {
-    .chat-input-wrap { padding-bottom: max(12px, env(safe-area-inset-bottom, 12px)); }
-  }
   #dl-settings > div:nth-child(2) { flex-direction:column; gap:12px; }
   #dl-settings label { justify-content:space-between; }
   #dl-urgent-hours, #dl-warn-days {
@@ -1053,6 +1021,8 @@ a { text-decoration: none; color: inherit; }
   .msg { max-width:90%; }
   .msg-bubble img { max-width:min(240px,72vw) !important; max-height:200px !important; }
   #lightbox-img { max-width:100vw !important; max-height:calc(100svh - 80px) !important; }
+  .content { padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px)) !important; }
+  .chat-input { font-size: 16px !important; }
 }
 
 @media(max-width:380px){
@@ -1207,19 +1177,3 @@ a { text-decoration: none; color: inherit; }
 .chat-header-wrap{display:flex;align-items:center;justify-content:space-between;padding:0 14px;}
 .chat-online-bar{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text2);}
 .chat-online-dot{width:7px;height:7px;border-radius:50%;background:#4caf50;flex-shrink:0;box-shadow:0 0 6px #4caf50;}
-
-/* ── PWA Standalone mode (Add to Home Screen) ── */
-@media (display-mode: standalone) {
-  /* Bottom nav accounts for iPhone Home Indicator */
-  .bottom-nav {
-    padding-bottom: max(16px, env(safe-area-inset-bottom, 16px)) !important;
-  }
-  /* Content doesn't go under nav */
-  .content {
-    padding-bottom: calc(80px + env(safe-area-inset-bottom, 16px)) !important;
-  }
-  /* Topbar accounts for Dynamic Island / notch */
-  .topbar {
-    padding-top: max(12px, env(safe-area-inset-top, 12px)) !important;
-  }
-}

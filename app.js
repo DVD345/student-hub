@@ -2094,7 +2094,7 @@ function go(name) {
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.toggle('active',n.textContent.trim().startsWith(labels[name]||'_')));
   document.getElementById('topbar-title').textContent=PAGE_TITLES[name]||name;
   if(name==='calendar') renderCalendar();
-  if(name==='chat') { _clearChatBadge(); setTimeout(_fixChatLayout, 50); }
+  if(name==='chat') { _clearChatBadge(); setTimeout(_fixChatLayout, 50); setTimeout(_fixChatLayout, 300); }
   if(name==='assistant'||name==='notes') _loadKaTeX();
   if(name==='notes') loadNotes();
   if(name==='notifications') markAllRead();
@@ -2112,22 +2112,30 @@ function topbarBack() {
 
 function _fixChatLayout() {
   if(window.innerWidth > 767) return;
+  var bnav = document.getElementById('bottom-nav');
+  var topbar = document.getElementById('topbar');
+  if(!bnav || !topbar) return;
+  var navH = bnav.offsetHeight;
+  var topH = topbar.offsetHeight;
   var page = document.getElementById('page-chat');
   if(!page || !page.classList.contains('active')) return;
-  var topbar = document.getElementById('topbar');
-  var bnav = document.getElementById('bottom-nav');
-  var top = topbar ? topbar.getBoundingClientRect().bottom : 0;
-  var bottom = bnav ? window.innerHeight - bnav.getBoundingClientRect().top : 0;
-  page.style.top = top + 'px';
-  page.style.bottom = bottom + 'px';
+  page.style.position = 'fixed';
+  page.style.top = topH + 'px';
+  page.style.bottom = navH + 'px';
+  page.style.left = '0';
+  page.style.right = '0';
+  page.style.zIndex = '10';
+  page.style.background = 'var(--bg)';
+  page.style.display = 'flex';
+  page.style.flexDirection = 'column';
+  page.style.overflow = 'hidden';
+  page.style.padding = '0';
+  // Scroll to bottom
+  var msgs = document.getElementById('chat-msgs');
+  if(msgs) msgs.scrollTop = msgs.scrollHeight;
 }
 
-// Run on page switch and resize
-var _origGo = null;
-document.addEventListener('DOMContentLoaded', function() {
-  setTimeout(_fixChatLayout, 100);
-  window.addEventListener('resize', _fixChatLayout);
-});
+window.addEventListener('resize', _fixChatLayout);
 
 // Hide bottom nav when keyboard opens (mobile)
 (function() {

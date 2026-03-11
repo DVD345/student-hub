@@ -2114,25 +2114,25 @@ function _fixChatLayout() {
   if(window.innerWidth > 767) return;
   var bnav = document.getElementById('bottom-nav');
   var topbar = document.getElementById('topbar');
-  if(!bnav || !topbar) return;
-  var navH = bnav.offsetHeight;
-  var topH = topbar.offsetHeight;
   var page = document.getElementById('page-chat');
   if(!page || !page.classList.contains('active')) return;
-  page.style.position = 'fixed';
-  page.style.top = topH + 'px';
-  page.style.bottom = navH + 'px';
-  page.style.left = '0';
-  page.style.right = '0';
-  page.style.zIndex = '10';
-  page.style.background = 'var(--bg)';
-  page.style.display = 'flex';
-  page.style.flexDirection = 'column';
-  page.style.overflow = 'hidden';
-  page.style.padding = '0';
-  // Scroll to bottom
+  var topH = topbar ? topbar.getBoundingClientRect().bottom : 0;
+  var bnavTop = bnav ? bnav.getBoundingClientRect().top : window.innerHeight;
+  var bottomH = window.innerHeight - bnavTop;
+  page.style.cssText = [
+    'position:fixed',
+    'top:' + topH + 'px',
+    'bottom:' + bottomH + 'px',
+    'left:0', 'right:0',
+    'z-index:10',
+    'background:var(--bg)',
+    'display:flex',
+    'flex-direction:column',
+    'overflow:hidden',
+    'padding:0',
+  ].join(';');
   var msgs = document.getElementById('chat-msgs');
-  if(msgs) msgs.scrollTop = msgs.scrollHeight;
+  if(msgs) setTimeout(function(){ msgs.scrollTop = msgs.scrollHeight; }, 50);
 }
 
 window.addEventListener('resize', _fixChatLayout);

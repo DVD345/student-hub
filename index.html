@@ -85,11 +85,10 @@ self.addEventListener('fetch', e => {
 
 /* ── Chat layout fix ── */
 @media (max-width: 767px) {
-  /* When chat page is active, remove content scroll/padding */
   .content:has(#page-chat.active) {
     padding: 0 !important;
     overflow: hidden !important;
-    height: calc(100vh - 52px - 60px) !important;
+    height: calc(100dvh - 52px - 60px) !important;
     display: flex;
     flex-direction: column;
   }

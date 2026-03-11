@@ -2120,10 +2120,6 @@ function topbarBack() {
       var nav = getNav(); if(!nav) return;
       var keyboardOpen = window.visualViewport.height < window.innerHeight - 100;
       nav.style.display = keyboardOpen ? 'none' : '';
-      // On iOS — stick nav to visual viewport bottom to eliminate gap
-      var offsetBottom = window.innerHeight - window.visualViewport.height - window.visualViewport.offsetTop;
-      nav.style.transform = keyboardOpen ? '' : 'translateY(-' + Math.max(0, offsetBottom) + 'px)';
-      // Scroll chat to bottom when keyboard opens
       if(keyboardOpen && _currentPage === 'chat') {
         setTimeout(function(){ var m=document.getElementById('chat-msgs'); if(m) m.scrollTop=m.scrollHeight; }, 100);
       }

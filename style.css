@@ -463,6 +463,27 @@ a { text-decoration: none; color: inherit; }
 
 .page { display:none; }
 .page.active { display:block; }
+
+/* Chat page special layout on mobile */
+@media (max-width: 767px) {
+  #page-chat.active {
+    display: flex !important;
+    flex-direction: column;
+    /* Sits between topbar and bottom nav */
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    bottom: calc(60px + env(safe-area-inset-bottom, 0px));
+    z-index: 10;
+    background: var(--bg);
+    padding: 0;
+    /* Will be adjusted by JS to account for actual topbar height */
+  }
+  #page-chat.active .page-header { flex-shrink: 0; padding: 10px 14px 6px; }
+  #page-chat.active .chat-wrap { flex: 1; min-height: 0; display: flex; flex-direction: column; overflow: hidden; }
+  #page-chat.active .chat-main { flex: 1; min-height: 0; display: flex; flex-direction: column; overflow: hidden; }
+  #page-chat.active .chat-messages { flex: 1; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+  #page-chat.active .chat-input-wrap { flex-shrink: 0; }
+}
 #page-chat.active { display:flex; flex-direction:column; }
 
 @keyframes pgEnterRight { from{opacity:0;transform:translateX(16px)} to{opacity:1;transform:translateX(0)} }

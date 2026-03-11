@@ -2112,27 +2112,11 @@ function topbarBack() {
 
 function _fixChatLayout() {
   if(window.innerWidth > 767) return;
-  var bnav = document.getElementById('bottom-nav');
   var topbar = document.getElementById('topbar');
   var page = document.getElementById('page-chat');
   if(!page || !page.classList.contains('active')) return;
   var topH = topbar ? topbar.getBoundingClientRect().bottom : 0;
-  var bnavTop = bnav ? bnav.getBoundingClientRect().top : window.innerHeight;
-  var bottomH = window.innerHeight - bnavTop;
-  page.style.cssText = [
-    'position:fixed',
-    'top:' + topH + 'px',
-    'bottom:' + bottomH + 'px',
-    'left:0', 'right:0',
-    'z-index:10',
-    'background:var(--bg)',
-    'display:flex',
-    'flex-direction:column',
-    'overflow:hidden',
-    'padding:0',
-  ].join(';');
-  var msgs = document.getElementById('chat-msgs');
-  if(msgs) setTimeout(function(){ msgs.scrollTop = msgs.scrollHeight; }, 50);
+  page.style.top = topH + 'px';
 }
 
 window.addEventListener('resize', _fixChatLayout);

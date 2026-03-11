@@ -370,6 +370,26 @@ async function initApp() {
 
 // ✅ IMPROVEMENT 3: Wire up all debounced search inputs
 function _setupDebouncedInputs() {
+  // Mobile keyboard detection — update --vh and scroll chat to bottom
+  function _updateVH() {
+    document.documentElement.style.setProperty('--vh', window.innerHeight * 0.01 + 'px');
+  }
+  _updateVH();
+  window.addEventListener('resize', function() {
+    _updateVH();
+    var wasKeyboard = document.body.classList.contains('keyboard-open');
+    // If viewport shrunk by >150px — keyboard opened
+    var keyboardOpen = window.innerHeight < (window._fullHeight || window.innerHeight) - 150;
+    if(!window._fullHeight) window._fullHeight = window.innerHeight;
+    if(window.innerHeight > window._fullHeight - 50) window._fullHeight = window.innerHeight;
+    document.body.classList.toggle('keyboard-open', keyboardOpen);
+    if(_currentPage === 'chat') {
+      setTimeout(function() {
+        var msgs = document.getElementById('chat-msgs');
+        if(msgs) msgs.scrollTop = msgs.scrollHeight;
+      }, 100);
+    }
+  });
   const dlQ = document.getElementById('dl-q');
   if(dlQ) dlQ.oninput = debounce(applyDlFilter, 200);
 
@@ -1503,13 +1523,55 @@ var _lpTimer = null;
 function _lpStart(e, el) {
   _lpEnd();
   var msgId = el.dataset.lp; if(!msgId) return;
+  e.preventDefault();
+  // Kill any text selection that started
+  if(window.getSelection) window.getSelection().removeAllRanges();
+  var t = e.touches[0];
+  var startX = t.clientX, startY = t.clientY;
   _lpTimer = setTimeout(function(){
     _lpTimer = null;
-    var t = e.touches[0];
-    _openMsgMenu(t.clientX, t.clientY, msgId, el);
+    if(window.getSelection) window.getSelection().removeAllRanges();
+    if(navigator.vibrate) navigator.vibrate(30);
+    _openMsgMenu(startX, startY, msgId, el);
   }, 500);
 }
-function _lpEnd(){ if(_lpTimer){ clearTimeout(_lpTimer); _lpTimer=null; } }
+function _lpEnd(e) {
+  if(_lpTimer){ clearTimeout(_lpTimer); _lpTimer=null; }
+}
+function _lpMove(e, el) {
+  if(!_lpTimer) return;
+  var t = e.touches[0];
+  if(Math.abs(t.clientX - _lpStartX) > 10 || Math.abs(t.clientY - _lpStartY) > 10) {
+    _lpEnd();
+  }
+}
+var _lpStartX = 0, _lpStartY = 0;
+
+// Register touch events with passive:false so preventDefault works
+function _attachMsgTouchEvents(container) {
+  container.addEventListener('touchstart', function(e) {
+    var el = e.target.closest('[data-lp]');
+    if(!el) return;
+    _lpStartX = e.touches[0].clientX;
+    _lpStartY = e.touches[0].clientY;
+    _lpStart(e, el);
+  }, {passive: false});
+  container.addEventListener('touchend', function(e) {
+    _lpEnd(e);
+  }, {passive: true});
+  container.addEventListener('touchmove', function(e) {
+    var el = e.target.closest('[data-lp]');
+    if(el) _lpMove(e, el);
+  }, {passive: true});
+  container.addEventListener('contextmenu', function(e) {
+    var el = e.target.closest('[data-lp]');
+    if(el) { e.preventDefault(); _ctxReact(e, el); }
+  });
+  // Prevent selection on long press
+  container.addEventListener('selectstart', function(e) {
+    if(_lpTimer) e.preventDefault();
+  });
+}
 
 function _closeMsgMenu() {
   var m = document.getElementById('msg-ctx-menu'); if(m) m.remove();
@@ -1547,6 +1609,7 @@ function _openMsgMenu(cx, cy, msgId, msgEl) {
   menu.appendChild(sep);
 
   _ctxItem(menu, '↩️', 'Відповісти', function(){ _closeMsgMenu(); _setReply(msgId, msgEl); });
+  _ctxItem(menu, '📋', 'Копіювати', function(){ _closeMsgMenu(); _copyMsgText(msgId); });
   if(isMe) _ctxItem(menu, '✏️', 'Редагувати', function(){ _closeMsgMenu(); _startEditMsg(msgId, msgEl); });
   if(typeof canMod==='function' && canMod())
     _ctxItem(menu, '📌', 'Закріпити', function(){ _closeMsgMenu(); var auth=(msgEl.querySelector('.msg-author')||{}).textContent||(isMe?(userData.fullname||'?'):'?'); pinMessage(msgId, msgText.slice(0,80), auth.trim()); });
@@ -1565,7 +1628,39 @@ function _openMsgMenu(cx, cy, msgId, msgEl) {
   menu.style.top  = y + 'px';
 }
 
-function _ctxItem(menu, icon, label, fn, danger) {
+function _copyMsgText(msgId) {
+  var text = _msgTextCache[msgId] || '';
+  if(!text) return;
+  if(navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(function(){ _showCopyToast(); }).catch(function(){ _copyFallback(text); });
+  } else {
+    _copyFallback(text);
+  }
+}
+
+function _copyFallback(text) {
+  var ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.cssText = 'position:fixed;top:-999px;left:-999px;opacity:0;';
+  document.body.appendChild(ta);
+  ta.focus(); ta.select();
+  try { document.execCommand('copy'); _showCopyToast(); } catch(e) {}
+  document.body.removeChild(ta);
+}
+
+function _showCopyToast() {
+  var t = document.getElementById('copy-toast');
+  if(!t) {
+    t = document.createElement('div');
+    t.id = 'copy-toast';
+    t.style.cssText = 'position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:var(--card);border:1px solid var(--border);border-radius:10px;padding:8px 16px;font-size:13px;font-weight:600;color:var(--text);z-index:9999;box-shadow:0 4px 20px rgba(0,0,0,.3);pointer-events:none;transition:opacity .3s;';
+    document.body.appendChild(t);
+  }
+  t.textContent = '✅ Скопійовано';
+  t.style.opacity = '1';
+  clearTimeout(t._timer);
+  t._timer = setTimeout(function(){ t.style.opacity = '0'; }, 1500);
+}
   var el = document.createElement('div');
   el.className = 'msg-ctx-item' + (danger ? ' msg-ctx-danger' : '');
   el.innerHTML = '<span>'+icon+'</span> '+label;
@@ -1630,7 +1725,7 @@ function renderMessages(msgs) {
     const pinBtn = (canMod()&&m.id) ? '<button class="msg-del" onclick="pinMessage(\''+escHtml(m.id)+'\',\''+escHtml((m.text||'').slice(0,80)).replace(/'/g,'')+'\'  ,\''+escHtml(m.author||'')+'\');" style="background:rgba(240,192,64,.12);border:1px solid rgba(240,192,64,.25);color:var(--accent);border-radius:5px;padding:2px 5px;font-size:9px;cursor:pointer;opacity:0;transition:opacity .2s;flex-shrink:0" title="Закріпити">📌</button>' : '';
     const delBtn = (canDel&&m.id) ? '<button class="msg-del" data-id="'+escHtml(m.id)+'" onclick="delMsg(this.dataset.id)" style="background:rgba(224,80,80,.15);border:1px solid rgba(224,80,80,.3);color:var(--accent2);border-radius:5px;padding:2px 5px;font-size:9px;cursor:pointer;opacity:0;transition:opacity .2s;flex-shrink:0">🗑</button>' : '';
     var _mid=escHtml(m.id||'');
-    var _lpA=_mid?' data-lp="'+_mid+'" oncontextmenu="_ctxReact(event,this)" ontouchstart="_lpStart(event,this)" ontouchend="_lpEnd()" ontouchmove="_lpEnd()"':'';
+    var _lpA=_mid?' data-lp="'+_mid+'"':'';
     // Cache clean text for editing (strip trailing edit marks in case of old data)
     if(m.id) _msgTextCache[m.id] = (m.text||'').replace(/\s*\(ред\.\)\s*$/, '').trim();
     return '<div class="msg '+(isMe?'me':'other')+'" style="position:relative" '+_lpA+' '+
@@ -1645,6 +1740,11 @@ function renderMessages(msgs) {
       '<div class="msg-time">'+t+'</div></div>';
   }).join('');
   el.scrollTop=el.scrollHeight;
+  // Attach touch events with passive:false (only once per container)
+  if(!el._touchEventsAttached) {
+    _attachMsgTouchEvents(el);
+    el._touchEventsAttached = true;
+  }
   if(window._lastMsgCount!==undefined&&msgs.length>window._lastMsgCount){
     msgs.slice(window._lastMsgCount).forEach(function(m){
       if(m.uid!==String(userData.userid)&&m.text&&userData.fullname&&
@@ -1982,13 +2082,14 @@ function go(name) {
     });
   });
   _currentPage = name;
+  // Mobile: hide bottom nav in chat for more space
+  document.body.classList.toggle('chat-open', name === 'chat');
   const labels={dashboard:'Голов',deadlines:'Дедл',courses:'Курс',files:'Файл',materials:'Матер',chat:'Чат',admin:'Адмін',calendar:'Календ',notes:'Нотат',assistant:'Асист',notifications:'Сповіщ'};
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.toggle('active',n.textContent.trim().startsWith(labels[name]||'_')));
   document.getElementById('topbar-title').textContent=PAGE_TITLES[name]||name;
   if(name==='calendar') renderCalendar();
   if(name==='chat') _clearChatBadge();
   if(name==='assistant'||name==='notes') _loadKaTeX();
-  // ✅ IMPROVEMENT 7: notes cache flag — don't re-parse localStorage on every visit
   if(name==='notes') loadNotes();
   if(name==='notifications') markAllRead();
   closeSidebar();

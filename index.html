@@ -73,6 +73,64 @@ self.addEventListener('fetch', e => {
 <!-- ✅ IMPROVEMENT 6: font-display=swap already present, preconnect added above -->
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
+<style>
+/* Prevent text selection during long-press on messages */
+.msg { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+.msg-bubble { -webkit-user-select: none; user-select: none; }
+
+/* ── MOBILE CHAT FIXES ── */
+@media (max-width: 768px) {
+  /* Full height chat when on chat page */
+  body.chat-open .bottom-nav { display: none !important; }
+  body.chat-open .main { padding-bottom: 0 !important; }
+
+  /* Chat wrap takes full screen height */
+  body.chat-open #page-chat { padding: 0 !important; }
+  body.chat-open .chat-wrap {
+    height: calc(100dvh - 52px) !important;
+    max-height: calc(100dvh - 52px) !important;
+  }
+  body.chat-open .chat-main {
+    height: 100% !important;
+    display: flex !important;
+    flex-direction: column !important;
+  }
+  body.chat-open .chat-messages {
+    flex: 1 !important;
+    min-height: 0 !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+
+  /* Keyboard open — shift everything up */
+  body.keyboard-open .chat-wrap {
+    height: calc(var(--vh, 1vh) * 100 - 52px) !important;
+  }
+
+  /* Bigger tap targets for reactions */
+  .msg-ctx-emoji-btn { min-width: 40px !important; min-height: 40px !important; font-size: 22px !important; }
+
+  /* Slightly bigger input */
+  .chat-input { font-size: 16px !important; } /* prevents iOS zoom */
+}
+</style>
+<style>
+/* Prevent text selection and callout on long press for messages */
+.msg {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+.msg-bubble {
+  -webkit-user-select: text;
+  user-select: text;
+}
+/* Allow selecting text inside bubble only after menu is dismissed */
+.msg.selecting .msg-bubble {
+  -webkit-user-select: text;
+  user-select: text;
+}
+</style>
 <script>
 // KaTeX lazy load
 var _katexLoaded = false, _katexLoading = false, _katexQueue = [];

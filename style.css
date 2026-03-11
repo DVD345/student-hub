@@ -914,7 +914,7 @@ a { text-decoration: none; color: inherit; }
   -webkit-backdrop-filter: blur(20px);
   border-top: 1px solid rgba(255,255,255,.07);
   z-index:150;
-  padding: 4px 0 max(4px, env(safe-area-inset-bottom, 4px));
+  padding: 4px 0 max(20px, env(safe-area-inset-bottom, 20px));
   box-shadow: 0 -4px 28px rgba(0,0,0,.5);
 }
 [data-theme="light"] .bottom-nav { background:rgba(250,250,255,.88); border-top-color:rgba(0,0,50,.08); }
@@ -1021,7 +1021,7 @@ a { text-decoration: none; color: inherit; }
   .msg { max-width:90%; }
   .msg-bubble img { max-width:min(240px,72vw) !important; max-height:200px !important; }
   #lightbox-img { max-width:100vw !important; max-height:calc(100svh - 80px) !important; }
-  .content { padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px)) !important; }
+  .content { padding-bottom: calc(88px + env(safe-area-inset-bottom, 0px)) !important; }
   .chat-input { font-size: 16px !important; }
 }
 

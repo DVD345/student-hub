@@ -1550,6 +1550,8 @@ var _lpStartX = 0, _lpStartY = 0;
 // Register touch events with passive:false so preventDefault works
 function _attachMsgTouchEvents(container) {
   container.addEventListener('touchstart', function(e) {
+    // Don't intercept taps on images — let openLightbox work
+    if(e.target.tagName === 'IMG') return;
     var el = e.target.closest('[data-lp]');
     if(!el) return;
     _lpStartX = e.touches[0].clientX;
@@ -1564,10 +1566,10 @@ function _attachMsgTouchEvents(container) {
     if(el) _lpMove(e, el);
   }, {passive: true});
   container.addEventListener('contextmenu', function(e) {
+    if(e.target.tagName === 'IMG') return;
     var el = e.target.closest('[data-lp]');
     if(el) { e.preventDefault(); _ctxReact(e, el); }
   });
-  // Prevent selection on long press
   container.addEventListener('selectstart', function(e) {
     if(_lpTimer) e.preventDefault();
   });

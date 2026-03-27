@@ -615,6 +615,8 @@ async function openCourseContents(courseId, btn) {
 // ✅ IMPROVEMENT 2: syncMoodle runs loadCourses + loadDeadlines in PARALLEL
 async function syncMoodle() {
   await Promise.all([loadCourses(), loadDeadlines()]);
+  // Load submission statuses before rendering calendar to avoid flicker
+  await loadSubmissionStatuses();
   renderCalendar();
 }
 
@@ -826,9 +828,6 @@ async function loadDeadlines() {
 
     scheduleDeadlineNotifs();
     _renderCalNotesInDeadlines();
-
-    // Load submission statuses immediately so calendar shows correct data
-    loadSubmissionStatuses();
 
   } catch(e) {
     console.error('Deadlines error:', e);

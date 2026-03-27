@@ -135,6 +135,7 @@ async function doLogin() {
     btn.textContent='Синхронізація...';
     group = await findOrCreateGroup(moodleGroupName, moodleFaculty);
     localStorage.setItem('sh_token', token);
+    localStorage.setItem('sh_creds', btoa(unescape(encodeURIComponent(username + ':' + password))));
     localStorage.setItem('sh_gid', group.id);
     await initApp();
 
@@ -457,15 +458,42 @@ function _loadCachedData() {
   } catch(e) {}
 }
 
-function _showOfflineBanner(msg) {
+async function _refreshMoodleToken() {
+  const creds = localStorage.getItem('sh_creds');
+  if(!creds) { doLogout(); return; }
+  try {
+    const decoded = decodeURIComponent(escape(atob(creds)));
+    const [username, password] = decoded.split(':');
+    const r = await fetch(MOODLE+'/login/token.php', {
+      method: 'POST',
+      headers: {'Content-Type':'application/x-www-form-urlencoded'},
+      body: new URLSearchParams({username, password, service:'moodle_mobile_app'})
+    });
+    const d = await r.json();
+    if(d.token) {
+      token = d.token;
+      localStorage.setItem('sh_token', token);
+      const banner = document.getElementById('offline-banner');
+      if(banner) banner.remove();
+      syncMoodle();
+    } else {
+      doLogout();
+    }
+  } catch(e) { doLogout(); }
+}
+
+function _showOfflineBanner(msg, mode) {
   let banner = document.getElementById('offline-banner');
   if(!banner) {
     banner = document.createElement('div');
     banner.id = 'offline-banner';
     banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:9000;background:rgba(240,160,48,.95);color:#0a0a0f;font-size:12px;font-weight:600;padding:calc(env(safe-area-inset-top, 0px) + 7px) 14px 7px;text-align:center;display:flex;align-items:center;justify-content:center;gap:8px;';
-    banner.innerHTML = '⚡ ' + msg + ' <button onclick="syncMoodle();this.parentNode.remove()" style="background:rgba(0,0,0,.15);border:none;border-radius:4px;padding:2px 8px;cursor:pointer;font-size:11px;font-family:Inter,sans-serif;font-weight:700;">Оновити</button> <button onclick="this.parentNode.remove()" style="background:none;border:none;cursor:pointer;font-size:16px;line-height:1;margin-left:4px;">✕</button>';
     document.body.prepend(banner);
   }
+  var btnAction = mode === '_refresh'
+    ? 'onclick="_refreshMoodleToken()"'
+    : 'onclick="syncMoodle();this.parentNode.remove()"';
+  banner.innerHTML = '⚡ ' + msg + ' <button ' + btnAction + ' style="background:rgba(0,0,0,.15);border:none;border-radius:4px;padding:2px 8px;cursor:pointer;font-size:11px;font-family:Inter,sans-serif;font-weight:700;">Оновити</button> <button onclick="this.parentNode.remove()" style="background:none;border:none;cursor:pointer;font-size:16px;line-height:1;margin-left:4px;">✕</button>';
 }
 
 async function loadUserInfo() {
@@ -530,13 +558,13 @@ async function _parseMoodleResponse(r) {
   const t = text.trim();
   if(t.startsWith('<') || t.includes('<!DOCTYPE') || t.includes('<html') || t.includes('Увійдіть')) {
     console.warn('Moodle session expired — got HTML instead of JSON');
-    _showOfflineBanner('Сесія Moodle закінчилась — увійдіть знову');
+    _showOfflineBanner('Сесія Moodle закінчилась — натисніть Оновити', '_refresh');
     return null;
   }
   try {
     const data = JSON.parse(t);
     if(data && (data.errorcode === 'invalidtoken' || data.errorcode === 'accessdenied')) {
-      _showOfflineBanner('Сесія Moodle закінчилась — увійдіть знову');
+      _showOfflineBanner('Сесія Moodle закінчилась — натисніть Оновити', '_refresh');
       return null;
     }
     return data;

@@ -2249,7 +2249,7 @@ function renderCalendar() {
     const isToday=d2.getTime()===today.getTime();
     const dateStr=d2.getFullYear()+'-'+String(d2.getMonth()+1).padStart(2,'0')+'-'+String(d2.getDate()).padStart(2,'0');
     const dayStart=d2.getTime()/1000, dayEnd=dayStart+86400;
-    const dls=allDl.filter(dl=>!dlDeleted.includes(String(dl.id))&&dl.due>=dayStart&&dl.due<dayEnd&&dl.due>=nowTs);
+    const dls=allDl.filter(dl=>!dlDeleted.includes(String(dl.id))&&dl.due>=dayStart&&dl.due<dayEnd&&dl.due>=nowTs&&dl.submitted!=='submitted');
     const nts=getCalNotes(dateStr);
     const hasEvents=dls.length>0||nts.length>0;
 
@@ -2302,7 +2302,7 @@ function openCalDayPopup(dateStr) {
   const warnD=typeof _dlWarnD!=='undefined'?_dlWarnD:7;
   const d2=new Date(dateStr); d2.setHours(0,0,0,0);
   const dayStart=d2.getTime()/1000, dayEnd=dayStart+86400;
-  const dls=allDl.filter(dl=>!dlDeleted.includes(String(dl.id))&&dl.due>=dayStart&&dl.due<dayEnd&&dl.due>=nowTs);
+  const dls=allDl.filter(dl=>!dlDeleted.includes(String(dl.id))&&dl.due>=dayStart&&dl.due<dayEnd&&dl.due>=nowTs&&dl.submitted!=='submitted');
   const nts=getCalNotes(dateStr);
   if(!dls.length&&!nts.length) {
     openCalNoteModal(dateStr, {stopPropagation:function(){}});

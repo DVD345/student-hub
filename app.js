@@ -827,8 +827,8 @@ async function loadDeadlines() {
     scheduleDeadlineNotifs();
     _renderCalNotesInDeadlines();
 
-    // ✅ IMPROVEMENT 5: delay heavy submission status check by 3 seconds
-    setTimeout(loadSubmissionStatuses, 3000);
+    // Load submission statuses immediately so calendar shows correct data
+    loadSubmissionStatuses();
 
   } catch(e) {
     console.error('Deadlines error:', e);

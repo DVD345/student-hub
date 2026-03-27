@@ -576,7 +576,8 @@ async function loadSubmissionStatuses() {
       } catch(e) {}
     }));
   }
-  // ✅ Use scheduleRender after submissions loaded
+  // Save updated statuses to cache
+  try { localStorage.setItem('sh_cache_dl', JSON.stringify(allDl)); } catch(e) {}
   scheduleRender();
 }
 
@@ -615,9 +616,9 @@ async function openCourseContents(courseId, btn) {
 // ✅ IMPROVEMENT 2: syncMoodle runs loadCourses + loadDeadlines in PARALLEL
 async function syncMoodle() {
   await Promise.all([loadCourses(), loadDeadlines()]);
-  // Load submission statuses before rendering calendar to avoid flicker
-  await loadSubmissionStatuses();
   renderCalendar();
+  // Load submission statuses in background, re-render calendar when done
+  loadSubmissionStatuses().then(function() { renderCalendar(); });
 }
 
 // ── COURSES ──

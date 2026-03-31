@@ -565,9 +565,9 @@ function _loadKaTeX() {
     </div>
     <div style="padding:12px;">
       <input type="text" id="no-dl-search" placeholder="🔍 Пошук завдання..." oninput="renderNoDlList()" style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px 13px;color:var(--text);font-size:14px;outline:none;font-family:Inter,sans-serif;box-sizing:border-box;margin-bottom:8px;">
-      <select id="no-dl-course-filter" onchange="renderNoDlList()" style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:9px 13px;color:var(--text);font-size:13px;outline:none;font-family:Inter,sans-serif;box-sizing:border-box;margin-bottom:10px;-webkit-appearance:none;appearance:none;cursor:pointer;">
-        <option value="all">Усі курси</option>
-      </select>
+      <div id="no-dl-course-filter-wrap" style="display:flex;gap:6px;overflow-x:auto;padding-bottom:8px;scrollbar-width:none;-webkit-overflow-scrolling:touch;margin-bottom:4px;">
+        <!-- Chips будуть згенеровані через JS -->
+      </div>
       <div id="no-dl-list" style="max-height:55vh;overflow-y:auto;"></div>
     </div>
   </div>

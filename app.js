@@ -478,7 +478,13 @@ async function _refreshMoodleToken() {
   if(onLoginScreen) { _autoRefreshInProgress = false; return; }
 
   const creds = localStorage.getItem('sh_creds');
-  if(!creds) { _autoRefreshInProgress = false; return; }
+  if(!creds) {
+    // Немає збережених credentials — не можемо оновити токен, треба логін
+    _autoRefreshInProgress = false;
+    console.warn('No creds for token refresh — forcing logout');
+    doLogout();
+    return;
+  }
 
   const banner = document.getElementById('offline-banner');
   if(banner) banner.innerHTML = '⏳ Оновлення сесії Moodle... <button onclick="this.parentNode.remove()" style="background:none;border:none;cursor:pointer;font-size:16px;margin-left:8px;color:#0a0a0f;">✕</button>';
@@ -3563,8 +3569,9 @@ async function _loadNoDlAssignments() {
     for(let i=0; i<courses.length; i+=chunkSize) chunks.push(courses.slice(i,i+chunkSize));
     const results = await Promise.all(chunks.map(chunk => {
       const courseids = chunk.map((c,i)=>`courseids[${i}]=${c.id}`).join('&');
+      // ✅ Використовуємо _parseMoodleResponse щоб обробляти invalidtoken
       return fetch(MOODLE+'/webservice/rest/server.php?wstoken='+token+'&wsfunction=mod_assign_get_assignments&moodlewsrestformat=json&'+courseids)
-        .then(r=>r.json()).catch(()=>null);
+        .then(r => _parseMoodleResponse(r)).catch(()=>null);
     }));
     const existingIds = new Set(allDl.map(d => String(d.id)));
     const noDl = [];
@@ -3614,23 +3621,56 @@ function showNoDlModal() {
   modal.style.display = 'flex';
   document.getElementById('no-dl-search').value = '';
   // Скидаємо фільтр курсу
-  const cf = document.getElementById('no-dl-course-filter');
-  if(cf) cf.value = 'all';
-  _rebuildNoDlCourseFilter();
-  renderNoDlList();
+  _noDlSelectedCourse = 'all';
+
+  // Якщо ще немає бессрочних — спробуємо підтягнути
+  const hasNoDlItems = allDl.some(d => d._noDeadline || !d.due);
+  if(!hasNoDlItems && token && courses.length) {
+    const el = document.getElementById('no-dl-list');
+    if(el) el.innerHTML = '<div class="loading"><div class="spinner"></div>Завантаження...</div>';
+    _loadNoDlAssignments().then(() => {
+      _rebuildNoDlCourseFilter();
+      renderNoDlList();
+    });
+  } else {
+    _rebuildNoDlCourseFilter();
+    renderNoDlList();
+  }
   setTimeout(() => document.getElementById('no-dl-search').focus(), 80);
 }
 
+var _noDlSelectedCourse = 'all';
+
 function _rebuildNoDlCourseFilter() {
-  const cf = document.getElementById('no-dl-course-filter');
-  if(!cf) return;
+  const wrap = document.getElementById('no-dl-course-filter-wrap');
+  if(!wrap) return;
   const items = allDl.filter(d => !_dlDeleted.includes(String(d.id)) && (d._noDeadline || !d.due));
-  const prev = cf.value;
   const uniqueCourses = [...new Set(items.map(t => t.course).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'uk'));
-  cf.innerHTML = '<option value="all">Усі курси</option>' +
-    uniqueCourses.map(c => `<option value="${escHtml(c)}">${escHtml(c)}</option>`).join('');
-  // Відновлюємо попередній вибір якщо курс ще існує
-  if(prev && prev !== 'all' && uniqueCourses.includes(prev)) cf.value = prev;
+
+  // Якщо вибраний курс більше не існує — скидаємо на all
+  if(_noDlSelectedCourse !== 'all' && !uniqueCourses.includes(_noDlSelectedCourse)) {
+    _noDlSelectedCourse = 'all';
+  }
+
+  const chipStyle = (active) => `flex-shrink:0;border:none;border-radius:20px;padding:5px 12px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;transition:background .15s,color .15s;font-family:Inter,sans-serif;` +
+    (active
+      ? `background:var(--accent);color:#0a0a0f;`
+      : `background:var(--bg3);color:var(--text2);border:1px solid var(--border);`);
+
+  const allChip = `<button style="${chipStyle(_noDlSelectedCourse==='all')}" onclick="_setNoDlCourse('all')">Усі курси</button>`;
+  const courseChips = uniqueCourses.map(c =>
+    `<button style="${chipStyle(_noDlSelectedCourse===c)}" onclick="_setNoDlCourse(${JSON.stringify(c)})">${escHtml(c)}</button>`
+  ).join('');
+
+  wrap.innerHTML = allChip + courseChips;
+  // Ховаємо рядок якщо немає курсів
+  wrap.style.display = uniqueCourses.length ? 'flex' : 'none';
+}
+
+function _setNoDlCourse(course) {
+  _noDlSelectedCourse = course;
+  _rebuildNoDlCourseFilter();
+  renderNoDlList();
 }
 
 function closeNoDlModal() {
@@ -3639,7 +3679,7 @@ function closeNoDlModal() {
 
 function renderNoDlList() {
   const q = (document.getElementById('no-dl-search').value || '').toLowerCase();
-  const selectedCourse = (document.getElementById('no-dl-course-filter') || {value:'all'}).value;
+  const selectedCourse = _noDlSelectedCourse || 'all';
   const el = document.getElementById('no-dl-list');
 
   // Бессрочні — або _noDeadline з allDl, або ті що мають override

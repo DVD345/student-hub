@@ -530,45 +530,27 @@ function setupNav() {
 }
 
 async function _refreshMoodleToken() {
-  const onLoginScreen = document.getElementById('screen-login') &&
-    document.getElementById('screen-login').classList.contains('active');
-  if(onLoginScreen) { _autoRefreshInProgress = false; return; }
-
   const creds = localStorage.getItem('sh_creds');
-  if(!creds) { _autoRefreshInProgress = false; return; }
-
-  const banner = document.getElementById('offline-banner');
-  if(banner) banner.innerHTML = '⏳ Оновлення сесії Moodle... <button onclick="this.parentNode.remove()" style="background:none;border:none;cursor:pointer;font-size:16px;margin-left:8px;color:#0a0a0f;">✕</button>';
-
+  if(!creds) { doLogout(); return; }
   try {
     const decoded = decodeURIComponent(escape(atob(creds)));
-    const colonIdx = decoded.indexOf(':');
-    const username = decoded.slice(0, colonIdx);
-    const password = decoded.slice(colonIdx + 1);
+    const [username, password] = decoded.split(':');
     const r = await fetch(MOODLE+'/login/token.php', {
       method: 'POST',
       headers: {'Content-Type':'application/x-www-form-urlencoded'},
       body: new URLSearchParams({username, password, service:'moodle_mobile_app'})
     });
-    const text = await r.text();
-    let d;
-    try { d = JSON.parse(text); } catch(e) { d = {}; }
-    if(d && d.token) {
+    const d = await r.json();
+    if(d.token) {
       token = d.token;
       localStorage.setItem('sh_token', token);
-      _lastRefreshAttempt = 0;
-      const b = document.getElementById('offline-banner');
-      if(b) b.remove();
-      _autoRefreshInProgress = false;
+      const banner = document.getElementById('offline-banner');
+      if(banner) banner.remove();
       syncMoodle();
     } else {
-      _autoRefreshInProgress = false;
-      _showOfflineBanner('Не вдалося оновити сесію — ' + (d && d.error ? d.error : 'спробуйте вийти і увійти знову'), '_refresh');
+      doLogout();
     }
-  } catch(e) {
-    _autoRefreshInProgress = false;
-    _showOfflineBanner('Немає з\'єднання з Moodle — перевірте інтернет', '_refresh');
-  }
+  } catch(e) { doLogout(); }
 }
 
 function _showOfflineBanner(msg, mode) {
@@ -585,41 +567,26 @@ function _showOfflineBanner(msg, mode) {
   banner.innerHTML = '⚡ ' + msg + ' <button ' + btnAction + ' style="background:rgba(0,0,0,.15);border:none;border-radius:4px;padding:2px 8px;cursor:pointer;font-size:11px;font-family:Inter,sans-serif;font-weight:700;">Оновити</button> <button onclick="this.parentNode.remove()" style="background:none;border:none;cursor:pointer;font-size:16px;line-height:1;margin-left:4px;">✕</button>';
 }
 
-var _autoRefreshInProgress = false;
-var _lastRefreshAttempt = 0;
 async function _parseMoodleResponse(r) {
   const text = await r.text();
   const t = text.trim();
-  const onLoginScreen = document.getElementById('screen-login') &&
-    document.getElementById('screen-login').classList.contains('active');
-
-  const isExpired = t.startsWith('<') || t.includes('<!DOCTYPE') || t.includes('<html') || t.includes('Увійдіть');
-  let data = null;
-  if(!isExpired) {
-    try {
-      data = JSON.parse(t);
-    } catch(e) {
-      console.warn('Moodle JSON parse error:', t.slice(0,120));
-      return null;
-    }
-  }
-  const isInvalidToken = data && (data.errorcode === 'invalidtoken' || data.errorcode === 'accessdenied');
-
-  if((isExpired || isInvalidToken) && !onLoginScreen) {
-    const now = Date.now();
-    if(!_autoRefreshInProgress && (now - _lastRefreshAttempt) > 30000) {
-      _autoRefreshInProgress = true;
-      _lastRefreshAttempt = now;
-      _showOfflineBanner('Сесія Moodle закінчилась — оновлюємо...', '_refresh');
-      _refreshMoodleToken().finally(() => { _autoRefreshInProgress = false; });
-    }
+  if(t.startsWith('<') || t.includes('<!DOCTYPE') || t.includes('<html') || t.includes('Увійдіть')) {
+    console.warn('Moodle session expired — got HTML instead of JSON');
+    _showOfflineBanner('Сесія Moodle закінчилась — натисніть Оновити', '_refresh');
     return null;
   }
-
-  return data;
+  try {
+    const data = JSON.parse(t);
+    if(data && (data.errorcode === 'invalidtoken' || data.errorcode === 'accessdenied')) {
+      _showOfflineBanner('Сесія Moodle закінчилась — натисніть Оновити', '_refresh');
+      return null;
+    }
+    return data;
+  } catch(e) {
+    console.warn('Moodle JSON parse error:', t.slice(0,120));
+    return null;
+  }
 }
-
-// _showSessionExpiredBanner більше не використовується (замінено на doLogout)
 
 async function moodleCall(fn, params={}) {
   const p = new URLSearchParams({ wstoken:token, wsfunction:fn, moodlewsrestformat:'json', ...params });
@@ -2865,7 +2832,6 @@ function doLogout(){
   if(_pinnedUnsub)_pinnedUnsub();
   unsubs=[];token='';userData={};allDl=[];courses=[];group={};userRole='student';cachedFiles=[];cachedMats=[];
   _notesLoaded = false;
-  _autoRefreshInProgress = false;
   _dlOverrides = {}; _dlDeleted = []; _calNotes = {};
   // Прибираємо банер при виході
   const banner = document.getElementById('offline-banner');
@@ -3600,11 +3566,14 @@ function showNoDlModal() {
   document.getElementById('no-dl-search').value = '';
   _noDlSelectedCourse = 'all';
 
-  const hasNoDlItems = allDl.some(d => d._noDeadline || !d.due);
-  if(!hasNoDlItems && token && courses.length) {
-    // Дані ще не завантажені — показуємо спіннер і завантажуємо
-    document.getElementById('no-dl-list').innerHTML = '<div class="loading"><div class="spinner"></div>Завантаження...</div>';
-    document.getElementById('no-dl-course-filter-wrap').innerHTML = '';
+  // Завжди перезавантажуємо при відкритті щоб мати свіжі дані
+  document.getElementById('no-dl-list').innerHTML = '<div class="loading"><div class="spinner"></div>Завантаження...</div>';
+  const wrap = document.getElementById('no-dl-course-filter-wrap');
+  if(wrap) wrap.style.display = 'none';
+  const lbl = document.getElementById('no-dl-course-label');
+  if(lbl) lbl.textContent = 'Усі курси';
+
+  if(token && courses.length) {
     _loadNoDlAssignments().then(() => {
       _rebuildNoDlCourseFilter();
       renderNoDlList();

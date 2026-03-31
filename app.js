@@ -500,6 +500,7 @@ async function _refreshMoodleToken() {
       token = d.token;
       localStorage.setItem('sh_token', token);
       _lastRefreshAttempt = 0; // скидаємо cooldown після успіху
+      _refreshFailCount = 0;   // скидаємо лічильник невдач
       const b = document.getElementById('offline-banner');
       if(b) b.remove();
       _autoRefreshInProgress = false;
@@ -507,10 +508,25 @@ async function _refreshMoodleToken() {
     } else {
       // Невірні дані або Moodle не відповів коректно
       _autoRefreshInProgress = false;
+      _refreshFailCount++;
+      // Після 3 невдалих спроб — примусово логаутимо, щоб не зациклюватись
+      if(_refreshFailCount >= 3) {
+        _refreshFailCount = 0;
+        console.warn('Auto-refresh failed 3 times — forcing logout');
+        doLogout();
+        return;
+      }
       _showOfflineBanner('Не вдалося оновити сесію — ' + (d && d.error ? d.error : 'спробуйте вийти і увійти знову'), '_refresh');
     }
   } catch(e) {
     _autoRefreshInProgress = false;
+    _refreshFailCount++;
+    if(_refreshFailCount >= 3) {
+      _refreshFailCount = 0;
+      console.warn('Auto-refresh network error 3 times — forcing logout');
+      doLogout();
+      return;
+    }
     _showOfflineBanner('Немає з\'єднання з Moodle — перевірте інтернет', '_refresh');
   }
 }
@@ -588,6 +604,7 @@ function setupNav() {
 
 var _autoRefreshInProgress = false;
 var _lastRefreshAttempt = 0;
+var _refreshFailCount = 0; // Лічильник невдалих спроб рефрешу
 async function _parseMoodleResponse(r) {
   const text = await r.text();
   const t = text.trim();
@@ -969,7 +986,7 @@ async function _saveUserSettings() {
       });
     } catch(e) {
       localStorage.setItem('ush_'+userData.userid, JSON.stringify({
-        dlUrgentH:_dlUrgentH, dlWarnD:_dlWarnD, dlDeleted:_dlDeleted, calNotes:_calNotes
+        dlUrgentH:_dlUrgentH, dlWarnD:_dlWarnD, dlDeleted:_dlDeleted, calNotes:_calNotes, dlOverrides:_dlOverrides
       }));
     }
   }, 800);
@@ -2866,6 +2883,7 @@ function doLogout(){
   unsubs=[];token='';userData={};allDl=[];courses=[];group={};userRole='student';cachedFiles=[];cachedMats=[];
   _notesLoaded = false;
   _autoRefreshInProgress = false;
+  _refreshFailCount = 0;
   _dlOverrides = {}; _dlDeleted = []; _calNotes = {};
   // Прибираємо банер при виході
   const banner = document.getElementById('offline-banner');
@@ -3595,8 +3613,24 @@ function showNoDlModal() {
   const modal = document.getElementById('modal-no-dl');
   modal.style.display = 'flex';
   document.getElementById('no-dl-search').value = '';
+  // Скидаємо фільтр курсу
+  const cf = document.getElementById('no-dl-course-filter');
+  if(cf) cf.value = 'all';
+  _rebuildNoDlCourseFilter();
   renderNoDlList();
   setTimeout(() => document.getElementById('no-dl-search').focus(), 80);
+}
+
+function _rebuildNoDlCourseFilter() {
+  const cf = document.getElementById('no-dl-course-filter');
+  if(!cf) return;
+  const items = allDl.filter(d => !_dlDeleted.includes(String(d.id)) && (d._noDeadline || !d.due));
+  const prev = cf.value;
+  const uniqueCourses = [...new Set(items.map(t => t.course).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'uk'));
+  cf.innerHTML = '<option value="all">Усі курси</option>' +
+    uniqueCourses.map(c => `<option value="${escHtml(c)}">${escHtml(c)}</option>`).join('');
+  // Відновлюємо попередній вибір якщо курс ще існує
+  if(prev && prev !== 'all' && uniqueCourses.includes(prev)) cf.value = prev;
 }
 
 function closeNoDlModal() {
@@ -3605,11 +3639,13 @@ function closeNoDlModal() {
 
 function renderNoDlList() {
   const q = (document.getElementById('no-dl-search').value || '').toLowerCase();
+  const selectedCourse = (document.getElementById('no-dl-course-filter') || {value:'all'}).value;
   const el = document.getElementById('no-dl-list');
 
   // Бессрочні — або _noDeadline з allDl, або ті що мають override
   let items = allDl.filter(d => !_dlDeleted.includes(String(d.id)) && (d._noDeadline || !d.due));
   if(q) items = items.filter(d => d.name.toLowerCase().includes(q) || d.course.toLowerCase().includes(q));
+  if(selectedCourse && selectedCourse !== 'all') items = items.filter(d => d.course === selectedCourse);
 
   if(!items.length) {
     el.innerHTML = '<div class="empty"><div class="emo">🎉</div><p>Бессрочних завдань не знайдено.<br><span style="font-size:12px;color:var(--text2);">Усі завдання з Moodle мають дедлайни.</span></p></div>';

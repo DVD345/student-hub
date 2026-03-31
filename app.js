@@ -2762,8 +2762,13 @@ async function requestNotifPerms(){
 function scheduleDeadlineNotifs(){
   const now=Date.now()/1000;
   const dlDel=typeof _dlDeleted!=='undefined'?_dlDeleted:[];
-  allDl.filter(d=>d.due>now&&!dlDel.includes(String(d.id))).forEach(d=>{
-    const diff=d.due-now;
+  allDl.filter(d=>{
+    if(dlDel.includes(String(d.id))) return false;
+    const eff=(typeof _dlOverrides!=='undefined'&&_dlOverrides[String(d.id)]&&_dlOverrides[String(d.id)].due)?_dlOverrides[String(d.id)].due:d.due;
+    return eff>now;
+  }).forEach(d=>{
+    const eff=(typeof _dlOverrides!=='undefined'&&_dlOverrides[String(d.id)]&&_dlOverrides[String(d.id)].due)?_dlOverrides[String(d.id)].due:d.due;
+    const diff=eff-now;
     if(diff>0&&diff<=48*3600){
       const key='notif_sent_'+d.id+'_48';
       if(!localStorage.getItem(key)){
@@ -3368,19 +3373,17 @@ applyDlFilter = function() {
   // Для фільтрації використовуємо ефективний due (з override або оригінальний)
   if(f==='active') {
     list = list.filter(d => {
-      const eff = getEffectiveDue(d);
       if(d.submitted === 'submitted') return false;
-      // Є override з дедлайном в майбутньому
+      const eff = getEffectiveDue(d);
+      const ov = _dlOverrides[String(d.id)];
+      // Є override з дедлайном в майбутньому — завжди показуємо
+      if(ov && ov.due && ov.due > now) return true;
+      // Є override але минув — не показуємо
+      if(ov && ov.due && ov.due <= now) return false;
+      // Звичайний дедлайн в майбутньому
       if(eff && eff > now) return true;
-      // Бессрочне без override — показуємо тільки якщо немає оригінального дедлайну
-      if(!d.due || d.due === 0) {
-        const ov = _dlOverrides[String(d.id)];
-        // Якщо override є але минув — не показуємо
-        if(ov && ov.due && ov.due <= now) return false;
-        // Якщо override є і в майбутньому — вже оброблено вище
-        // Якщо немає override — показуємо як бессрочне
-        return !ov;
-      }
+      // Бессрочне без override — показуємо
+      if(!d.due || d.due === 0) return true;
       return false;
     });
   } else if(f==='urgent') {
@@ -3588,7 +3591,7 @@ function showNoDlModal() {
 function _rebuildNoDlCourseFilter() {
   const wrap = document.getElementById('no-dl-course-filter-wrap');
   if(!wrap) return;
-  const items = allDl.filter(d => !_dlDeleted.includes(String(d.id)) && (d._noDeadline || !d.due));
+  const items = allDl.filter(d => !_dlDeleted.includes(String(d.id)) && (d._noDeadline || !d.due || d.due === 0));
   const uniqueCourses = [...new Set(items.map(t => t.course).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'uk'));
 
   if(_noDlSelectedCourse !== 'all' && !uniqueCourses.includes(_noDlSelectedCourse)) {
@@ -3646,8 +3649,8 @@ function renderNoDlList() {
   const selectedCourse = _noDlSelectedCourse || 'all';
   const el = document.getElementById('no-dl-list');
 
-  // Бессрочні — або _noDeadline з allDl, або ті що мають override
-  let items = allDl.filter(d => !_dlDeleted.includes(String(d.id)) && (d._noDeadline || !d.due));
+  // Бессрочні: завдання без дедлайну (due=0 або відсутній) — включаючи ті що мають override
+  let items = allDl.filter(d => !_dlDeleted.includes(String(d.id)) && (d._noDeadline || !d.due || d.due === 0));
   if(q) items = items.filter(d => d.name.toLowerCase().includes(q) || d.course.toLowerCase().includes(q));
   if(selectedCourse && selectedCourse !== 'all') items = items.filter(d => d.course === selectedCourse);
 

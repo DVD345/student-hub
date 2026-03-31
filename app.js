@@ -2285,7 +2285,19 @@ function renderCalendar() {
     const isToday=d2.getTime()===today.getTime();
     const dateStr=d2.getFullYear()+'-'+String(d2.getMonth()+1).padStart(2,'0')+'-'+String(d2.getDate()).padStart(2,'0');
     const dayStart=d2.getTime()/1000, dayEnd=dayStart+86400;
-    const dls=allDl.filter(dl=>!dlDeleted.includes(String(dl.id))&&dl.due>=dayStart&&dl.due<dayEnd&&dl.due>=nowTs&&dl.submitted!=='submitted');
+    // Використовуємо ефективний due (override або оригінальний)
+    const dls=allDl.filter(dl=>{
+      if(dlDeleted.includes(String(dl.id))) return false;
+      if(dl.submitted==='submitted') return false;
+      const eff = (typeof _dlOverrides!=='undefined'&&_dlOverrides[String(dl.id)]&&_dlOverrides[String(dl.id)].due)
+        ? _dlOverrides[String(dl.id)].due : dl.due;
+      if(!eff) return false;
+      return eff>=dayStart&&eff<dayEnd&&eff>=nowTs;
+    }).map(dl=>{
+      const eff = (typeof _dlOverrides!=='undefined'&&_dlOverrides[String(dl.id)]&&_dlOverrides[String(dl.id)].due)
+        ? _dlOverrides[String(dl.id)].due : dl.due;
+      return {...dl, due: eff};
+    });
     const nts=getCalNotes(dateStr);
     const hasEvents=dls.length>0||nts.length>0;
 
@@ -2338,7 +2350,18 @@ function openCalDayPopup(dateStr) {
   const warnD=typeof _dlWarnD!=='undefined'?_dlWarnD:7;
   const d2=new Date(dateStr); d2.setHours(0,0,0,0);
   const dayStart=d2.getTime()/1000, dayEnd=dayStart+86400;
-  const dls=allDl.filter(dl=>!dlDeleted.includes(String(dl.id))&&dl.due>=dayStart&&dl.due<dayEnd&&dl.due>=nowTs&&dl.submitted!=='submitted');
+  const dls=allDl.filter(dl=>{
+    if(dlDeleted.includes(String(dl.id))) return false;
+    if(dl.submitted==='submitted') return false;
+    const eff = (typeof _dlOverrides!=='undefined'&&_dlOverrides[String(dl.id)]&&_dlOverrides[String(dl.id)].due)
+      ? _dlOverrides[String(dl.id)].due : dl.due;
+    if(!eff) return false;
+    return eff>=dayStart&&eff<dayEnd&&eff>=nowTs;
+  }).map(dl=>{
+    const eff = (typeof _dlOverrides!=='undefined'&&_dlOverrides[String(dl.id)]&&_dlOverrides[String(dl.id)].due)
+      ? _dlOverrides[String(dl.id)].due : dl.due;
+    return {...dl, due: eff};
+  });
   const nts=getCalNotes(dateStr);
   if(!dls.length&&!nts.length) {
     openCalNoteModal(dateStr, {stopPropagation:function(){}});
@@ -3023,7 +3046,13 @@ function renderWidgetToday() {
   var dlDel=typeof _dlDeleted!=='undefined'?_dlDeleted:[];
   var urgH=typeof _dlUrgentH!=='undefined'?_dlUrgentH:48;
   var items=allDl.filter(function(d){
-    return !dlDel.includes(String(d.id))&&d.due>=now&&d.due>=todayStart.getTime()/1000&&d.due<=todayEnd.getTime()/1000;
+    if(dlDel.includes(String(d.id))) return false;
+    var eff=(typeof _dlOverrides!=='undefined'&&_dlOverrides[String(d.id)]&&_dlOverrides[String(d.id)].due)?_dlOverrides[String(d.id)].due:d.due;
+    if(!eff) return false;
+    return eff>=now&&eff>=todayStart.getTime()/1000&&eff<=todayEnd.getTime()/1000;
+  }).map(function(d){
+    var eff=(typeof _dlOverrides!=='undefined'&&_dlOverrides[String(d.id)]&&_dlOverrides[String(d.id)].due)?_dlOverrides[String(d.id)].due:d.due;
+    return {...d,due:eff};
   });
   if(!items.length){el.innerHTML='<div class="widget-empty">🎉 Сьогодні дедлайнів немає</div>';return;}
   el.innerHTML=items.slice(0,4).map(function(d){
@@ -3043,7 +3072,13 @@ function renderWidgetWeek() {
   var urgH=typeof _dlUrgentH!=='undefined'?_dlUrgentH:48;
   var warnD=typeof _dlWarnD!=='undefined'?_dlWarnD:7;
   var items=allDl.filter(function(d){
-    return !dlDel.includes(String(d.id))&&d.due>=tomorrowStart.getTime()/1000&&d.due<=weekEnd;
+    if(dlDel.includes(String(d.id))) return false;
+    var eff=(typeof _dlOverrides!=='undefined'&&_dlOverrides[String(d.id)]&&_dlOverrides[String(d.id)].due)?_dlOverrides[String(d.id)].due:d.due;
+    if(!eff) return false;
+    return eff>=tomorrowStart.getTime()/1000&&eff<=weekEnd;
+  }).map(function(d){
+    var eff=(typeof _dlOverrides!=='undefined'&&_dlOverrides[String(d.id)]&&_dlOverrides[String(d.id)].due)?_dlOverrides[String(d.id)].due:d.due;
+    return {...d,due:eff};
   }).slice(0,4);
   if(!items.length){el.innerHTML='<div class="widget-empty">📭 Дедлайнів на тижні немає</div>';return;}
   el.innerHTML=items.map(function(d){
@@ -3285,8 +3320,19 @@ applyDlFilter = function() {
   if(f==='active') {
     list = list.filter(d => {
       const eff = getEffectiveDue(d);
-      // Завдання активне: або є дедлайн в майбутньому, або немає дедлайну взагалі (бессрочне)
-      return (eff > now || d.due === 0 || !d.due) && d.submitted !== 'submitted';
+      if(d.submitted === 'submitted') return false;
+      // Є override з дедлайном в майбутньому
+      if(eff && eff > now) return true;
+      // Бессрочне без override — показуємо тільки якщо немає оригінального дедлайну
+      if(!d.due || d.due === 0) {
+        const ov = _dlOverrides[String(d.id)];
+        // Якщо override є але минув — не показуємо
+        if(ov && ov.due && ov.due <= now) return false;
+        // Якщо override є і в майбутньому — вже оброблено вище
+        // Якщо немає override — показуємо як бессрочне
+        return !ov;
+      }
+      return false;
     });
   } else if(f==='urgent') {
     list = list.filter(d => {
@@ -3302,8 +3348,9 @@ applyDlFilter = function() {
 
   // Замінюємо due на ефективний для рендерингу
   list = list.map(d => {
-    const eff = getEffectiveDue(d);
-    return { ...d, due: eff || d.due, past: eff ? eff <= now : false };
+    const ov = _dlOverrides[String(d.id)];
+    const eff = (ov && ov.due) ? ov.due : d.due;
+    return { ...d, due: eff || d.due, past: eff ? eff <= now : false, _origDue: d.due };
   });
 
   renderDl(list, document.getElementById('dl-list'));

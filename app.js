@@ -472,10 +472,17 @@ function _loadCachedData() {
 }
 
 async function _refreshMoodleToken() {
+  // Якщо ми вже на екрані логіну — нічого не робимо
+  const onLoginScreen = document.getElementById('screen-login') &&
+    document.getElementById('screen-login').classList.contains('active');
+  if(onLoginScreen) { _autoRefreshInProgress = false; return; }
+
   const creds = localStorage.getItem('sh_creds');
-  if(!creds) { doLogout(); return; }
+  if(!creds) { _autoRefreshInProgress = false; return; }
+
   const banner = document.getElementById('offline-banner');
-  if(banner) banner.innerHTML = '⏳ Оновлення сесії... <button onclick="this.parentNode.remove()" style="background:none;border:none;cursor:pointer;font-size:16px;margin-left:8px;">✕</button>';
+  if(banner) banner.innerHTML = '⏳ Оновлення сесії Moodle... <button onclick="this.parentNode.remove()" style="background:none;border:none;cursor:pointer;font-size:16px;margin-left:8px;color:#0a0a0f;">✕</button>';
+
   try {
     const decoded = decodeURIComponent(escape(atob(creds)));
     const colonIdx = decoded.indexOf(':');
@@ -489,19 +496,21 @@ async function _refreshMoodleToken() {
     const text = await r.text();
     let d;
     try { d = JSON.parse(text); } catch(e) { d = {}; }
-    if(d.token) {
+    if(d && d.token) {
       token = d.token;
       localStorage.setItem('sh_token', token);
-      if(banner) banner.remove();
+      const b = document.getElementById('offline-banner');
+      if(b) b.remove();
+      _autoRefreshInProgress = false;
       syncMoodle();
     } else {
-      // Moodle відповів але токен не дав — можливо проблема з кредами
-      // НЕ виходимо — показуємо банер з можливістю повторити
-      _showOfflineBanner('Не вдалося оновити сесію — спробуйте ще раз', '_refresh');
+      // Невірні дані або Moodle не відповів коректно
+      _autoRefreshInProgress = false;
+      _showOfflineBanner('Не вдалося оновити сесію — ' + (d && d.error ? d.error : 'спробуйте вийти і увійти знову'), '_refresh');
     }
   } catch(e) {
-    // Мережева помилка — не виходити, просто показати банер
-    _showOfflineBanner('Немає з\'єднання — перевірте інтернет', '_refresh');
+    _autoRefreshInProgress = false;
+    _showOfflineBanner('Немає з\'єднання з Moodle — перевірте інтернет', '_refresh');
   }
 }
 
@@ -580,9 +589,12 @@ var _autoRefreshInProgress = false;
 async function _parseMoodleResponse(r) {
   const text = await r.text();
   const t = text.trim();
+  // Не показуємо банер якщо ми на екрані логіну
+  const onLoginScreen = document.getElementById('screen-login') &&
+    document.getElementById('screen-login').classList.contains('active');
   if(t.startsWith('<') || t.includes('<!DOCTYPE') || t.includes('<html') || t.includes('Увійдіть')) {
     console.warn('Moodle session expired — got HTML instead of JSON');
-    if(!_autoRefreshInProgress) {
+    if(!onLoginScreen && !_autoRefreshInProgress) {
       _autoRefreshInProgress = true;
       _showOfflineBanner('Сесія Moodle закінчилась — оновлюємо автоматично...', '_refresh');
       setTimeout(async () => {
@@ -595,7 +607,7 @@ async function _parseMoodleResponse(r) {
   try {
     const data = JSON.parse(t);
     if(data && (data.errorcode === 'invalidtoken' || data.errorcode === 'accessdenied')) {
-      if(!_autoRefreshInProgress) {
+      if(!onLoginScreen && !_autoRefreshInProgress) {
         _autoRefreshInProgress = true;
         _showOfflineBanner('Сесія Moodle закінчилась — оновлюємо автоматично...', '_refresh');
         setTimeout(async () => {
@@ -2856,6 +2868,11 @@ function doLogout(){
   if(_pinnedUnsub)_pinnedUnsub();
   unsubs=[];token='';userData={};allDl=[];courses=[];group={};userRole='student';cachedFiles=[];cachedMats=[];
   _notesLoaded = false;
+  _autoRefreshInProgress = false;
+  _dlOverrides = {}; _dlDeleted = []; _calNotes = {};
+  // Прибираємо банер при виході
+  const banner = document.getElementById('offline-banner');
+  if(banner) banner.remove();
   localStorage.removeItem('sh_token');localStorage.removeItem('sh_gid');
   document.getElementById('screen-app').classList.remove('active');
   document.getElementById('screen-login').classList.add('active');
@@ -2875,8 +2892,34 @@ if(sv&&sgid){
       const tid=setTimeout(()=>ctrl.abort(),5000);
       const testR=await fetch(MOODLE+'/webservice/rest/server.php?wstoken='+sv+'&wsfunction=core_webservice_get_site_info&moodlewsrestformat=json',{signal:ctrl.signal});
       clearTimeout(tid);
-      const testD=await testR.json();
-      if(testD.errorcode){
+      let testD;
+      try { testD = await testR.json(); } catch(e) { testD = {errorcode:'parseerror'}; }
+      if(testD && testD.errorcode) {
+        // Токен протух — спробуємо тихо оновити його з кешованих кредів
+        const creds = localStorage.getItem('sh_creds');
+        if(creds) {
+          try {
+            const decoded = decodeURIComponent(escape(atob(creds)));
+            const colonIdx = decoded.indexOf(':');
+            const username = decoded.slice(0, colonIdx);
+            const password = decoded.slice(colonIdx + 1);
+            const rr = await fetch(MOODLE+'/login/token.php', {
+              method:'POST',
+              headers:{'Content-Type':'application/x-www-form-urlencoded'},
+              body: new URLSearchParams({username, password, service:'moodle_mobile_app'})
+            });
+            const rd = await rr.json();
+            if(rd && rd.token) {
+              token = rd.token;
+              localStorage.setItem('sh_token', token);
+              const snap=await getDoc(doc(window._db,'groups',sgid));
+              if(snap.exists()){group={id:sgid,...snap.data()};}
+              await initApp();
+              return;
+            }
+          } catch(e2) {}
+        }
+        // Не вдалось оновити — заходимо офлайн якщо є кеш
         if(!cachedGroup){localStorage.removeItem('sh_token');localStorage.removeItem('sh_gid');}
         else{await _offlineLogin(sgid);}
         return;

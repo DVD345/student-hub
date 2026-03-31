@@ -471,17 +471,6 @@ function _loadCachedData() {
   } catch(e) {}
 }
 
-function _showOfflineBanner(msg) {
-  let banner = document.getElementById('offline-banner');
-  if(!banner) {
-    banner = document.createElement('div');
-    banner.id = 'offline-banner';
-    banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:9000;background:rgba(240,160,48,.95);color:#0a0a0f;font-size:12px;font-weight:600;padding:calc(env(safe-area-inset-top, 0px) + 7px) 14px 7px;text-align:center;display:flex;align-items:center;justify-content:center;gap:8px;';
-    document.body.prepend(banner);
-  }
-  banner.dataset.type = '';
-  banner.innerHTML = '⚡ ' + msg + ' <button onclick="syncMoodle();this.parentNode.remove()" style="background:rgba(0,0,0,.15);border:none;border-radius:4px;padding:2px 8px;cursor:pointer;font-size:11px;font-family:Inter,sans-serif;font-weight:700;">Оновити</button> <button onclick="this.parentNode.remove()" style="background:none;border:none;cursor:pointer;font-size:16px;line-height:1;margin-left:4px;">✕</button>';
-}
 
 async function loadUserInfo() {
   try {
@@ -540,6 +529,64 @@ function setupNav() {
   }
 }
 
+async function _refreshMoodleToken() {
+  const onLoginScreen = document.getElementById('screen-login') &&
+    document.getElementById('screen-login').classList.contains('active');
+  if(onLoginScreen) { _autoRefreshInProgress = false; return; }
+
+  const creds = localStorage.getItem('sh_creds');
+  if(!creds) { _autoRefreshInProgress = false; return; }
+
+  const banner = document.getElementById('offline-banner');
+  if(banner) banner.innerHTML = '⏳ Оновлення сесії Moodle... <button onclick="this.parentNode.remove()" style="background:none;border:none;cursor:pointer;font-size:16px;margin-left:8px;color:#0a0a0f;">✕</button>';
+
+  try {
+    const decoded = decodeURIComponent(escape(atob(creds)));
+    const colonIdx = decoded.indexOf(':');
+    const username = decoded.slice(0, colonIdx);
+    const password = decoded.slice(colonIdx + 1);
+    const r = await fetch(MOODLE+'/login/token.php', {
+      method: 'POST',
+      headers: {'Content-Type':'application/x-www-form-urlencoded'},
+      body: new URLSearchParams({username, password, service:'moodle_mobile_app'})
+    });
+    const text = await r.text();
+    let d;
+    try { d = JSON.parse(text); } catch(e) { d = {}; }
+    if(d && d.token) {
+      token = d.token;
+      localStorage.setItem('sh_token', token);
+      _lastRefreshAttempt = 0;
+      const b = document.getElementById('offline-banner');
+      if(b) b.remove();
+      _autoRefreshInProgress = false;
+      syncMoodle();
+    } else {
+      _autoRefreshInProgress = false;
+      _showOfflineBanner('Не вдалося оновити сесію — ' + (d && d.error ? d.error : 'спробуйте вийти і увійти знову'), '_refresh');
+    }
+  } catch(e) {
+    _autoRefreshInProgress = false;
+    _showOfflineBanner('Немає з\'єднання з Moodle — перевірте інтернет', '_refresh');
+  }
+}
+
+function _showOfflineBanner(msg, mode) {
+  let banner = document.getElementById('offline-banner');
+  if(!banner) {
+    banner = document.createElement('div');
+    banner.id = 'offline-banner';
+    banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:9000;background:rgba(240,160,48,.95);color:#0a0a0f;font-size:12px;font-weight:600;padding:calc(env(safe-area-inset-top, 0px) + 7px) 14px 7px;text-align:center;display:flex;align-items:center;justify-content:center;gap:8px;';
+    document.body.prepend(banner);
+  }
+  var btnAction = mode === '_refresh'
+    ? 'onclick="_refreshMoodleToken()"'
+    : 'onclick="syncMoodle();this.parentNode.remove()"';
+  banner.innerHTML = '⚡ ' + msg + ' <button ' + btnAction + ' style="background:rgba(0,0,0,.15);border:none;border-radius:4px;padding:2px 8px;cursor:pointer;font-size:11px;font-family:Inter,sans-serif;font-weight:700;">Оновити</button> <button onclick="this.parentNode.remove()" style="background:none;border:none;cursor:pointer;font-size:16px;line-height:1;margin-left:4px;">✕</button>';
+}
+
+var _autoRefreshInProgress = false;
+var _lastRefreshAttempt = 0;
 async function _parseMoodleResponse(r) {
   const text = await r.text();
   const t = text.trim();
@@ -559,8 +606,13 @@ async function _parseMoodleResponse(r) {
   const isInvalidToken = data && (data.errorcode === 'invalidtoken' || data.errorcode === 'accessdenied');
 
   if((isExpired || isInvalidToken) && !onLoginScreen) {
-    // Токен протух — тихо виходимо на екран логіну
-    doLogout();
+    const now = Date.now();
+    if(!_autoRefreshInProgress && (now - _lastRefreshAttempt) > 30000) {
+      _autoRefreshInProgress = true;
+      _lastRefreshAttempt = now;
+      _showOfflineBanner('Сесія Moodle закінчилась — оновлюємо...', '_refresh');
+      _refreshMoodleToken().finally(() => { _autoRefreshInProgress = false; });
+    }
     return null;
   }
 
@@ -2813,6 +2865,7 @@ function doLogout(){
   if(_pinnedUnsub)_pinnedUnsub();
   unsubs=[];token='';userData={};allDl=[];courses=[];group={};userRole='student';cachedFiles=[];cachedMats=[];
   _notesLoaded = false;
+  _autoRefreshInProgress = false;
   _dlOverrides = {}; _dlDeleted = []; _calNotes = {};
   // Прибираємо банер при виході
   const banner = document.getElementById('offline-banner');

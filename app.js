@@ -499,6 +499,7 @@ async function _refreshMoodleToken() {
     if(d && d.token) {
       token = d.token;
       localStorage.setItem('sh_token', token);
+      _lastRefreshAttempt = 0; // скидаємо cooldown після успіху
       const b = document.getElementById('offline-banner');
       if(b) b.remove();
       _autoRefreshInProgress = false;
@@ -586,42 +587,38 @@ function setupNav() {
 }
 
 var _autoRefreshInProgress = false;
+var _lastRefreshAttempt = 0;
 async function _parseMoodleResponse(r) {
   const text = await r.text();
   const t = text.trim();
-  // Не показуємо банер якщо ми на екрані логіну
   const onLoginScreen = document.getElementById('screen-login') &&
     document.getElementById('screen-login').classList.contains('active');
-  if(t.startsWith('<') || t.includes('<!DOCTYPE') || t.includes('<html') || t.includes('Увійдіть')) {
-    console.warn('Moodle session expired — got HTML instead of JSON');
-    if(!onLoginScreen && !_autoRefreshInProgress) {
-      _autoRefreshInProgress = true;
-      _showOfflineBanner('Сесія Moodle закінчилась — оновлюємо автоматично...', '_refresh');
-      setTimeout(async () => {
-        await _refreshMoodleToken();
-        _autoRefreshInProgress = false;
-      }, 500);
-    }
-    return null;
-  }
-  try {
-    const data = JSON.parse(t);
-    if(data && (data.errorcode === 'invalidtoken' || data.errorcode === 'accessdenied')) {
-      if(!onLoginScreen && !_autoRefreshInProgress) {
-        _autoRefreshInProgress = true;
-        _showOfflineBanner('Сесія Moodle закінчилась — оновлюємо автоматично...', '_refresh');
-        setTimeout(async () => {
-          await _refreshMoodleToken();
-          _autoRefreshInProgress = false;
-        }, 500);
-      }
+
+  const isExpired = t.startsWith('<') || t.includes('<!DOCTYPE') || t.includes('<html') || t.includes('Увійдіть');
+  let data = null;
+  if(!isExpired) {
+    try {
+      data = JSON.parse(t);
+    } catch(e) {
+      console.warn('Moodle JSON parse error:', t.slice(0,120));
       return null;
     }
-    return data;
-  } catch(e) {
-    console.warn('Moodle JSON parse error:', t.slice(0,120));
+  }
+  const isInvalidToken = data && (data.errorcode === 'invalidtoken' || data.errorcode === 'accessdenied');
+
+  if((isExpired || isInvalidToken) && !onLoginScreen) {
+    const now = Date.now();
+    // Cooldown 30 секунд між спробами рефрешу — щоб не зациклюватись
+    if(!_autoRefreshInProgress && (now - _lastRefreshAttempt) > 30000) {
+      _autoRefreshInProgress = true;
+      _lastRefreshAttempt = now;
+      _showOfflineBanner('Сесія Moodle закінчилась — оновлюємо...', '_refresh');
+      _refreshMoodleToken().finally(() => { _autoRefreshInProgress = false; });
+    }
     return null;
   }
+
+  return data;
 }
 
 async function moodleCall(fn, params={}) {
@@ -3335,26 +3332,30 @@ renderDl = function(list, el) {
     const sid = String(d.id);
     const ov = _dlOverrides[sid];
     const effectiveDue = ov && ov.due ? ov.due : d.due;
-    const isPast = effectiveDue <= now;
-    const diff = effectiveDue - now;
+    // Бессрочне: effectiveDue = 0 або відсутній — НЕ вважається минулим
+    const isNoDl = !effectiveDue || effectiveDue === 0;
+    const isPast = !isNoDl && effectiveDue <= now;
+    const diff = isNoDl ? Infinity : (effectiveDue - now);
 
     // Колір крапки
     let dotClass;
-    if(isPast) dotClass = 'dot-u';
+    if(isNoDl) dotClass = 'dot-o'; // сіро-зелений для бессрочних
+    else if(isPast) dotClass = 'dot-u';
     else if(diff < _dlUrgentH*3600) dotClass = 'dot-u';
     else if(diff < _dlWarnD*86400) dotClass = 'dot-s';
     else dotClass = 'dot-o';
 
     // Клас дати
     let dateCls = '';
-    if(isPast) dateCls = 'u';
-    else if(diff < _dlUrgentH*3600) dateCls = 'u';
-    else if(diff < _dlWarnD*86400) dateCls = 's';
+    if(!isNoDl && isPast) dateCls = 'u';
+    else if(!isNoDl && diff < _dlUrgentH*3600) dateCls = 'u';
+    else if(!isNoDl && diff < _dlWarnD*86400) dateCls = 's';
 
     const hasUrl = d.url && d.url !== '#';
     let tag = '';
     if(d.submitted==='submitted') tag='<span class="tag g">✅ Здано</span>';
     else if(d.submitted==='draft') tag='<span class="tag y">📝 Чернетка</span>';
+    else if(isNoDl) tag='<span class="tag" style="background:var(--bg3);color:var(--text2);">∞ Безстроково</span>';
     else if(isPast) tag='<span class="tag r">Минув</span>';
     else if(diff < _dlUrgentH*3600) tag='<span class="tag r">🔴 Термін!</span>';
     else if(diff < 86400*2) {

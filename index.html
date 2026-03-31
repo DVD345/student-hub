@@ -554,7 +554,7 @@ function _loadKaTeX() {
 
 <!-- NO DEADLINE MODAL -->
 <div id="modal-no-dl" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:3000;align-items:flex-start;justify-content:center;padding:16px;padding-top:max(16px,env(safe-area-inset-top,16px));backdrop-filter:blur(6px);overflow-y:auto;">
-  <div style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;width:100%;max-width:480px;overflow:hidden;box-shadow:0 24px 64px rgba(0,0,0,.5);margin:0 auto;">
+  <div style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;width:100%;max-width:480px;overflow:visible;box-shadow:0 24px 64px rgba(0,0,0,.5);margin:0 auto;">
     <div style="padding:16px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;position:sticky;top:0;background:var(--bg2);z-index:1;">
       <span style="font-size:20px;">📋</span>
       <div style="flex:1;">
@@ -563,19 +563,15 @@ function _loadKaTeX() {
       </div>
       <button onclick="closeNoDlModal()" style="background:none;border:none;color:var(--text2);font-size:20px;cursor:pointer;line-height:1;padding:4px;">✕</button>
     </div>
-    <div style="padding:12px;">
+    <div style="padding:12px;overflow:visible;">
       <input type="text" id="no-dl-search" placeholder="🔍 Пошук завдання..." oninput="renderNoDlList()" style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px 13px;color:var(--text);font-size:14px;outline:none;font-family:Inter,sans-serif;box-sizing:border-box;margin-bottom:6px;">
-      <!-- Фільтр по курсах — inline розкривний список -->
+      <!-- Фільтр по курсах — нативний select -->
       <div style="margin-bottom:8px;">
-        <button id="no-dl-course-btn" onclick="_toggleNoDlDropdown()" style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px 13px;color:var(--text);font-size:13px;font-weight:500;cursor:pointer;text-align:left;font-family:Inter,sans-serif;display:flex;align-items:center;justify-content:space-between;-webkit-tap-highlight-color:transparent;">
-          <span id="no-dl-course-label">Усі курси</span>
-          <span id="no-dl-course-arrow" style="font-size:10px;opacity:.5;transition:transform .2s;">▼</span>
-        </button>
-        <div id="no-dl-course-filter-wrap" style="display:none;border:1px solid var(--border);border-top:none;border-radius:0 0 8px 8px;overflow:hidden;background:var(--bg2);">
-          <!-- Список курсів генерується через JS -->
-        </div>
+        <select id="no-dl-course-select" onchange="_setNoDlCourse(this.value)" style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px 13px;color:var(--text);font-size:13px;font-family:Inter,sans-serif;outline:none;-webkit-appearance:none;appearance:none;cursor:pointer;">
+          <option value="all">Усі курси</option>
+        </select>
       </div>
-      <div id="no-dl-list" style="max-height:50vh;overflow-y:auto;"></div>
+      <div id="no-dl-list" style="max-height:55vh;overflow-y:scroll;"></div>
     </div>
   </div>
 </div>

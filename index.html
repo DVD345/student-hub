@@ -564,11 +564,18 @@ function _loadKaTeX() {
       <button onclick="closeNoDlModal()" style="background:none;border:none;color:var(--text2);font-size:20px;cursor:pointer;line-height:1;padding:4px;">✕</button>
     </div>
     <div style="padding:12px;">
-      <input type="text" id="no-dl-search" placeholder="🔍 Пошук завдання..." oninput="renderNoDlList()" style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px 13px;color:var(--text);font-size:14px;outline:none;font-family:Inter,sans-serif;box-sizing:border-box;margin-bottom:8px;">
-      <div id="no-dl-course-filter-wrap" style="display:flex;gap:6px;overflow-x:auto;padding-bottom:8px;scrollbar-width:none;-webkit-overflow-scrolling:touch;margin-bottom:4px;">
-        <!-- Chips будуть згенеровані через JS -->
+      <input type="text" id="no-dl-search" placeholder="🔍 Пошук завдання..." oninput="renderNoDlList()" style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px 13px;color:var(--text);font-size:14px;outline:none;font-family:Inter,sans-serif;box-sizing:border-box;margin-bottom:6px;">
+      <!-- Dropdown фільтр по курсах -->
+      <div id="no-dl-course-dropdown" style="position:relative;margin-bottom:8px;">
+        <button id="no-dl-course-btn" onclick="_toggleNoDlDropdown()" style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px 13px;color:var(--text);font-size:13px;font-weight:500;cursor:pointer;text-align:left;font-family:Inter,sans-serif;display:flex;align-items:center;justify-content:space-between;">
+          <span id="no-dl-course-label">Усі курси</span>
+          <span id="no-dl-course-arrow" style="font-size:10px;opacity:.5;transition:transform .2s;">▼</span>
+        </button>
+        <div id="no-dl-course-filter-wrap" style="display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;background:var(--bg2);border:1px solid var(--border);border-radius:8px;z-index:10;overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,.4);max-height:200px;overflow-y:auto;">
+          <!-- Список курсів генерується через JS -->
+        </div>
       </div>
-      <div id="no-dl-list" style="max-height:55vh;overflow-y:auto;"></div>
+      <div id="no-dl-list" style="max-height:50vh;overflow-y:auto;"></div>
     </div>
   </div>
 </div>

@@ -559,26 +559,15 @@ async function _parseMoodleResponse(r) {
   const isInvalidToken = data && (data.errorcode === 'invalidtoken' || data.errorcode === 'accessdenied');
 
   if((isExpired || isInvalidToken) && !onLoginScreen) {
-    // ✅ Просто показуємо банер з кнопкою виходу — без авторефрешу
-    _showSessionExpiredBanner();
+    // Токен протух — тихо виходимо на екран логіну
+    doLogout();
     return null;
   }
 
   return data;
 }
 
-function _showSessionExpiredBanner() {
-  let banner = document.getElementById('offline-banner');
-  if(banner && banner.dataset.type === 'session') return; // вже показано
-  if(!banner) {
-    banner = document.createElement('div');
-    banner.id = 'offline-banner';
-    banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:9000;background:rgba(240,160,48,.95);color:#0a0a0f;font-size:12px;font-weight:600;padding:calc(env(safe-area-inset-top, 0px) + 7px) 14px 7px;text-align:center;display:flex;align-items:center;justify-content:center;gap:8px;';
-    document.body.prepend(banner);
-  }
-  banner.dataset.type = 'session';
-  banner.innerHTML = '🔑 Сесія Moodle закінчилась — <button onclick="doLogout()" style="background:rgba(0,0,0,.2);border:none;border-radius:4px;padding:3px 10px;cursor:pointer;font-size:11px;font-family:Inter,sans-serif;font-weight:700;color:#0a0a0f;">Вийти і увійти знову</button>';
-}
+// _showSessionExpiredBanner більше не використовується (замінено на doLogout)
 
 async function moodleCall(fn, params={}) {
   const p = new URLSearchParams({ wstoken:token, wsfunction:fn, moodlewsrestformat:'json', ...params });
@@ -3577,40 +3566,57 @@ function showNoDlModal() {
 function _rebuildNoDlCourseFilter() {
   const wrap = document.getElementById('no-dl-course-filter-wrap');
   if(!wrap) return;
-  // Беремо курси тільки з бессрочних завдань
   const items = allDl.filter(d => !_dlDeleted.includes(String(d.id)) && (d._noDeadline || !d.due));
   const uniqueCourses = [...new Set(items.map(t => t.course).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'uk'));
 
-  // Якщо вибраний курс більше не існує — скидаємо
   if(_noDlSelectedCourse !== 'all' && !uniqueCourses.includes(_noDlSelectedCourse)) {
     _noDlSelectedCourse = 'all';
   }
 
-  const chipStyle = (active) =>
-    'flex-shrink:0;border-radius:20px;padding:5px 12px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;font-family:Inter,sans-serif;' +
-    (active
-      ? 'background:var(--accent);color:#0a0a0f;border:none;'
-      : 'background:var(--bg3);color:var(--text2);border:1px solid var(--border);');
+  // Оновлюємо лейбл кнопки
+  const lbl = document.getElementById('no-dl-course-label');
+  if(lbl) lbl.textContent = _noDlSelectedCourse === 'all' ? 'Усі курси' : _noDlSelectedCourse;
 
-  // Завжди показуємо "Усі курси" + chips курсів
+  // Рядок "Усі курси" + список курсів
+  const rowStyle = (active) =>
+    'display:block;width:100%;text-align:left;padding:10px 14px;background:' +
+    (active ? 'var(--accent);color:#0a0a0f;' : 'none;color:var(--text);') +
+    'border:none;font-size:13px;font-family:Inter,sans-serif;cursor:pointer;border-bottom:1px solid var(--border);';
+
   wrap.innerHTML =
-    `<button style="${chipStyle(_noDlSelectedCourse==='all')}" onclick="_setNoDlCourse('all')">Усі курси</button>` +
+    `<button style="${rowStyle(_noDlSelectedCourse==='all')}" onclick="_setNoDlCourse('all')">Усі курси</button>` +
     uniqueCourses.map(c =>
-      `<button style="${chipStyle(_noDlSelectedCourse===c)}" onclick="_setNoDlCourse(${JSON.stringify(c)})">${escHtml(c)}</button>`
+      `<button style="${rowStyle(_noDlSelectedCourse===c)}" onclick="_setNoDlCourse(${JSON.stringify(c)})">${escHtml(c)}</button>`
     ).join('');
+}
 
-  // Показуємо рядок завжди (навіть якщо тільки "Усі курси")
-  wrap.style.display = 'flex';
+function _toggleNoDlDropdown() {
+  const wrap = document.getElementById('no-dl-course-filter-wrap');
+  const arrow = document.getElementById('no-dl-course-arrow');
+  if(!wrap) return;
+  const isOpen = wrap.style.display !== 'none';
+  wrap.style.display = isOpen ? 'none' : 'block';
+  if(arrow) arrow.style.transform = isOpen ? '' : 'rotate(180deg)';
 }
 
 function _setNoDlCourse(course) {
   _noDlSelectedCourse = course;
+  // Закриваємо dropdown
+  const wrap = document.getElementById('no-dl-course-filter-wrap');
+  const arrow = document.getElementById('no-dl-course-arrow');
+  if(wrap) wrap.style.display = 'none';
+  if(arrow) arrow.style.transform = '';
   _rebuildNoDlCourseFilter();
   renderNoDlList();
 }
 
 function closeNoDlModal() {
   document.getElementById('modal-no-dl').style.display = 'none';
+  // Закриваємо dropdown якщо був відкритий
+  const wrap = document.getElementById('no-dl-course-filter-wrap');
+  const arrow = document.getElementById('no-dl-course-arrow');
+  if(wrap) wrap.style.display = 'none';
+  if(arrow) arrow.style.transform = '';
 }
 
 function renderNoDlList() {

@@ -443,12 +443,25 @@ function _loadCachedData() {
       document.getElementById('uav').textContent = name[0].toUpperCase();
       const today = new Date().toLocaleDateString('uk-UA',{weekday:'long',day:'numeric',month:'long'});
       document.getElementById('dash-sub').textContent = today + ' • ' + name;
+      // ── Передзавантажуємо overrides/settings з localStorage ──
+      // щоб перший рендер (до відповіді Firebase) вже мав правильні дані
+      // і завдання не "мигали" (з'являлись/пропадали)
+      try {
+        const localSettings = localStorage.getItem('ush_'+userData.userid);
+        if(localSettings) {
+          const ls = JSON.parse(localSettings);
+          if(ls.dlOverrides && typeof ls.dlOverrides==='object') _dlOverrides = ls.dlOverrides;
+          if(Array.isArray(ls.dlDeleted)) _dlDeleted = ls.dlDeleted;
+          if(ls.dlUrgentH) _dlUrgentH = ls.dlUrgentH;
+          if(ls.dlWarnD)   _dlWarnD   = ls.dlWarnD;
+          if(ls.calNotes && typeof ls.calNotes==='object') _calNotes = ls.calNotes;
+        }
+      } catch(e2) {}
     }
     if(cachedGroup) { const cg = JSON.parse(cachedGroup); if(!group.id) group = cg; }
     if(cachedCourses) { courses = JSON.parse(cachedCourses); renderCourses(); }
     if(cachedDl) {
       allDl = JSON.parse(cachedDl);
-      // Use scheduleRender instead of multiple direct calls
       scheduleRender();
     }
     if(cacheTs) {
@@ -461,25 +474,35 @@ function _loadCachedData() {
 async function _refreshMoodleToken() {
   const creds = localStorage.getItem('sh_creds');
   if(!creds) { doLogout(); return; }
+  const banner = document.getElementById('offline-banner');
+  if(banner) banner.innerHTML = '⏳ Оновлення сесії... <button onclick="this.parentNode.remove()" style="background:none;border:none;cursor:pointer;font-size:16px;margin-left:8px;">✕</button>';
   try {
     const decoded = decodeURIComponent(escape(atob(creds)));
-    const [username, password] = decoded.split(':');
+    const colonIdx = decoded.indexOf(':');
+    const username = decoded.slice(0, colonIdx);
+    const password = decoded.slice(colonIdx + 1);
     const r = await fetch(MOODLE+'/login/token.php', {
       method: 'POST',
       headers: {'Content-Type':'application/x-www-form-urlencoded'},
       body: new URLSearchParams({username, password, service:'moodle_mobile_app'})
     });
-    const d = await r.json();
+    const text = await r.text();
+    let d;
+    try { d = JSON.parse(text); } catch(e) { d = {}; }
     if(d.token) {
       token = d.token;
       localStorage.setItem('sh_token', token);
-      const banner = document.getElementById('offline-banner');
       if(banner) banner.remove();
       syncMoodle();
     } else {
-      doLogout();
+      // Moodle відповів але токен не дав — можливо проблема з кредами
+      // НЕ виходимо — показуємо банер з можливістю повторити
+      _showOfflineBanner('Не вдалося оновити сесію — спробуйте ще раз', '_refresh');
     }
-  } catch(e) { doLogout(); }
+  } catch(e) {
+    // Мережева помилка — не виходити, просто показати банер
+    _showOfflineBanner('Немає з\'єднання — перевірте інтернет', '_refresh');
+  }
 }
 
 function _showOfflineBanner(msg, mode) {
@@ -553,18 +576,33 @@ function setupNav() {
   }
 }
 
+var _autoRefreshInProgress = false;
 async function _parseMoodleResponse(r) {
   const text = await r.text();
   const t = text.trim();
   if(t.startsWith('<') || t.includes('<!DOCTYPE') || t.includes('<html') || t.includes('Увійдіть')) {
     console.warn('Moodle session expired — got HTML instead of JSON');
-    _showOfflineBanner('Сесія Moodle закінчилась — натисніть Оновити', '_refresh');
+    if(!_autoRefreshInProgress) {
+      _autoRefreshInProgress = true;
+      _showOfflineBanner('Сесія Moodle закінчилась — оновлюємо автоматично...', '_refresh');
+      setTimeout(async () => {
+        await _refreshMoodleToken();
+        _autoRefreshInProgress = false;
+      }, 500);
+    }
     return null;
   }
   try {
     const data = JSON.parse(t);
     if(data && (data.errorcode === 'invalidtoken' || data.errorcode === 'accessdenied')) {
-      _showOfflineBanner('Сесія Moodle закінчилась — натисніть Оновити', '_refresh');
+      if(!_autoRefreshInProgress) {
+        _autoRefreshInProgress = true;
+        _showOfflineBanner('Сесія Moodle закінчилась — оновлюємо автоматично...', '_refresh');
+        setTimeout(async () => {
+          await _refreshMoodleToken();
+          _autoRefreshInProgress = false;
+        }, 500);
+      }
       return null;
     }
     return data;
@@ -3219,21 +3257,22 @@ _saveUserSettings = async function() {
   if(!window._db || !userData.userid) return;
   clearTimeout(_saveSettingsTimer);
   _saveSettingsTimer = setTimeout(async () => {
+    const payload = {
+      dlUrgentH: _dlUrgentH, dlWarnD: _dlWarnD,
+      dlDeleted: _dlDeleted, calNotes: _calNotes,
+      dlOverrides: _dlOverrides
+    };
+    // Завжди зберігаємо в localStorage — щоб при наступному завантаженні
+    // перший рендер вже мав актуальні overrides (до відповіді Firebase)
+    try { localStorage.setItem('ush_'+userData.userid, JSON.stringify(payload)); } catch(e2) {}
+    // І в Firebase
     const { setDoc } = window._fb;
     try {
       await setDoc(_userSettingsDoc(), {
-        dlUrgentH: _dlUrgentH, dlWarnD: _dlWarnD,
-        dlDeleted: _dlDeleted, calNotes: _calNotes,
-        dlOverrides: _dlOverrides,
+        ...payload,
         updatedAt: Date.now(), userId: String(userData.userid)
       });
-    } catch(e) {
-      localStorage.setItem('ush_'+userData.userid, JSON.stringify({
-        dlUrgentH:_dlUrgentH, dlWarnD:_dlWarnD,
-        dlDeleted:_dlDeleted, calNotes:_calNotes,
-        dlOverrides:_dlOverrides
-      }));
-    }
+    } catch(e) {}
   }, 800);
 };
 

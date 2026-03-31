@@ -641,7 +641,7 @@ async function openCourseContents(courseId, btn) {
       const mods = s.modules.filter(m=>m.modname!=='label').map(m => {
         const ico = modIco[m.modname] || '📌';
         const fileUrl = m.contents && m.contents[0] ? m.contents[0].fileurl + '?token=' + token : null;
-        const link = fileUrl || m.url || MOODLE+'/mod/'+m.modname+'/view.php?id='+m.id;
+        const link = fileUrl || m.url || 'https://do.kart.edu.ua/mod/'+m.modname+'/view.php?id='+m.id;
         const sz = m.contents && m.contents[0] && m.contents[0].filesize > 1024
           ? ' <span style="color:var(--text2);font-size:10px;">' + Math.round(m.contents[0].filesize/1024) + ' КБ</span>' : '';
         return '<a href="'+escHtml(link)+'" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:10px;padding:10px 12px;color:var(--text);text-decoration:none;border-bottom:1px solid var(--border);transition:background .15s;" onmouseover="this.style.background=&quot;var(--bg3)&quot;" onmouseout="this.style.background=&quot;&quot;">'+
@@ -790,7 +790,7 @@ async function loadDeadlines() {
                     course: { fullname: course.fullname },
                     timesort: deadline, modulename: 'assign',
                     assignid: a.id,
-                    url: MOODLE+'/mod/assign/view.php?id='+a.cmid
+                    url: 'https://do.kart.edu.ua/mod/assign/view.php?id='+a.cmid
                   });
                 }
               });
@@ -1230,7 +1230,7 @@ function applyDlFilter() {
   const now = Date.now()/1000;
   let list=allDl.filter(d=>!_dlDeleted.includes(String(d.id)));
   list=list.filter(d=>!q||d.name.toLowerCase().includes(q)||d.course.toLowerCase().includes(q));
-  if(f==='active') list=list.filter(d=>d.due > now);
+  if(f==='active') list=list.filter(d=>d.due > now && d.submitted !== 'submitted');
   else if(f==='urgent') list=list.filter(d=>d.due > now && (d.due-now)<_dlUrgentH*3600);
   else if(f==='past') list=list.filter(d=>d.due <= now);
   list = list.map(d => ({ ...d, past: d.due <= now }));
@@ -3369,12 +3369,16 @@ applyDlFilter = function() {
   if(f==='active') {
     list = list.filter(d => {
       const eff = getEffectiveDue(d);
-      // Є override з дедлайном в майбутньому — завжди показуємо (навіть здані)
+      if(d.submitted === 'submitted') return false;
+      // Є override з дедлайном в майбутньому
       if(eff && eff > now) return true;
-      // Бессрочне без override — показуємо
+      // Бессрочне без override — показуємо тільки якщо немає оригінального дедлайну
       if(!d.due || d.due === 0) {
         const ov = _dlOverrides[String(d.id)];
+        // Якщо override є але минув — не показуємо
         if(ov && ov.due && ov.due <= now) return false;
+        // Якщо override є і в майбутньому — вже оброблено вище
+        // Якщо немає override — показуємо як бессрочне
         return !ov;
       }
       return false;
@@ -3529,7 +3533,7 @@ async function _loadNoDlAssignments() {
                 course: course.fullname || course.shortname || '—',
                 due: 0,
                 past: false,
-                url: MOODLE + '/mod/assign/view.php?id=' + a.cmid,
+                url: 'https://do.kart.edu.ua/mod/assign/view.php?id='+a.cmid,
                 assignid: a.id,
                 submitted: null,
                 _noDeadline: true
@@ -3597,9 +3601,9 @@ function _rebuildNoDlCourseFilter() {
 
   // Рядок "Усі курси" + список курсів
   const rowStyle = (active) =>
-    'display:block;width:100%;text-align:left;padding:10px 14px;background:' +
-    (active ? 'var(--accent);color:#0a0a0f;' : 'none;color:var(--text);') +
-    'border:none;font-size:13px;font-family:Inter,sans-serif;cursor:pointer;border-bottom:1px solid var(--border);';
+    'display:block;width:100%;text-align:left;padding:11px 14px;background:' +
+    (active ? 'var(--accent);color:#0a0a0f;' : 'var(--bg2);color:var(--text);') +
+    'border:none;border-bottom:1px solid var(--border);font-size:13px;font-family:Inter,sans-serif;cursor:pointer;-webkit-tap-highlight-color:transparent;';
 
   wrap.innerHTML =
     `<button style="${rowStyle(_noDlSelectedCourse==='all')}" onclick="event.stopPropagation();_setNoDlCourse('all')">Усі курси</button>` +
@@ -3608,8 +3612,7 @@ function _rebuildNoDlCourseFilter() {
     ).join('');
 }
 
-function _toggleNoDlDropdown(e) {
-  if(e) e.stopPropagation();
+function _toggleNoDlDropdown() {
   const wrap = document.getElementById('no-dl-course-filter-wrap');
   const arrow = document.getElementById('no-dl-course-arrow');
   if(!wrap) return;
@@ -3674,13 +3677,5 @@ function renderNoDlList() {
 
 document.getElementById('modal-no-dl').addEventListener('click', function(e) {
   if(e.target === this) closeNoDlModal();
-  // Закриваємо dropdown якщо клік поза ним
-  const wrap = document.getElementById('no-dl-course-filter-wrap');
-  const btn = document.getElementById('no-dl-course-btn');
-  if(wrap && wrap.style.display !== 'none' && !wrap.contains(e.target) && e.target !== btn && !btn.contains(e.target)) {
-    const arrow = document.getElementById('no-dl-course-arrow');
-    wrap.style.display = 'none';
-    if(arrow) arrow.style.transform = '';
-  }
 });
 

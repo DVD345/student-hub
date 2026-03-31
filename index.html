@@ -316,6 +316,7 @@ function _loadKaTeX() {
             <option value="past">Минулі</option>
           </select>
           <div class="tb-right">
+            <button class="btn" onclick="showNoDlModal()" title="Завдання без дедлайну" style="font-size:11px;">📋 Без дедлайну</button>
             <button class="btn" onclick="toggleDlSettings()" title="Налаштування кольорів">🎨</button>
             <button class="btn a" onclick="syncMoodle()">🔄</button>
           </div>
@@ -547,6 +548,56 @@ function _loadKaTeX() {
     <div class="modal-actions">
       <button class="btn" onclick="closeModal('add-group')">Скасувати</button>
       <button class="btn a" id="group-modal-btn" onclick="groupModalAction()">Створити</button>
+    </div>
+  </div>
+</div>
+
+<!-- NO DEADLINE MODAL -->
+<div id="modal-no-dl" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:3000;align-items:flex-start;justify-content:center;padding:16px;padding-top:max(16px,env(safe-area-inset-top,16px));backdrop-filter:blur(6px);overflow-y:auto;">
+  <div style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;width:100%;max-width:480px;overflow:hidden;box-shadow:0 24px 64px rgba(0,0,0,.5);margin:0 auto;">
+    <div style="padding:16px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;position:sticky;top:0;background:var(--bg2);z-index:1;">
+      <span style="font-size:20px;">📋</span>
+      <div style="flex:1;">
+        <div style="font-size:14px;font-weight:700;">Завдання без дедлайну</div>
+        <div style="font-size:11px;color:var(--text2);">Натисніть ✏️ щоб встановити дедлайн</div>
+      </div>
+      <button onclick="closeNoDlModal()" style="background:none;border:none;color:var(--text2);font-size:20px;cursor:pointer;line-height:1;padding:4px;">✕</button>
+    </div>
+    <div style="padding:12px;">
+      <input type="text" id="no-dl-search" placeholder="🔍 Пошук завдання..." oninput="renderNoDlList()" style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px 13px;color:var(--text);font-size:14px;outline:none;font-family:Inter,sans-serif;box-sizing:border-box;margin-bottom:10px;">
+      <div id="no-dl-list" style="max-height:60vh;overflow-y:auto;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- DEADLINE EDIT MODAL -->
+<div id="modal-dl-edit" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:3000;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(6px);">
+  <div style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;width:100%;max-width:400px;overflow:hidden;box-shadow:0 24px 64px rgba(0,0,0,.5);">
+    <div style="padding:16px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;">
+      <span style="font-size:20px;">✏️</span>
+      <div style="flex:1;">
+        <div style="font-size:14px;font-weight:700;color:var(--text);">Встановити дедлайн</div>
+        <div id="dl-edit-name" style="font-size:11px;color:var(--text2);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:300px;"></div>
+      </div>
+      <button onclick="closeDlEditModal()" style="background:none;border:none;color:var(--text2);font-size:20px;cursor:pointer;line-height:1;padding:4px;">✕</button>
+    </div>
+    <div style="padding:18px;">
+      <div style="margin-bottom:14px;">
+        <label style="font-size:11px;font-weight:700;color:var(--text2);letter-spacing:.5px;text-transform:uppercase;display:block;margin-bottom:7px;">📅 Дата</label>
+        <input type="date" id="dl-edit-date" style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:11px 13px;color:var(--text);font-size:15px;outline:none;font-family:Inter,sans-serif;box-sizing:border-box;">
+      </div>
+      <div style="margin-bottom:18px;">
+        <label style="font-size:11px;font-weight:700;color:var(--text2);letter-spacing:.5px;text-transform:uppercase;display:block;margin-bottom:7px;">🕐 Час (необов'язково)</label>
+        <input type="time" id="dl-edit-time" style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:11px 13px;color:var(--text);font-size:15px;outline:none;font-family:Inter,sans-serif;box-sizing:border-box;">
+      </div>
+      <div id="dl-edit-original" style="display:none;font-size:11px;color:var(--text2);margin-bottom:14px;padding:8px 12px;background:var(--bg3);border-radius:8px;">
+        📌 Оригінальний дедлайн з Moodle: <span id="dl-edit-orig-val" style="color:var(--text);font-weight:600;"></span>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button id="dl-edit-reset-btn" onclick="resetDlOverride()" style="display:none;flex:0 0 auto;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:11px 14px;color:var(--text2);font-size:13px;cursor:pointer;font-family:Inter,sans-serif;">↩ Скинути</button>
+        <button onclick="closeDlEditModal()" style="flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:11px;color:var(--text);font-size:14px;cursor:pointer;font-family:Inter,sans-serif;">Скасувати</button>
+        <button onclick="saveDlOverride()" style="flex:1;background:var(--accent);border:none;border-radius:8px;padding:11px;color:#0a0a0f;font-size:14px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;">💾 Зберегти</button>
+      </div>
     </div>
   </div>
 </div>

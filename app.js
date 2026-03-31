@@ -1254,7 +1254,15 @@ function renderDashDl() {
   const el=document.getElementById('dash-dl');
   const dlDel=typeof _dlDeleted!=='undefined'?_dlDeleted:[];
   const now = Date.now()/1000;
-  const top=allDl.filter(d=>d.due>now&&!dlDel.includes(String(d.id))&&d.submitted!=='submitted').slice(0,5);
+  const top=allDl.filter(d=>{
+    if(dlDel.includes(String(d.id))) return false;
+    if(d.submitted==='submitted') return false;
+    const eff = (typeof getEffectiveDue === 'function') ? getEffectiveDue(d) : d.due;
+    return eff && eff > now;
+  }).map(d => {
+    const eff = (typeof getEffectiveDue === 'function') ? getEffectiveDue(d) : d.due;
+    return { ...d, due: eff, past: false };
+  }).sort((a,b)=>a.due-b.due).slice(0,5);
   if(!top.length){el.innerHTML='<div class="empty"><div class="emo">🎉</div><p>Немає активних дедлайнів!</p></div>';return;}
   renderDl(top,el);
 }
@@ -3128,3 +3136,376 @@ function exportNotesMD() {
   a.href = url; a.download = 'notes-' + new Date().toISOString().slice(0,10) + '.md';
   a.click(); URL.revokeObjectURL(url);
 }
+
+// ══════════════════════════════════════════════
+// ── DEADLINE OVERRIDES (ручні дедлайни з Moodle)
+// ══════════════════════════════════════════════
+// _dlOverrides: { [dlId]: { due: unixTimestamp } }
+// Зберігається разом з userSettings у Firebase
+
+var _dlOverrides = {};
+var _dlEditCurrentId = null;
+
+// Завантаження overrides вбудовано в startUserSettingsSync —
+// просто розширюємо існуючий механізм читання/запису.
+
+// Патч startUserSettingsSync щоб читати overrides
+var _origStartUserSettingsSync = startUserSettingsSync;
+startUserSettingsSync = function() {
+  return new Promise(resolve => {
+    if(!window._db || !userData.userid) { resolve(); return; }
+    const { onSnapshot } = window._fb;
+    if(_userSettingsUnsub) _userSettingsUnsub();
+    let firstLoad = true;
+    _userSettingsUnsub = onSnapshot(_userSettingsDoc(), snap => {
+      const data = snap.exists() ? snap.data() : {};
+      _dlUrgentH = data.dlUrgentH ?? 48;
+      _dlWarnD   = data.dlWarnD   ?? 7;
+      _dlDeleted = Array.isArray(data.dlDeleted) ? data.dlDeleted : [];
+      _calNotes  = (data.calNotes && typeof data.calNotes==='object') ? data.calNotes : {};
+      _dlOverrides = (data.dlOverrides && typeof data.dlOverrides==='object') ? data.dlOverrides : {};
+      _settingsLoaded = true;
+      const uh = document.getElementById('dl-urgent-hours');
+      const wd = document.getElementById('dl-warn-days');
+      if(uh) uh.value = _dlUrgentH;
+      if(wd) wd.value = _dlWarnD;
+      if(allDl.length > 0) {
+        scheduleRender();
+        _renderCalNotesInDeadlines();
+      }
+      if(firstLoad) { firstLoad = false; resolve(); }
+    }, err => { console.warn('userSettings sync error:', err.code); resolve(); });
+  });
+};
+
+// Патч _saveUserSettings щоб включати overrides
+var _origSaveUserSettings = _saveUserSettings;
+_saveUserSettings = async function() {
+  if(!window._db || !userData.userid) return;
+  clearTimeout(_saveSettingsTimer);
+  _saveSettingsTimer = setTimeout(async () => {
+    const { setDoc } = window._fb;
+    try {
+      await setDoc(_userSettingsDoc(), {
+        dlUrgentH: _dlUrgentH, dlWarnD: _dlWarnD,
+        dlDeleted: _dlDeleted, calNotes: _calNotes,
+        dlOverrides: _dlOverrides,
+        updatedAt: Date.now(), userId: String(userData.userid)
+      });
+    } catch(e) {
+      localStorage.setItem('ush_'+userData.userid, JSON.stringify({
+        dlUrgentH:_dlUrgentH, dlWarnD:_dlWarnD,
+        dlDeleted:_dlDeleted, calNotes:_calNotes,
+        dlOverrides:_dlOverrides
+      }));
+    }
+  }, 800);
+};
+
+// Повертає реальний due для дедлайну (override або оригінал)
+function getEffectiveDue(d) {
+  const ov = _dlOverrides[String(d.id)];
+  if(ov && ov.due) return ov.due;
+  return d.due;
+}
+
+// ── Патч renderDl щоб показувати кнопку ✏️ і override-badge ──
+var _origRenderDl = renderDl;
+renderDl = function(list, el) {
+  if(!list.length){el.innerHTML='<div class="empty"><div class="emo">🎉</div><p>Дедлайнів не знайдено</p></div>';return;}
+  const now = Date.now()/1000;
+  el.innerHTML='<div class="dl-list">'+list.map(d=>{
+    const sid = String(d.id);
+    const ov = _dlOverrides[sid];
+    const effectiveDue = ov && ov.due ? ov.due : d.due;
+    const isPast = effectiveDue <= now;
+    const diff = effectiveDue - now;
+
+    // Колір крапки
+    let dotClass;
+    if(isPast) dotClass = 'dot-u';
+    else if(diff < _dlUrgentH*3600) dotClass = 'dot-u';
+    else if(diff < _dlWarnD*86400) dotClass = 'dot-s';
+    else dotClass = 'dot-o';
+
+    // Клас дати
+    let dateCls = '';
+    if(isPast) dateCls = 'u';
+    else if(diff < _dlUrgentH*3600) dateCls = 'u';
+    else if(diff < _dlWarnD*86400) dateCls = 's';
+
+    const hasUrl = d.url && d.url !== '#';
+    let tag = '';
+    if(d.submitted==='submitted') tag='<span class="tag g">✅ Здано</span>';
+    else if(d.submitted==='draft') tag='<span class="tag y">📝 Чернетка</span>';
+    else if(isPast) tag='<span class="tag r">Минув</span>';
+    else if(diff < _dlUrgentH*3600) tag='<span class="tag r">🔴 Термін!</span>';
+    else if(diff < 86400*2) {
+      const dueD=new Date(effectiveDue*1000); const todD=new Date();
+      const isTomorrow=dueD.getDate()===todD.getDate()+1&&dueD.getMonth()===todD.getMonth()&&dueD.getFullYear()===todD.getFullYear();
+      if(isTomorrow) tag='<span class="tag y">Завтра</span>';
+    }
+
+    // Override-badge
+    const ovBadge = ov && ov.due
+      ? '<span title="Дедлайн встановлено вручну" style="font-size:9px;background:rgba(240,192,64,.18);color:var(--accent);border:1px solid rgba(240,192,64,.35);border-radius:4px;padding:1px 5px;margin-left:4px;vertical-align:middle;">✏️ свій</span>'
+      : '';
+
+    const dateDisplay = ov && ov.due
+      ? fmtDate(ov.due)
+      : (d.due ? fmtDate(d.due) : '<span style="color:var(--text2);font-style:italic;font-size:11px;">без дедлайну</span>');
+
+    return '<div class="dl-item'+(hasUrl?' click':'')+'"'+
+      (hasUrl?' onclick="window.open(this.dataset.url)" data-url="'+escHtml(d.url)+'"':'')+(isPast?' style="opacity:.6"':'')+'>'+
+      '<div class="dl-dot '+dotClass+'"></div>'+
+      '<div class="dl-info"><div class="dl-name">'+escHtml(d.name)+ovBadge+(hasUrl?' <span style="opacity:.35;font-size:9px">↗</span>':'')+'</div>'+
+      '<div class="dl-course">'+escHtml(d.course)+'</div></div>'+
+      '<div class="dl-right">'+
+        '<div class="dl-date '+dateCls+'">'+dateDisplay+'</div>'+
+        tag+
+        '<div style="display:flex;gap:3px;margin-top:3px;justify-content:flex-end;">'+
+          '<button onclick="event.stopPropagation();openDlEditModal(this.dataset.dlid)" data-dlid="'+escHtml(sid)+'" title="Встановити/змінити дедлайн" style="background:none;border:none;color:var(--accent);font-size:13px;cursor:pointer;opacity:.55;padding:2px 4px;border-radius:4px;transition:opacity .15s;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=.55">✏️</button>'+
+          '<button onclick="event.stopPropagation();deleteDl(this.dataset.dlid,event)" data-dlid="'+escHtml(sid)+'" title="Приховати" style="background:none;border:none;color:var(--text2);font-size:12px;cursor:pointer;opacity:.4;padding:2px 4px;border-radius:4px;transition:opacity .15s;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=.4">✕</button>'+
+        '</div>'+
+      '</div></div>';
+  }).join('')+'</div>';
+};
+
+// ── applyDlFilter — враховуємо overrides при фільтрації ──
+var _origApplyDlFilter = applyDlFilter;
+applyDlFilter = function() {
+  const q=(document.getElementById('dl-q')||{value:''}).value.toLowerCase();
+  const f=(document.getElementById('dl-f')||{value:'active'}).value;
+  const now = Date.now()/1000;
+
+  let list = allDl.filter(d => !_dlDeleted.includes(String(d.id)));
+  list = list.filter(d => !q || d.name.toLowerCase().includes(q) || d.course.toLowerCase().includes(q));
+
+  // Для фільтрації використовуємо ефективний due (з override або оригінальний)
+  if(f==='active') {
+    list = list.filter(d => {
+      const eff = getEffectiveDue(d);
+      // Завдання активне: або є дедлайн в майбутньому, або немає дедлайну взагалі (бессрочне)
+      return (eff > now || d.due === 0 || !d.due) && d.submitted !== 'submitted';
+    });
+  } else if(f==='urgent') {
+    list = list.filter(d => {
+      const eff = getEffectiveDue(d);
+      return eff > now && (eff - now) < _dlUrgentH*3600;
+    });
+  } else if(f==='past') {
+    list = list.filter(d => {
+      const eff = getEffectiveDue(d);
+      return eff && eff <= now;
+    });
+  }
+
+  // Замінюємо due на ефективний для рендерингу
+  list = list.map(d => {
+    const eff = getEffectiveDue(d);
+    return { ...d, due: eff || d.due, past: eff ? eff <= now : false };
+  });
+
+  renderDl(list, document.getElementById('dl-list'));
+  _renderCalNotesInDeadlines();
+};
+
+// ── Модальне вікно редагування дедлайну ──
+function openDlEditModal(dlId) {
+  const d = allDl.find(x => String(x.id) === String(dlId));
+  if(!d) return;
+  _dlEditCurrentId = String(dlId);
+
+  document.getElementById('dl-edit-name').textContent = d.name + (d.course ? ' · ' + d.course : '');
+
+  const ov = _dlOverrides[_dlEditCurrentId];
+
+  // Якщо є override — показуємо його значення
+  const ts = (ov && ov.due) ? ov.due : null;
+  if(ts) {
+    const dt = new Date(ts * 1000);
+    document.getElementById('dl-edit-date').value = dt.toISOString().slice(0,10);
+    const hh = String(dt.getHours()).padStart(2,'0');
+    const mm = String(dt.getMinutes()).padStart(2,'0');
+    document.getElementById('dl-edit-time').value = hh + ':' + mm;
+  } else if(d.due) {
+    const dt = new Date(d.due * 1000);
+    document.getElementById('dl-edit-date').value = dt.toISOString().slice(0,10);
+    const hh = String(dt.getHours()).padStart(2,'0');
+    const mm = String(dt.getMinutes()).padStart(2,'0');
+    document.getElementById('dl-edit-time').value = hh + ':' + mm;
+  } else {
+    // Бессрочне — пропонуємо сьогодні
+    const today = new Date();
+    document.getElementById('dl-edit-date').value = today.toISOString().slice(0,10);
+    document.getElementById('dl-edit-time').value = '23:59';
+  }
+
+  // Показуємо оригінальний дедлайн якщо він є
+  const origEl = document.getElementById('dl-edit-original');
+  const origVal = document.getElementById('dl-edit-orig-val');
+  if(d.due) {
+    origEl.style.display = 'block';
+    origVal.textContent = fmtDate(d.due);
+  } else {
+    origEl.style.display = 'none';
+  }
+
+  // Показуємо кнопку "Скинути" тільки якщо є override
+  document.getElementById('dl-edit-reset-btn').style.display = (ov && ov.due) ? '' : 'none';
+
+  const modal = document.getElementById('modal-dl-edit');
+  modal.style.display = 'flex';
+  setTimeout(() => document.getElementById('dl-edit-date').focus(), 80);
+}
+
+function closeDlEditModal() {
+  document.getElementById('modal-dl-edit').style.display = 'none';
+  _dlEditCurrentId = null;
+}
+
+function saveDlOverride() {
+  if(!_dlEditCurrentId) return;
+  const dateVal = document.getElementById('dl-edit-date').value;
+  const timeVal = document.getElementById('dl-edit-time').value || '23:59';
+  if(!dateVal) { alert('Оберіть дату'); return; }
+  const dt = new Date(dateVal + 'T' + timeVal + ':00');
+  if(isNaN(dt.getTime())) { alert('Невірна дата'); return; }
+  const ts = Math.floor(dt.getTime() / 1000);
+  _dlOverrides[_dlEditCurrentId] = { due: ts };
+  closeDlEditModal();
+  scheduleRender();
+  _saveUserSettings();
+}
+
+function resetDlOverride() {
+  if(!_dlEditCurrentId) return;
+  delete _dlOverrides[_dlEditCurrentId];
+  closeDlEditModal();
+  scheduleRender();
+  _saveUserSettings();
+}
+
+// Закрити по кліку на фон
+document.getElementById('modal-dl-edit').addEventListener('click', function(e) {
+  if(e.target === this) closeDlEditModal();
+});
+document.addEventListener('keydown', e => {
+  if(e.key === 'Escape' && document.getElementById('modal-dl-edit').style.display !== 'none') closeDlEditModal();
+});
+
+// ── Бессрочні завдання з Moodle ──
+// Зберігаємо завдання без дедлайну (due=0) в allDl окремим масивом
+var _noDlItems = [];
+
+// Патч loadDeadlines щоб включати завдання без дедлайну
+var _origLoadDeadlines = loadDeadlines;
+loadDeadlines = async function() {
+  // Спочатку запускаємо оригінальний loadDeadlines
+  await _origLoadDeadlines.call(this);
+  // Потім підтягуємо бессрочні окремим запитом
+  await _loadNoDlAssignments();
+};
+
+async function _loadNoDlAssignments() {
+  if(!token || !courses.length) return;
+  try {
+    const chunkSize = 20;
+    const chunks = [];
+    for(let i=0; i<courses.length; i+=chunkSize) chunks.push(courses.slice(i,i+chunkSize));
+    const results = await Promise.all(chunks.map(chunk => {
+      const courseids = chunk.map((c,i)=>`courseids[${i}]=${c.id}`).join('&');
+      return fetch(MOODLE+'/webservice/rest/server.php?wstoken='+token+'&wsfunction=mod_assign_get_assignments&moodlewsrestformat=json&'+courseids)
+        .then(r=>r.json()).catch(()=>null);
+    }));
+    const existingIds = new Set(allDl.map(d => String(d.id)));
+    const noDl = [];
+    results.forEach(d => {
+      if(!d || !d.courses) return;
+      d.courses.forEach(course => {
+        (course.assignments||[]).forEach(a => {
+          const deadline = a.duedate || 0;
+          if(deadline === 0) {
+            const sid = 'nodl_' + a.id;
+            if(!existingIds.has(sid)) {
+              noDl.push({
+                id: sid,
+                _origAssignId: a.id,
+                name: a.name || 'Завдання',
+                _normName: (a.name||'').toLowerCase().trim(),
+                course: course.fullname || course.shortname || '—',
+                due: 0,
+                past: false,
+                url: MOODLE + '/mod/assign/view.php?id=' + a.cmid,
+                assignid: a.id,
+                submitted: null,
+                _noDeadline: true
+              });
+            }
+          }
+        });
+      });
+    });
+    _noDlItems = noDl;
+    // Додаємо бессрочні до allDl щоб вони з'являлись при фільтрі "active"
+    // але відфільтровуємо ті, що вже були (дублі)
+    const existingIds2 = new Set(allDl.map(d => String(d.id)));
+    noDl.forEach(item => {
+      if(!existingIds2.has(String(item.id))) {
+        allDl.push(item);
+        existingIds2.add(String(item.id));
+      }
+    });
+    scheduleRender();
+  } catch(e) { console.warn('_loadNoDlAssignments error:', e); }
+}
+
+// ── Модальне вікно перегляду бессрочних ──
+function showNoDlModal() {
+  const modal = document.getElementById('modal-no-dl');
+  modal.style.display = 'flex';
+  document.getElementById('no-dl-search').value = '';
+  renderNoDlList();
+  setTimeout(() => document.getElementById('no-dl-search').focus(), 80);
+}
+
+function closeNoDlModal() {
+  document.getElementById('modal-no-dl').style.display = 'none';
+}
+
+function renderNoDlList() {
+  const q = (document.getElementById('no-dl-search').value || '').toLowerCase();
+  const el = document.getElementById('no-dl-list');
+
+  // Бессрочні — або _noDeadline з allDl, або ті що мають override
+  let items = allDl.filter(d => !_dlDeleted.includes(String(d.id)) && (d._noDeadline || !d.due));
+  if(q) items = items.filter(d => d.name.toLowerCase().includes(q) || d.course.toLowerCase().includes(q));
+
+  if(!items.length) {
+    el.innerHTML = '<div class="empty"><div class="emo">🎉</div><p>Бессрочних завдань не знайдено.<br><span style="font-size:12px;color:var(--text2);">Усі завдання з Moodle мають дедлайни.</span></p></div>';
+    return;
+  }
+
+  el.innerHTML = items.map(d => {
+    const sid = String(d.id);
+    const ov = _dlOverrides[sid];
+    const hasOv = ov && ov.due;
+    const badge = hasOv
+      ? '<span style="font-size:9px;background:rgba(56,208,122,.15);color:var(--success);border:1px solid rgba(56,208,122,.3);border-radius:4px;padding:1px 6px;">✅ '+fmtDate(ov.due)+'</span>'
+      : '<span style="font-size:9px;background:var(--bg3);color:var(--text2);border:1px solid var(--border);border-radius:4px;padding:1px 6px;">без дедлайну</span>';
+    return '<div style="display:flex;align-items:center;gap:10px;padding:10px 8px;border-bottom:1px solid var(--border);cursor:pointer;" onclick="window.open(\''+escHtml(d.url||'#')+'\',\'_blank\')">' +
+      '<div style="width:8px;height:8px;border-radius:50%;background:'+(hasOv?'var(--success)':'var(--text2)')+';flex-shrink:0;"></div>'+
+      '<div style="flex:1;min-width:0;">' +
+        '<div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+escHtml(d.name)+'</div>'+
+        '<div style="font-size:11px;color:var(--text2);margin-top:2px;">'+escHtml(d.course)+'</div>'+
+        '<div style="margin-top:5px;">'+badge+'</div>'+
+      '</div>'+
+      '<button onclick="event.stopPropagation();closeNoDlModal();openDlEditModal(\''+escHtml(sid)+'\');" title="Встановити дедлайн" style="flex-shrink:0;background:var(--accent);border:none;border-radius:8px;padding:8px 12px;color:#0a0a0f;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;">✏️ Дедлайн</button>'+
+    '</div>';
+  }).join('');
+}
+
+document.getElementById('modal-no-dl').addEventListener('click', function(e) {
+  if(e.target === this) closeNoDlModal();
+});
+

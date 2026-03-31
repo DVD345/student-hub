@@ -471,73 +471,7 @@ function _loadCachedData() {
   } catch(e) {}
 }
 
-async function _refreshMoodleToken() {
-  // Якщо ми вже на екрані логіну — нічого не робимо
-  const onLoginScreen = document.getElementById('screen-login') &&
-    document.getElementById('screen-login').classList.contains('active');
-  if(onLoginScreen) { _autoRefreshInProgress = false; return; }
-
-  const creds = localStorage.getItem('sh_creds');
-  if(!creds) {
-    // Немає збережених credentials — не можемо оновити токен, треба логін
-    _autoRefreshInProgress = false;
-    console.warn('No creds for token refresh — forcing logout');
-    doLogout();
-    return;
-  }
-
-  const banner = document.getElementById('offline-banner');
-  if(banner) banner.innerHTML = '⏳ Оновлення сесії Moodle... <button onclick="this.parentNode.remove()" style="background:none;border:none;cursor:pointer;font-size:16px;margin-left:8px;color:#0a0a0f;">✕</button>';
-
-  try {
-    const decoded = decodeURIComponent(escape(atob(creds)));
-    const colonIdx = decoded.indexOf(':');
-    const username = decoded.slice(0, colonIdx);
-    const password = decoded.slice(colonIdx + 1);
-    const r = await fetch(MOODLE+'/login/token.php', {
-      method: 'POST',
-      headers: {'Content-Type':'application/x-www-form-urlencoded'},
-      body: new URLSearchParams({username, password, service:'moodle_mobile_app'})
-    });
-    const text = await r.text();
-    let d;
-    try { d = JSON.parse(text); } catch(e) { d = {}; }
-    if(d && d.token) {
-      token = d.token;
-      localStorage.setItem('sh_token', token);
-      _lastRefreshAttempt = 0; // скидаємо cooldown після успіху
-      _refreshFailCount = 0;   // скидаємо лічильник невдач
-      const b = document.getElementById('offline-banner');
-      if(b) b.remove();
-      _autoRefreshInProgress = false;
-      syncMoodle();
-    } else {
-      // Невірні дані або Moodle не відповів коректно
-      _autoRefreshInProgress = false;
-      _refreshFailCount++;
-      // Після 3 невдалих спроб — примусово логаутимо, щоб не зациклюватись
-      if(_refreshFailCount >= 3) {
-        _refreshFailCount = 0;
-        console.warn('Auto-refresh failed 3 times — forcing logout');
-        doLogout();
-        return;
-      }
-      _showOfflineBanner('Не вдалося оновити сесію — ' + (d && d.error ? d.error : 'спробуйте вийти і увійти знову'), '_refresh');
-    }
-  } catch(e) {
-    _autoRefreshInProgress = false;
-    _refreshFailCount++;
-    if(_refreshFailCount >= 3) {
-      _refreshFailCount = 0;
-      console.warn('Auto-refresh network error 3 times — forcing logout');
-      doLogout();
-      return;
-    }
-    _showOfflineBanner('Немає з\'єднання з Moodle — перевірте інтернет', '_refresh');
-  }
-}
-
-function _showOfflineBanner(msg, mode) {
+function _showOfflineBanner(msg) {
   let banner = document.getElementById('offline-banner');
   if(!banner) {
     banner = document.createElement('div');
@@ -545,10 +479,8 @@ function _showOfflineBanner(msg, mode) {
     banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:9000;background:rgba(240,160,48,.95);color:#0a0a0f;font-size:12px;font-weight:600;padding:calc(env(safe-area-inset-top, 0px) + 7px) 14px 7px;text-align:center;display:flex;align-items:center;justify-content:center;gap:8px;';
     document.body.prepend(banner);
   }
-  var btnAction = mode === '_refresh'
-    ? 'onclick="_refreshMoodleToken()"'
-    : 'onclick="syncMoodle();this.parentNode.remove()"';
-  banner.innerHTML = '⚡ ' + msg + ' <button ' + btnAction + ' style="background:rgba(0,0,0,.15);border:none;border-radius:4px;padding:2px 8px;cursor:pointer;font-size:11px;font-family:Inter,sans-serif;font-weight:700;">Оновити</button> <button onclick="this.parentNode.remove()" style="background:none;border:none;cursor:pointer;font-size:16px;line-height:1;margin-left:4px;">✕</button>';
+  banner.dataset.type = '';
+  banner.innerHTML = '⚡ ' + msg + ' <button onclick="syncMoodle();this.parentNode.remove()" style="background:rgba(0,0,0,.15);border:none;border-radius:4px;padding:2px 8px;cursor:pointer;font-size:11px;font-family:Inter,sans-serif;font-weight:700;">Оновити</button> <button onclick="this.parentNode.remove()" style="background:none;border:none;cursor:pointer;font-size:16px;line-height:1;margin-left:4px;">✕</button>';
 }
 
 async function loadUserInfo() {
@@ -608,9 +540,6 @@ function setupNav() {
   }
 }
 
-var _autoRefreshInProgress = false;
-var _lastRefreshAttempt = 0;
-var _refreshFailCount = 0; // Лічильник невдалих спроб рефрешу
 async function _parseMoodleResponse(r) {
   const text = await r.text();
   const t = text.trim();
@@ -630,18 +559,25 @@ async function _parseMoodleResponse(r) {
   const isInvalidToken = data && (data.errorcode === 'invalidtoken' || data.errorcode === 'accessdenied');
 
   if((isExpired || isInvalidToken) && !onLoginScreen) {
-    const now = Date.now();
-    // Cooldown 30 секунд між спробами рефрешу — щоб не зациклюватись
-    if(!_autoRefreshInProgress && (now - _lastRefreshAttempt) > 30000) {
-      _autoRefreshInProgress = true;
-      _lastRefreshAttempt = now;
-      _showOfflineBanner('Сесія Moodle закінчилась — оновлюємо...', '_refresh');
-      _refreshMoodleToken().finally(() => { _autoRefreshInProgress = false; });
-    }
+    // ✅ Просто показуємо банер з кнопкою виходу — без авторефрешу
+    _showSessionExpiredBanner();
     return null;
   }
 
   return data;
+}
+
+function _showSessionExpiredBanner() {
+  let banner = document.getElementById('offline-banner');
+  if(banner && banner.dataset.type === 'session') return; // вже показано
+  if(!banner) {
+    banner = document.createElement('div');
+    banner.id = 'offline-banner';
+    banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:9000;background:rgba(240,160,48,.95);color:#0a0a0f;font-size:12px;font-weight:600;padding:calc(env(safe-area-inset-top, 0px) + 7px) 14px 7px;text-align:center;display:flex;align-items:center;justify-content:center;gap:8px;';
+    document.body.prepend(banner);
+  }
+  banner.dataset.type = 'session';
+  banner.innerHTML = '🔑 Сесія Moodle закінчилась — <button onclick="doLogout()" style="background:rgba(0,0,0,.2);border:none;border-radius:4px;padding:3px 10px;cursor:pointer;font-size:11px;font-family:Inter,sans-serif;font-weight:700;color:#0a0a0f;">Вийти і увійти знову</button>';
 }
 
 async function moodleCall(fn, params={}) {
@@ -2888,8 +2824,6 @@ function doLogout(){
   if(_pinnedUnsub)_pinnedUnsub();
   unsubs=[];token='';userData={};allDl=[];courses=[];group={};userRole='student';cachedFiles=[];cachedMats=[];
   _notesLoaded = false;
-  _autoRefreshInProgress = false;
-  _refreshFailCount = 0;
   _dlOverrides = {}; _dlDeleted = []; _calNotes = {};
   // Прибираємо банер при виході
   const banner = document.getElementById('offline-banner');
@@ -3616,18 +3550,19 @@ async function _loadNoDlAssignments() {
 }
 
 // ── Модальне вікно перегляду бессрочних ──
+var _noDlSelectedCourse = 'all';
+
 function showNoDlModal() {
   const modal = document.getElementById('modal-no-dl');
   modal.style.display = 'flex';
   document.getElementById('no-dl-search').value = '';
-  // Скидаємо фільтр курсу
   _noDlSelectedCourse = 'all';
 
-  // Якщо ще немає бессрочних — спробуємо підтягнути
   const hasNoDlItems = allDl.some(d => d._noDeadline || !d.due);
   if(!hasNoDlItems && token && courses.length) {
-    const el = document.getElementById('no-dl-list');
-    if(el) el.innerHTML = '<div class="loading"><div class="spinner"></div>Завантаження...</div>';
+    // Дані ще не завантажені — показуємо спіннер і завантажуємо
+    document.getElementById('no-dl-list').innerHTML = '<div class="loading"><div class="spinner"></div>Завантаження...</div>';
+    document.getElementById('no-dl-course-filter-wrap').innerHTML = '';
     _loadNoDlAssignments().then(() => {
       _rebuildNoDlCourseFilter();
       renderNoDlList();
@@ -3636,35 +3571,36 @@ function showNoDlModal() {
     _rebuildNoDlCourseFilter();
     renderNoDlList();
   }
-  setTimeout(() => document.getElementById('no-dl-search').focus(), 80);
+  setTimeout(() => { const s = document.getElementById('no-dl-search'); if(s) s.focus(); }, 80);
 }
-
-var _noDlSelectedCourse = 'all';
 
 function _rebuildNoDlCourseFilter() {
   const wrap = document.getElementById('no-dl-course-filter-wrap');
   if(!wrap) return;
+  // Беремо курси тільки з бессрочних завдань
   const items = allDl.filter(d => !_dlDeleted.includes(String(d.id)) && (d._noDeadline || !d.due));
   const uniqueCourses = [...new Set(items.map(t => t.course).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'uk'));
 
-  // Якщо вибраний курс більше не існує — скидаємо на all
+  // Якщо вибраний курс більше не існує — скидаємо
   if(_noDlSelectedCourse !== 'all' && !uniqueCourses.includes(_noDlSelectedCourse)) {
     _noDlSelectedCourse = 'all';
   }
 
-  const chipStyle = (active) => `flex-shrink:0;border:none;border-radius:20px;padding:5px 12px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;transition:background .15s,color .15s;font-family:Inter,sans-serif;` +
+  const chipStyle = (active) =>
+    'flex-shrink:0;border-radius:20px;padding:5px 12px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;font-family:Inter,sans-serif;' +
     (active
-      ? `background:var(--accent);color:#0a0a0f;`
-      : `background:var(--bg3);color:var(--text2);border:1px solid var(--border);`);
+      ? 'background:var(--accent);color:#0a0a0f;border:none;'
+      : 'background:var(--bg3);color:var(--text2);border:1px solid var(--border);');
 
-  const allChip = `<button style="${chipStyle(_noDlSelectedCourse==='all')}" onclick="_setNoDlCourse('all')">Усі курси</button>`;
-  const courseChips = uniqueCourses.map(c =>
-    `<button style="${chipStyle(_noDlSelectedCourse===c)}" onclick="_setNoDlCourse(${JSON.stringify(c)})">${escHtml(c)}</button>`
-  ).join('');
+  // Завжди показуємо "Усі курси" + chips курсів
+  wrap.innerHTML =
+    `<button style="${chipStyle(_noDlSelectedCourse==='all')}" onclick="_setNoDlCourse('all')">Усі курси</button>` +
+    uniqueCourses.map(c =>
+      `<button style="${chipStyle(_noDlSelectedCourse===c)}" onclick="_setNoDlCourse(${JSON.stringify(c)})">${escHtml(c)}</button>`
+    ).join('');
 
-  wrap.innerHTML = allChip + courseChips;
-  // Ховаємо рядок якщо немає курсів
-  wrap.style.display = uniqueCourses.length ? 'flex' : 'none';
+  // Показуємо рядок завжди (навіть якщо тільки "Усі курси")
+  wrap.style.display = 'flex';
 }
 
 function _setNoDlCourse(course) {

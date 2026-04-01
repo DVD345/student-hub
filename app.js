@@ -641,7 +641,7 @@ async function openCourseContents(courseId, btn) {
       const mods = s.modules.filter(m=>m.modname!=='label').map(m => {
         const ico = modIco[m.modname] || '📌';
         const fileUrl = m.contents && m.contents[0] ? m.contents[0].fileurl + '?token=' + token : null;
-        const link = fileUrl || m.url || MOODLE+'/mod/'+m.modname+'/view.php?id='+m.id;
+        const link = fileUrl || m.url || 'https://do.kart.edu.ua/mod/'+m.modname+'/view.php?id='+m.id;
         const sz = m.contents && m.contents[0] && m.contents[0].filesize > 1024
           ? ' <span style="color:var(--text2);font-size:10px;">' + Math.round(m.contents[0].filesize/1024) + ' КБ</span>' : '';
         return '<a href="'+escHtml(link)+'" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:10px;padding:10px 12px;color:var(--text);text-decoration:none;border-bottom:1px solid var(--border);transition:background .15s;" onmouseover="this.style.background=&quot;var(--bg3)&quot;" onmouseout="this.style.background=&quot;&quot;">'+
@@ -790,7 +790,7 @@ async function loadDeadlines() {
                     course: { fullname: course.fullname },
                     timesort: deadline, modulename: 'assign',
                     assignid: a.id,
-                    url: MOODLE+'/mod/assign/view.php?id='+a.cmid
+                    url: 'https://do.kart.edu.ua/mod/assign/view.php?id='+a.cmid
                   });
                 }
               });
@@ -1271,8 +1271,6 @@ function renderDashDl() {
   const top=allDl.filter(d=>{
     if(dlDel.includes(String(d.id))) return false;
     if(d.submitted==='submitted') return false;
-    // Бессрочні без override — не показуємо в дедлайнах
-    if(d._noDeadline && !(_dlOverrides[String(d.id)] && _dlOverrides[String(d.id)].due)) return false;
     const eff = (typeof getEffectiveDue === 'function') ? getEffectiveDue(d) : d.due;
     return eff && eff > now;
   }).map(d => {
@@ -3370,21 +3368,28 @@ applyDlFilter = function() {
   // Для фільтрації використовуємо ефективний due (з override або оригінальний)
   if(f==='active') {
     list = list.filter(d => {
-      // Бессрочні без override — виключаємо з дедлайнів, вони у своїй вкладці
-      if(d._noDeadline && !(_dlOverrides[String(d.id)] && _dlOverrides[String(d.id)].due)) return false;
       const eff = getEffectiveDue(d);
       if(d.submitted === 'submitted') return false;
-      return eff && eff > now;
+      // Є override з дедлайном в майбутньому
+      if(eff && eff > now) return true;
+      // Бессрочне без override — показуємо тільки якщо немає оригінального дедлайну
+      if(!d.due || d.due === 0) {
+        const ov = _dlOverrides[String(d.id)];
+        // Якщо override є але минув — не показуємо
+        if(ov && ov.due && ov.due <= now) return false;
+        // Якщо override є і в майбутньому — вже оброблено вище
+        // Якщо немає override — показуємо як бессрочне
+        return !ov;
+      }
+      return false;
     });
   } else if(f==='urgent') {
     list = list.filter(d => {
-      if(d._noDeadline && !(_dlOverrides[String(d.id)] && _dlOverrides[String(d.id)].due)) return false;
       const eff = getEffectiveDue(d);
       return eff > now && (eff - now) < _dlUrgentH*3600;
     });
   } else if(f==='past') {
     list = list.filter(d => {
-      if(d._noDeadline && !(_dlOverrides[String(d.id)] && _dlOverrides[String(d.id)].due)) return false;
       const eff = getEffectiveDue(d);
       return eff && eff <= now;
     });
@@ -3504,49 +3509,69 @@ async function _loadNoDlAssignments() {
     const chunkSize = 20;
     const chunks = [];
     for(let i=0; i<courses.length; i+=chunkSize) chunks.push(courses.slice(i,i+chunkSize));
-    const results = await Promise.all(chunks.map(chunk => {
-      const courseids = chunk.map((c,i)=>`courseids[${i}]=${c.id}`).join('&');
-      // ✅ Використовуємо _parseMoodleResponse щоб обробляти invalidtoken
-      return fetch(MOODLE+'/webservice/rest/server.php?wstoken='+token+'&wsfunction=mod_assign_get_assignments&moodlewsrestformat=json&'+courseids)
-        .then(r => _parseMoodleResponse(r)).catch(()=>null);
-    }));
+
+    const [assignResults, quizResults] = await Promise.all([
+      Promise.all(chunks.map(chunk => {
+        const courseids = chunk.map((c,i)=>`courseids[${i}]=${c.id}`).join('&');
+        return fetch(MOODLE+'/webservice/rest/server.php?wstoken='+token+'&wsfunction=mod_assign_get_assignments&moodlewsrestformat=json&'+courseids)
+          .then(r => _parseMoodleResponse(r)).catch(()=>null);
+      })),
+      Promise.all(chunks.map(chunk => {
+        const courseids = chunk.map((c,i)=>`courseids[${i}]=${c.id}`).join('&');
+        return fetch(MOODLE+'/webservice/rest/server.php?wstoken='+token+'&wsfunction=mod_quiz_get_quizzes_by_courses&moodlewsrestformat=json&'+courseids)
+          .then(r => _parseMoodleResponse(r)).catch(()=>null);
+      }))
+    ]);
+
     const existingIds = new Set(allDl.map(d => String(d.id)));
     const noDl = [];
-    results.forEach(d => {
+
+    assignResults.forEach(d => {
       if(!d || !d.courses) return;
       d.courses.forEach(course => {
         (course.assignments||[]).forEach(a => {
-          const deadline = a.duedate || 0;
-          if(deadline === 0) {
+          if((a.duedate || 0) === 0) {
             const sid = 'nodl_' + a.id;
             if(!existingIds.has(sid)) {
               noDl.push({
-                id: sid,
-                _origAssignId: a.id,
+                id: sid, _origAssignId: a.id,
                 name: a.name || 'Завдання',
                 _normName: (a.name||'').toLowerCase().trim(),
                 course: course.fullname || course.shortname || '—',
-                due: 0,
-                past: false,
-                url: MOODLE + '/mod/assign/view.php?id=' + a.cmid,
-                assignid: a.id,
-                submitted: null,
-                _noDeadline: true
+                due: 0, past: false,
+                url: 'https://do.kart.edu.ua/mod/assign/view.php?id=' + a.cmid,
+                assignid: a.id, submitted: null, _noDeadline: true, _type: 'assign'
               });
             }
           }
         });
       });
     });
+
+    quizResults.forEach(d => {
+      if(!d || !d.quizzes) return;
+      d.quizzes.forEach(q => {
+        if((q.timeclose || 0) === 0) {
+          const sid = 'nodl_quiz_' + q.id;
+          if(!existingIds.has(sid)) {
+            const courseObj = courses.find(c => c.id === q.course);
+            const courseName = courseObj ? (courseObj.fullname || courseObj.shortname) : '—';
+            noDl.push({
+              id: sid, name: q.name || 'Тест',
+              _normName: (q.name||'').toLowerCase().trim(),
+              course: courseName, due: 0, past: false,
+              url: 'https://do.kart.edu.ua/mod/quiz/view.php?id=' + q.coursemodule,
+              submitted: null, _noDeadline: true, _type: 'quiz'
+            });
+          }
+        }
+      });
+    });
+
     _noDlItems = noDl;
-    // Додаємо бессрочні до allDl щоб вони з'являлись при фільтрі "active"
-    // але відфільтровуємо ті, що вже були (дублі)
     const existingIds2 = new Set(allDl.map(d => String(d.id)));
     noDl.forEach(item => {
-      if(!existingIds2.has(String(item.id))) {
-        allDl.push(item);
-        existingIds2.add(String(item.id));
-      }
+      if(!existingIds2.has(String(item.id))) { allDl.push(item); existingIds2.add(String(item.id)); }
     });
     scheduleRender();
   } catch(e) { console.warn('_loadNoDlAssignments error:', e); }
@@ -3560,81 +3585,32 @@ function showNoDlModal() {
   modal.style.display = 'flex';
   document.getElementById('no-dl-search').value = '';
   _noDlSelectedCourse = 'all';
-
-  // Завжди перезавантажуємо при відкритті щоб мати свіжі дані
   document.getElementById('no-dl-list').innerHTML = '<div class="loading"><div class="spinner"></div>Завантаження...</div>';
-  const wrap = document.getElementById('no-dl-course-filter-wrap');
-  if(wrap) wrap.style.display = 'none';
-  const lbl = document.getElementById('no-dl-course-label');
-  if(lbl) lbl.textContent = 'Усі курси';
-
+  _rebuildNoDlCourseFilter();
   if(token && courses.length) {
-    _loadNoDlAssignments().then(() => {
-      _rebuildNoDlCourseFilter();
-      renderNoDlList();
-    });
+    _loadNoDlAssignments().then(() => { _rebuildNoDlCourseFilter(); renderNoDlList(); });
   } else {
-    _rebuildNoDlCourseFilter();
     renderNoDlList();
   }
   setTimeout(() => { const s = document.getElementById('no-dl-search'); if(s) s.focus(); }, 80);
 }
 
 function _rebuildNoDlCourseFilter() {
-  const wrap = document.getElementById('no-dl-course-filter-wrap');
-  if(!wrap) return;
-  const items = allDl.filter(d => !_dlDeleted.includes(String(d.id)) && (d._noDeadline || !d.due));
-  const uniqueCourses = [...new Set(items.map(t => t.course).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'uk'));
-
-  if(_noDlSelectedCourse !== 'all' && !uniqueCourses.includes(_noDlSelectedCourse)) {
-    _noDlSelectedCourse = 'all';
-  }
-
-  // Оновлюємо лейбл кнопки
-  const lbl = document.getElementById('no-dl-course-label');
-  if(lbl) lbl.textContent = _noDlSelectedCourse === 'all' ? 'Усі курси' : _noDlSelectedCourse;
-
-  // Рядок "Усі курси" + список курсів
-  const rowStyle = (active) =>
-    'display:block;width:100%;text-align:left;padding:10px 14px;background:' +
-    (active ? 'var(--accent);color:#0a0a0f;' : 'none;color:var(--text);') +
-    'border:none;font-size:13px;font-family:Inter,sans-serif;cursor:pointer;border-bottom:1px solid var(--border);';
-
-  wrap.innerHTML =
-    `<button style="${rowStyle(_noDlSelectedCourse==='all')}" onclick="_setNoDlCourse('all')">Усі курси</button>` +
-    uniqueCourses.map(c =>
-      `<button style="${rowStyle(_noDlSelectedCourse===c)}" onclick="_setNoDlCourse(${JSON.stringify(c)})">${escHtml(c)}</button>`
-    ).join('');
+  const sel = document.getElementById('no-dl-course-select');
+  if(!sel) return;
+  const courseNames = (courses||[])
+    .map(c => c.fullname || c.shortname || '')
+    .filter(Boolean)
+    .sort((a,b) => a.localeCompare(b,'uk'));
+  if(_noDlSelectedCourse !== 'all' && !courseNames.includes(_noDlSelectedCourse)) _noDlSelectedCourse = 'all';
+  sel.innerHTML = '<option value="all">Усі курси</option>' +
+    courseNames.map(c => `<option value="${escHtml(c)}"${_noDlSelectedCourse===c?' selected':''}>${escHtml(c)}</option>`).join('');
+  sel.value = _noDlSelectedCourse;
 }
 
-function _toggleNoDlDropdown() {
-  const wrap = document.getElementById('no-dl-course-filter-wrap');
-  const arrow = document.getElementById('no-dl-course-arrow');
-  if(!wrap) return;
-  const isOpen = wrap.style.display !== 'none';
-  wrap.style.display = isOpen ? 'none' : 'block';
-  if(arrow) arrow.style.transform = isOpen ? '' : 'rotate(180deg)';
-}
-
-function _setNoDlCourse(course) {
-  _noDlSelectedCourse = course;
-  // Закриваємо dropdown
-  const wrap = document.getElementById('no-dl-course-filter-wrap');
-  const arrow = document.getElementById('no-dl-course-arrow');
-  if(wrap) wrap.style.display = 'none';
-  if(arrow) arrow.style.transform = '';
-  _rebuildNoDlCourseFilter();
-  renderNoDlList();
-}
-
-function closeNoDlModal() {
-  document.getElementById('modal-no-dl').style.display = 'none';
-  // Закриваємо dropdown якщо був відкритий
-  const wrap = document.getElementById('no-dl-course-filter-wrap');
-  const arrow = document.getElementById('no-dl-course-arrow');
-  if(wrap) wrap.style.display = 'none';
-  if(arrow) arrow.style.transform = '';
-}
+function _toggleNoDlDropdown() {}
+function _setNoDlCourse(course) { _noDlSelectedCourse = course; renderNoDlList(); }
+function closeNoDlModal() { document.getElementById('modal-no-dl').style.display = 'none'; }
 
 function renderNoDlList() {
   const q = (document.getElementById('no-dl-search').value || '').toLowerCase();
@@ -3658,10 +3634,11 @@ function renderNoDlList() {
     const badge = hasOv
       ? '<span style="font-size:9px;background:rgba(56,208,122,.15);color:var(--success);border:1px solid rgba(56,208,122,.3);border-radius:4px;padding:1px 6px;">✅ '+fmtDate(ov.due)+'</span>'
       : '<span style="font-size:9px;background:var(--bg3);color:var(--text2);border:1px solid var(--border);border-radius:4px;padding:1px 6px;">без дедлайну</span>';
+    const typeIcon = d._type === 'quiz' ? '📋 ' : '📝 ';
     return '<div style="display:flex;align-items:center;gap:10px;padding:10px 8px;border-bottom:1px solid var(--border);cursor:pointer;" onclick="window.open(\''+escHtml(d.url||'#')+'\',\'_blank\')">' +
       '<div style="width:8px;height:8px;border-radius:50%;background:'+(hasOv?'var(--success)':'var(--text2)')+';flex-shrink:0;"></div>'+
       '<div style="flex:1;min-width:0;">' +
-        '<div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+escHtml(d.name)+'</div>'+
+        '<div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+typeIcon+escHtml(d.name)+'</div>'+
         '<div style="font-size:11px;color:var(--text2);margin-top:2px;">'+escHtml(d.course)+'</div>'+
         '<div style="margin-top:5px;">'+badge+'</div>'+
       '</div>'+

@@ -3510,15 +3510,12 @@ async function _loadNoDlAssignments() {
     const chunks = [];
     for(let i=0; i<courses.length; i+=chunkSize) chunks.push(courses.slice(i,i+chunkSize));
 
-    // Завантажуємо завдання (assign) і тести (quiz) паралельно
     const [assignResults, quizResults] = await Promise.all([
-      // Завдання з файлами
       Promise.all(chunks.map(chunk => {
         const courseids = chunk.map((c,i)=>`courseids[${i}]=${c.id}`).join('&');
         return fetch(MOODLE+'/webservice/rest/server.php?wstoken='+token+'&wsfunction=mod_assign_get_assignments&moodlewsrestformat=json&'+courseids)
           .then(r => _parseMoodleResponse(r)).catch(()=>null);
       })),
-      // Тести
       Promise.all(chunks.map(chunk => {
         const courseids = chunk.map((c,i)=>`courseids[${i}]=${c.id}`).join('&');
         return fetch(MOODLE+'/webservice/rest/server.php?wstoken='+token+'&wsfunction=mod_quiz_get_quizzes_by_courses&moodlewsrestformat=json&'+courseids)
@@ -3529,7 +3526,7 @@ async function _loadNoDlAssignments() {
     const existingIds = new Set(allDl.map(d => String(d.id)));
     const noDl = [];
 
-    // Обробляємо завдання (assign)
+    // Завдання (assign) без дедлайну
     assignResults.forEach(d => {
       if(!d || !d.courses) return;
       d.courses.forEach(course => {
@@ -3556,17 +3553,15 @@ async function _loadNoDlAssignments() {
       });
     });
 
-    // Обробляємо тести (quiz)
+    // Тести (quiz) без дедлайну
     quizResults.forEach(d => {
       if(!d || !d.quizzes) return;
       d.quizzes.forEach(q => {
-        const timeClose = q.timeclose || 0;
-        if(timeClose === 0) {
+        if((q.timeclose || 0) === 0) {
           const sid = 'nodl_quiz_' + q.id;
           if(!existingIds.has(sid)) {
-            // Знаходимо назву курсу
             const courseObj = courses.find(c => c.id === q.course);
-            const courseName = courseObj ? (courseObj.fullname || courseObj.shortname) : (q.coursename || '—');
+            const courseName = courseObj ? (courseObj.fullname || courseObj.shortname) : '—';
             noDl.push({
               id: sid,
               name: q.name || 'Тест',
@@ -3603,80 +3598,51 @@ function showNoDlModal() {
   modal.style.display = 'flex';
   document.getElementById('no-dl-search').value = '';
   _noDlSelectedCourse = 'all';
-
-  // Завжди перезавантажуємо при відкритті щоб мати свіжі дані
   document.getElementById('no-dl-list').innerHTML = '<div class="loading"><div class="spinner"></div>Завантаження...</div>';
-  const wrap = document.getElementById('no-dl-course-filter-wrap');
-  if(wrap) wrap.style.display = 'none';
-  const lbl = document.getElementById('no-dl-course-label');
-  if(lbl) lbl.textContent = 'Усі курси';
+
+  // Одразу заповнюємо курси з вкладки Курси (не чекаємо завантаження завдань)
+  _rebuildNoDlCourseFilter();
 
   if(token && courses.length) {
     _loadNoDlAssignments().then(() => {
-      _rebuildNoDlCourseFilter();
       renderNoDlList();
     });
   } else {
-    _rebuildNoDlCourseFilter();
     renderNoDlList();
   }
   setTimeout(() => { const s = document.getElementById('no-dl-search'); if(s) s.focus(); }, 80);
 }
 
 function _rebuildNoDlCourseFilter() {
-  const wrap = document.getElementById('no-dl-course-filter-wrap');
-  if(!wrap) return;
-  const items = allDl.filter(d => !_dlDeleted.includes(String(d.id)) && (d._noDeadline || !d.due));
-  const uniqueCourses = [...new Set(items.map(t => t.course).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'uk'));
+  const sel = document.getElementById('no-dl-course-select');
+  if(!sel) return;
 
-  if(_noDlSelectedCourse !== 'all' && !uniqueCourses.includes(_noDlSelectedCourse)) {
+  // Курси з вкладки Курси (глобальний масив courses)
+  const courseNames = (courses||[])
+    .map(c => c.fullname || c.shortname || '')
+    .filter(Boolean)
+    .sort((a,b) => a.localeCompare(b,'uk'));
+
+  if(_noDlSelectedCourse !== 'all' && !courseNames.includes(_noDlSelectedCourse)) {
     _noDlSelectedCourse = 'all';
   }
 
-  // Оновлюємо лейбл кнопки
-  const lbl = document.getElementById('no-dl-course-label');
-  if(lbl) lbl.textContent = _noDlSelectedCourse === 'all' ? 'Усі курси' : _noDlSelectedCourse;
-
-  // Рядок "Усі курси" + список курсів
-  const rowStyle = (active) =>
-    'display:block;width:100%;text-align:left;padding:10px 14px;background:' +
-    (active ? 'var(--accent);color:#0a0a0f;' : 'none;color:var(--text);') +
-    'border:none;font-size:13px;font-family:Inter,sans-serif;cursor:pointer;border-bottom:1px solid var(--border);';
-
-  wrap.innerHTML =
-    `<button style="${rowStyle(_noDlSelectedCourse==='all')}" onclick="_setNoDlCourse('all')">Усі курси</button>` +
-    uniqueCourses.map(c =>
-      `<button style="${rowStyle(_noDlSelectedCourse===c)}" onclick="_setNoDlCourse(${JSON.stringify(c)})">${escHtml(c)}</button>`
+  sel.innerHTML = '<option value="all">Усі курси</option>' +
+    courseNames.map(c =>
+      `<option value="${escHtml(c)}"${_noDlSelectedCourse===c?' selected':''}>${escHtml(c)}</option>`
     ).join('');
+  sel.value = _noDlSelectedCourse;
 }
 
-function _toggleNoDlDropdown() {
-  const wrap = document.getElementById('no-dl-course-filter-wrap');
-  const arrow = document.getElementById('no-dl-course-arrow');
-  if(!wrap) return;
-  const isOpen = wrap.style.display !== 'none';
-  wrap.style.display = isOpen ? 'none' : 'block';
-  if(arrow) arrow.style.transform = isOpen ? '' : 'rotate(180deg)';
-}
+function _toggleNoDlDropdown() { /* не використовується — є нативний select */ }
 
 function _setNoDlCourse(course) {
   _noDlSelectedCourse = course;
-  // Закриваємо dropdown
-  const wrap = document.getElementById('no-dl-course-filter-wrap');
-  const arrow = document.getElementById('no-dl-course-arrow');
-  if(wrap) wrap.style.display = 'none';
-  if(arrow) arrow.style.transform = '';
-  _rebuildNoDlCourseFilter();
   renderNoDlList();
 }
 
 function closeNoDlModal() {
   document.getElementById('modal-no-dl').style.display = 'none';
-  // Закриваємо dropdown якщо був відкритий
-  const wrap = document.getElementById('no-dl-course-filter-wrap');
-  const arrow = document.getElementById('no-dl-course-arrow');
-  if(wrap) wrap.style.display = 'none';
-  if(arrow) arrow.style.transform = '';
 }
 
 function renderNoDlList() {

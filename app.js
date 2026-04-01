@@ -3526,7 +3526,6 @@ async function _loadNoDlAssignments() {
     const existingIds = new Set(allDl.map(d => String(d.id)));
     const noDl = [];
 
-    // Завдання (assign) без дедлайну
     assignResults.forEach(d => {
       if(!d || !d.courses) return;
       d.courses.forEach(course => {
@@ -3535,17 +3534,13 @@ async function _loadNoDlAssignments() {
             const sid = 'nodl_' + a.id;
             if(!existingIds.has(sid)) {
               noDl.push({
-                id: sid,
-                _origAssignId: a.id,
+                id: sid, _origAssignId: a.id,
                 name: a.name || 'Завдання',
                 _normName: (a.name||'').toLowerCase().trim(),
                 course: course.fullname || course.shortname || '—',
                 due: 0, past: false,
                 url: 'https://do.kart.edu.ua/mod/assign/view.php?id=' + a.cmid,
-                assignid: a.id,
-                submitted: null,
-                _noDeadline: true,
-                _type: 'assign'
+                assignid: a.id, submitted: null, _noDeadline: true, _type: 'assign'
               });
             }
           }
@@ -3553,7 +3548,6 @@ async function _loadNoDlAssignments() {
       });
     });
 
-    // Тести (quiz) без дедлайну
     quizResults.forEach(d => {
       if(!d || !d.quizzes) return;
       d.quizzes.forEach(q => {
@@ -3563,15 +3557,11 @@ async function _loadNoDlAssignments() {
             const courseObj = courses.find(c => c.id === q.course);
             const courseName = courseObj ? (courseObj.fullname || courseObj.shortname) : '—';
             noDl.push({
-              id: sid,
-              name: q.name || 'Тест',
+              id: sid, name: q.name || 'Тест',
               _normName: (q.name||'').toLowerCase().trim(),
-              course: courseName,
-              due: 0, past: false,
+              course: courseName, due: 0, past: false,
               url: 'https://do.kart.edu.ua/mod/quiz/view.php?id=' + q.coursemodule,
-              submitted: null,
-              _noDeadline: true,
-              _type: 'quiz'
+              submitted: null, _noDeadline: true, _type: 'quiz'
             });
           }
         }
@@ -3581,10 +3571,7 @@ async function _loadNoDlAssignments() {
     _noDlItems = noDl;
     const existingIds2 = new Set(allDl.map(d => String(d.id)));
     noDl.forEach(item => {
-      if(!existingIds2.has(String(item.id))) {
-        allDl.push(item);
-        existingIds2.add(String(item.id));
-      }
+      if(!existingIds2.has(String(item.id))) { allDl.push(item); existingIds2.add(String(item.id)); }
     });
     scheduleRender();
   } catch(e) { console.warn('_loadNoDlAssignments error:', e); }
@@ -3599,14 +3586,9 @@ function showNoDlModal() {
   document.getElementById('no-dl-search').value = '';
   _noDlSelectedCourse = 'all';
   document.getElementById('no-dl-list').innerHTML = '<div class="loading"><div class="spinner"></div>Завантаження...</div>';
-
-  // Одразу заповнюємо курси з вкладки Курси (не чекаємо завантаження завдань)
   _rebuildNoDlCourseFilter();
-
   if(token && courses.length) {
-    _loadNoDlAssignments().then(() => {
-      renderNoDlList();
-    });
+    _loadNoDlAssignments().then(() => { _rebuildNoDlCourseFilter(); renderNoDlList(); });
   } else {
     renderNoDlList();
   }
@@ -3616,34 +3598,19 @@ function showNoDlModal() {
 function _rebuildNoDlCourseFilter() {
   const sel = document.getElementById('no-dl-course-select');
   if(!sel) return;
-
-  // Курси з вкладки Курси (глобальний масив courses)
   const courseNames = (courses||[])
     .map(c => c.fullname || c.shortname || '')
     .filter(Boolean)
     .sort((a,b) => a.localeCompare(b,'uk'));
-
-  if(_noDlSelectedCourse !== 'all' && !courseNames.includes(_noDlSelectedCourse)) {
-    _noDlSelectedCourse = 'all';
-  }
-
+  if(_noDlSelectedCourse !== 'all' && !courseNames.includes(_noDlSelectedCourse)) _noDlSelectedCourse = 'all';
   sel.innerHTML = '<option value="all">Усі курси</option>' +
-    courseNames.map(c =>
-      `<option value="${escHtml(c)}"${_noDlSelectedCourse===c?' selected':''}>${escHtml(c)}</option>`
-    ).join('');
+    courseNames.map(c => `<option value="${escHtml(c)}"${_noDlSelectedCourse===c?' selected':''}>${escHtml(c)}</option>`).join('');
   sel.value = _noDlSelectedCourse;
 }
 
-function _toggleNoDlDropdown() { /* не використовується — є нативний select */ }
-
-function _setNoDlCourse(course) {
-  _noDlSelectedCourse = course;
-  renderNoDlList();
-}
-
-function closeNoDlModal() {
-  document.getElementById('modal-no-dl').style.display = 'none';
-}
+function _toggleNoDlDropdown() {}
+function _setNoDlCourse(course) { _noDlSelectedCourse = course; renderNoDlList(); }
+function closeNoDlModal() { document.getElementById('modal-no-dl').style.display = 'none'; }
 
 function renderNoDlList() {
   const q = (document.getElementById('no-dl-search').value || '').toLowerCase();

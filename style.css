@@ -112,6 +112,25 @@
   --sh-glow:   0 0 18px rgba(74,222,128,.4);
 }
 
+
+/* ── CUSTOM — user-defined theme ── */
+[data-theme="custom"] {
+  --bg:     var(--ct-bg,     #0a0a18);
+  --bg2:    var(--ct-bg2,    #0f0f22);
+  --bg3:    var(--ct-bg3,    #16162e);
+  --border: var(--ct-border, #222244);
+  --card:   var(--ct-card,   #0d0d20);
+  --text:   var(--ct-text,   #eeeef5);
+  --text2:  var(--ct-text2,  #6666a0);
+  --accent: var(--ct-ac,     #f0c040);
+  --accent2:#e05050;
+  --success:#38d07a;
+  --warning:#f0a030;
+  --g-accent: linear-gradient(135deg,var(--ct-ac,#f0c040) 0%,var(--ct-ac2,#ff9000) 100%);
+  --sh-accent: 0 6px 24px rgba(0,0,0,.35);
+  --sh-glow:   0 0 16px rgba(0,0,0,.4);
+}
+
 *, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
 
 html {

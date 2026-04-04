@@ -2230,10 +2230,12 @@ const THEMES = {
   midnight:  { icon:'🔮', label:'Midnight' },
   solarized: { icon:'🌅', label:'Solarized' },
   forest:    { icon:'🌿', label:'Forest' },
+  custom:    { icon:'🎨', label:'Своя' },
 };
 
 function setTheme(t) {
   if(!THEMES[t]) t = 'dark';
+  if(t === 'custom') { _applyCustomThemeVars(); }
   document.documentElement.setAttribute('data-theme', t);
   localStorage.setItem('sh_theme', t);
   updateThemeIcon(t);
@@ -2256,6 +2258,117 @@ function updateThemeIcon(t) {
   if(b1) b1.textContent = icon;
   if(b2) b2.textContent = icon;
 }
+
+
+// ── CUSTOM THEME ──
+function _hexToRgb(hex) {
+  const r = parseInt(hex.slice(1,3),16), g = parseInt(hex.slice(3,5),16), b = parseInt(hex.slice(5,7),16);
+  return {r,g,b};
+}
+function _lighten(hex, amount) {
+  const {r,g,b} = _hexToRgb(hex);
+  return '#' + [r,g,b].map(v => Math.min(255, Math.round(v + (255-v)*amount)).toString(16).padStart(2,'0')).join('');
+}
+function _darken(hex, amount) {
+  const {r,g,b} = _hexToRgb(hex);
+  return '#' + [r,g,b].map(v => Math.max(0, Math.round(v*(1-amount))).toString(16).padStart(2,'0')).join('');
+}
+function _isDark(hex) {
+  const {r,g,b} = _hexToRgb(hex);
+  return (r*0.299+g*0.587+b*0.114) < 140;
+}
+function _applyCustomThemeVars(bg, ac) {
+  const storedBg = localStorage.getItem('sh_ct_bg') || '#0a0a18';
+  const storedAc = localStorage.getItem('sh_ct_ac') || '#f0c040';
+  bg = bg || storedBg;
+  ac = ac || storedAc;
+  const dark = _isDark(bg);
+  const root = document.documentElement;
+  root.style.setProperty('--ct-bg',     bg);
+  root.style.setProperty('--ct-bg2',    dark ? _lighten(bg,.04) : _darken(bg,.04));
+  root.style.setProperty('--ct-bg3',    dark ? _lighten(bg,.09) : _darken(bg,.09));
+  root.style.setProperty('--ct-border', dark ? _lighten(bg,.16) : _darken(bg,.16));
+  root.style.setProperty('--ct-card',   dark ? _lighten(bg,.02) : _lighten(bg,.06));
+  root.style.setProperty('--ct-text',   dark ? '#eeeef5' : '#14142a');
+  root.style.setProperty('--ct-text2',  dark ? '#6666a0' : '#5858a0');
+  root.style.setProperty('--ct-ac',     ac);
+  root.style.setProperty('--ct-ac2',    _darken(ac,.2));
+}
+function _updateCtPreview() {
+  const bg = document.getElementById('ct-bg').value;
+  const ac = document.getElementById('ct-ac').value;
+  const dark = _isDark(bg);
+  const bg3 = dark ? _lighten(bg,.09) : _darken(bg,.09);
+  const text = dark ? '#eeeef5' : '#14142a';
+  const p = document.getElementById('ct-preview');
+  p.style.background = bg3;
+  p.style.color = text;
+  document.getElementById('ct-prev-title').style.color = text;
+  document.getElementById('ct-prev-sub').style.color = text;
+  document.getElementById('ct-prev-btn').style.background = ac;
+  document.getElementById('ct-prev-btn').style.color = _isDark(ac) ? '#fff' : '#000';
+  document.getElementById('ct-prev-tag').style.borderColor = ac + '88';
+  document.getElementById('ct-prev-tag').style.color = ac;
+  document.getElementById('ct-prev-tag').style.background = ac + '18';
+  // Update custom swatch preview
+  const sw = document.getElementById('custom-swatch');
+  if(sw) sw.style.background = 'linear-gradient(135deg,'+bg+','+ac+'44)';
+}
+function syncHex(pickerId, hexId) {
+  const hex = document.getElementById(hexId).value;
+  if(/^#[0-9a-fA-F]{6}$/.test(hex)) {
+    document.getElementById(pickerId).value = hex;
+    _updateCtPreview();
+  }
+}
+function applyCtPreset(bg, ac) {
+  document.getElementById('ct-bg').value = bg;
+  document.getElementById('ct-bg-hex').value = bg;
+  document.getElementById('ct-ac').value = ac;
+  document.getElementById('ct-ac-hex').value = ac;
+  _updateCtPreview();
+}
+function openCustomTheme() {
+  const storedBg = localStorage.getItem('sh_ct_bg') || '#0a0a18';
+  const storedAc = localStorage.getItem('sh_ct_ac') || '#f0c040';
+  document.getElementById('ct-bg').value = storedBg;
+  document.getElementById('ct-bg-hex').value = storedBg;
+  document.getElementById('ct-ac').value = storedAc;
+  document.getElementById('ct-ac-hex').value = storedAc;
+  document.getElementById('modal-custom-theme').style.display = 'flex';
+  _updateCtPreview();
+  document.getElementById('ct-bg').oninput = () => {
+    document.getElementById('ct-bg-hex').value = document.getElementById('ct-bg').value;
+    _updateCtPreview();
+  };
+  document.getElementById('ct-ac').oninput = () => {
+    document.getElementById('ct-ac-hex').value = document.getElementById('ct-ac').value;
+    _updateCtPreview();
+  };
+}
+function closeCustomTheme() {
+  document.getElementById('modal-custom-theme').style.display = 'none';
+}
+function saveCustomTheme() {
+  const bg = document.getElementById('ct-bg').value;
+  const ac = document.getElementById('ct-ac').value;
+  localStorage.setItem('sh_ct_bg', bg);
+  localStorage.setItem('sh_ct_ac', ac);
+  _applyCustomThemeVars(bg, ac);
+  setTheme('custom');
+  closeCustomTheme();
+}
+// Apply on load if custom theme was saved
+(function() {
+  const st = localStorage.getItem('sh_theme');
+  if(st === 'custom') { _applyCustomThemeVars(); }
+  const sw = document.getElementById('custom-swatch');
+  if(sw) {
+    const bg = localStorage.getItem('sh_ct_bg') || '#0a0a18';
+    const ac = localStorage.getItem('sh_ct_ac') || '#f0c040';
+    sw.style.background = 'linear-gradient(135deg,'+bg+','+ac+'44)';
+  }
+})();
 
 const st = localStorage.getItem('sh_theme');
 if(st) { document.documentElement.setAttribute('data-theme', st); updateThemeIcon(st); }

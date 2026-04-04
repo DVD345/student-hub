@@ -201,6 +201,7 @@ function _loadKaTeX() {
           <button class="theme-swatch"        data-theme="midnight"style="background:linear-gradient(135deg,#080820,#a57fff44)" title="Midnight" onclick="setTheme('midnight')" ><span class="sw-label">Midnight</span></button>
           <button class="theme-swatch"        data-theme="solarized"style="background:linear-gradient(135deg,#fdf6e3,#eee8d5)" title="Solarized" onclick="setTheme('solarized')"><span class="sw-label">Solarized</span></button>
           <button class="theme-swatch"        data-theme="forest"  style="background:linear-gradient(135deg,#0a1a0d,#4ade8044)" title="Forest"   onclick="setTheme('forest')"  ><span class="sw-label">Forest</span></button>
+          <button class="theme-swatch" id="custom-swatch" data-theme="custom" title="Своя тема" onclick="openCustomTheme()"><span style="font-size:16px;">🎨</span><span class="sw-label">Своя</span></button>
         </div>
       </div>
       <div class="user-card">
@@ -681,6 +682,55 @@ window._loadGroupsForLogin = loadGroupsForLogin;
       </div>
     </div>
     <img id="lightbox-img" src="" alt="" style="max-width:100vw;max-height:calc(100vh - 80px);object-fit:contain;display:block;-webkit-user-drag:none;user-select:none;">
+  </div>
+</div>
+
+<!-- Custom theme modal -->
+<div id="modal-custom-theme" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:4000;align-items:center;justify-content:center;backdrop-filter:blur(6px);" onclick="if(event.target===this)closeCustomTheme()">
+  <div style="background:var(--card);border:1px solid var(--border);border-radius:20px;padding:24px;width:90%;max-width:380px;animation:fadeUp .2s ease;">
+    <div style="font-size:13px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:16px;">🎨 Своя тема</div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;">
+      <label style="font-size:12px;color:var(--text2);">
+        Фон
+        <div style="display:flex;align-items:center;gap:8px;margin-top:6px;">
+          <input type="color" id="ct-bg" value="#0a0a18" style="width:44px;height:44px;border:none;border-radius:10px;cursor:pointer;background:none;padding:2px;">
+          <input type="text" id="ct-bg-hex" maxlength="7" placeholder="#0a0a18" style="flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:8px;color:var(--text);font-size:13px;font-family:'JetBrains Mono',monospace;outline:none;" oninput="syncHex('ct-bg','ct-bg-hex')">
+        </div>
+      </label>
+      <label style="font-size:12px;color:var(--text2);">
+        Акцент
+        <div style="display:flex;align-items:center;gap:8px;margin-top:6px;">
+          <input type="color" id="ct-ac" value="#f0c040" style="width:44px;height:44px;border:none;border-radius:10px;cursor:pointer;background:none;padding:2px;">
+          <input type="text" id="ct-ac-hex" maxlength="7" placeholder="#f0c040" style="flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:8px;color:var(--text);font-size:13px;font-family:'JetBrains Mono',monospace;outline:none;" oninput="syncHex('ct-ac','ct-ac-hex')">
+        </div>
+      </label>
+    </div>
+
+    <div style="font-size:11px;color:var(--text2);margin-bottom:12px;">Прев'ю:</div>
+    <div id="ct-preview" style="border-radius:12px;padding:14px;margin-bottom:16px;font-size:13px;transition:all .2s;">
+      <div style="font-weight:700;margin-bottom:4px;" id="ct-prev-title">StudentHub</div>
+      <div style="font-size:11px;opacity:.6;" id="ct-prev-sub">Дедлайни · Файли · Чат</div>
+      <div style="margin-top:10px;display:flex;gap:8px;">
+        <div id="ct-prev-btn" style="border-radius:8px;padding:6px 14px;font-size:12px;font-weight:700;">Увійти →</div>
+        <div id="ct-prev-tag" style="border-radius:8px;padding:6px 10px;font-size:12px;border:1px solid;">Тег</div>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">
+      <div style="font-size:11px;color:var(--text2);margin-bottom:4px;grid-column:1/-1;">Готові пресети:</div>
+      <button onclick="applyCtPreset('#0a0a18','#f0c040')" style="background:linear-gradient(135deg,#0a0a18,#f0c04033);border:1px solid #f0c04055;border-radius:8px;padding:8px;color:#f0c040;font-size:11px;cursor:pointer;">⭐ Золотий</button>
+      <button onclick="applyCtPreset('#0d0820','#a57fff')" style="background:linear-gradient(135deg,#0d0820,#a57fff33);border:1px solid #a57fff55;border-radius:8px;padding:8px;color:#a57fff;font-size:11px;cursor:pointer;">🔮 Фіолет</button>
+      <button onclick="applyCtPreset('#001a10','#00e887')" style="background:linear-gradient(135deg,#001a10,#00e88733);border:1px solid #00e88755;border-radius:8px;padding:8px;color:#00e887;font-size:11px;cursor:pointer;">🌿 Мінт</button>
+      <button onclick="applyCtPreset('#180010','#ff4da6')" style="background:linear-gradient(135deg,#180010,#ff4da633);border:1px solid #ff4da655;border-radius:8px;padding:8px;color:#ff4da6;font-size:11px;cursor:pointer;">🌸 Рожевий</button>
+      <button onclick="applyCtPreset('#001020','#38bdf8')" style="background:linear-gradient(135deg,#001020,#38bdf833);border:1px solid #38bdf855;border-radius:8px;padding:8px;color:#38bdf8;font-size:11px;cursor:pointer;">🌊 Блакит</button>
+      <button onclick="applyCtPreset('#1a0a00','#fb923c')" style="background:linear-gradient(135deg,#1a0a00,#fb923c33);border:1px solid #fb923c55;border-radius:8px;padding:8px;color:#fb923c;font-size:11px;cursor:pointer;">🔥 Помаранч</button>
+    </div>
+
+    <div style="display:flex;gap:8px;margin-top:4px;">
+      <button onclick="saveCustomTheme()" style="flex:1;background:var(--accent);color:#000;border:none;border-radius:10px;padding:12px;font-size:14px;font-weight:700;cursor:pointer;">Застосувати</button>
+      <button onclick="closeCustomTheme()" style="background:var(--bg3);border:1px solid var(--border);color:var(--text2);border-radius:10px;padding:12px 16px;font-size:13px;cursor:pointer;">✕</button>
+    </div>
   </div>
 </div>
 </body>

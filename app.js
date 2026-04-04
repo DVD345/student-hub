@@ -1271,6 +1271,10 @@ function renderDashDl() {
   const top=allDl.filter(d=>{
     if(dlDel.includes(String(d.id))) return false;
     if(d.submitted==='submitted') return false;
+    if(d._noDeadline) {
+      const ov = _dlOverrides[String(d.id)];
+      return ov && ov.due && ov.due > now;
+    }
     const eff = (typeof getEffectiveDue === 'function') ? getEffectiveDue(d) : d.due;
     return eff && eff > now;
   }).map(d => {
@@ -3368,20 +3372,15 @@ applyDlFilter = function() {
   // Для фільтрації використовуємо ефективний due (з override або оригінальний)
   if(f==='active') {
     list = list.filter(d => {
-      const eff = getEffectiveDue(d);
       if(d.submitted === 'submitted') return false;
-      // Є override з дедлайном в майбутньому
-      if(eff && eff > now) return true;
-      // Бессрочне без override — показуємо тільки якщо немає оригінального дедлайну
-      if(!d.due || d.due === 0) {
+      // Безстрокові — тільки якщо є override з датою в майбутньому
+      if(d._noDeadline) {
         const ov = _dlOverrides[String(d.id)];
-        // Якщо override є але минув — не показуємо
-        if(ov && ov.due && ov.due <= now) return false;
-        // Якщо override є і в майбутньому — вже оброблено вище
-        // Якщо немає override — показуємо як бессрочне
-        return !ov;
+        return ov && ov.due && ov.due > now;
       }
-      return false;
+      // Звичайні — якщо ефективний дедлайн в майбутньому
+      const eff = getEffectiveDue(d);
+      return eff && eff > now;
     });
   } else if(f==='urgent') {
     list = list.filter(d => {

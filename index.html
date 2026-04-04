@@ -686,63 +686,56 @@ window._loadGroupsForLogin = loadGroupsForLogin;
 </div>
 
 <!-- Custom theme modal -->
-<div id="modal-custom-theme" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:4000;align-items:flex-start;justify-content:center;backdrop-filter:blur(6px);overflow-y:auto;padding:20px;padding-top:max(20px,env(safe-area-inset-top,20px));" onclick="if(event.target===this)closeCustomTheme()">
-  <div style="background:var(--card);border:1px solid var(--border);border-radius:20px;padding:20px;width:100%;max-width:400px;animation:fadeUp .2s ease;margin:auto;" onclick="event.stopPropagation()">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+<div id="modal-custom-theme" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:4000;align-items:flex-start;justify-content:center;overflow-y:auto;padding:16px;padding-top:max(16px,env(safe-area-inset-top,16px));backdrop-filter:blur(6px);" onclick="if(event.target===this)closeCustomTheme()">
+  <div style="background:var(--card);border:1px solid var(--border);border-radius:20px;padding:20px;width:100%;max-width:400px;margin:auto;" onclick="event.stopPropagation()">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;">
       <div style="font-size:13px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;">🎨 Своя тема</div>
-      <button onclick="closeCustomTheme()" style="background:none;border:none;color:var(--text2);font-size:18px;cursor:pointer;line-height:1;">✕</button>
+      <button onclick="closeCustomTheme()" style="background:none;border:none;color:var(--text2);font-size:20px;cursor:pointer;padding:0 4px;min-height:44px;min-width:44px;">✕</button>
     </div>
-    <div style="display:flex;gap:6px;margin-bottom:14px;">
-      <button id="ct-tab-bg" onclick="ctSwitchTab('bg')" style="flex:1;padding:8px;border-radius:8px;border:1px solid var(--accent);background:var(--accent);color:#000;font-size:12px;font-weight:700;cursor:pointer;">🌑 Фон</button>
-      <button id="ct-tab-ac" onclick="ctSwitchTab('ac')" style="flex:1;padding:8px;border-radius:8px;border:1px solid var(--border);background:var(--bg3);color:var(--text2);font-size:12px;font-weight:700;cursor:pointer;">✨ Акцент</button>
-    </div>
-    <div id="ct-panel-bg">
-      <div style="position:relative;margin-bottom:10px;">
-        <canvas id="ct-canvas-bg" width="360" height="200" style="width:100%;height:180px;border-radius:10px;cursor:crosshair;touch-action:none;display:block;"></canvas>
-        <div id="ct-cursor-bg" style="position:absolute;width:14px;height:14px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1px #000;pointer-events:none;transform:translate(-50%,-50%);top:50%;left:50%;"></div>
-      </div>
-      <div style="position:relative;margin-bottom:10px;">
-        <canvas id="ct-hue-bg" width="360" height="20" style="width:100%;height:20px;border-radius:6px;cursor:pointer;touch-action:none;display:block;"></canvas>
-        <div id="ct-hue-cursor-bg" style="position:absolute;width:6px;height:26px;border-radius:3px;border:2px solid #fff;box-shadow:0 0 0 1px #000;pointer-events:none;transform:translate(-50%,-3px);top:0;left:0%;"></div>
-      </div>
-      <div style="display:flex;align-items:center;gap:8px;">
-        <div id="ct-swatch-bg" style="width:36px;height:36px;border-radius:8px;border:1px solid var(--border);flex-shrink:0;"></div>
-        <input type="text" id="ct-hex-bg" maxlength="7" placeholder="#0a0a18" oninput="ctHexInput('bg')" style="flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:9px 12px;color:var(--text);font-size:14px;font-family:'JetBrains Mono',monospace;outline:none;">
+
+    <!-- Фон -->
+    <div style="margin-bottom:16px;">
+      <div style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">🌑 Фон</div>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <input type="color" id="ct-bg" value="#0a0a18" oninput="ctColorChange()" style="width:52px;height:52px;border:none;border-radius:12px;cursor:pointer;padding:3px;background:var(--bg3);flex-shrink:0;">
+        <input type="text" id="ct-bg-hex" maxlength="7" placeholder="#0a0a18" oninput="ctHexChange('bg')" style="flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:12px;color:var(--text);font-size:15px;font-family:'JetBrains Mono',monospace;outline:none;">
       </div>
     </div>
-    <div id="ct-panel-ac" style="display:none;">
-      <div style="position:relative;margin-bottom:10px;">
-        <canvas id="ct-canvas-ac" width="360" height="200" style="width:100%;height:180px;border-radius:10px;cursor:crosshair;touch-action:none;display:block;"></canvas>
-        <div id="ct-cursor-ac" style="position:absolute;width:14px;height:14px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1px #000;pointer-events:none;transform:translate(-50%,-50%);top:50%;left:50%;"></div>
-      </div>
-      <div style="position:relative;margin-bottom:10px;">
-        <canvas id="ct-hue-ac" width="360" height="20" style="width:100%;height:20px;border-radius:6px;cursor:pointer;touch-action:none;display:block;"></canvas>
-        <div id="ct-hue-cursor-ac" style="position:absolute;width:6px;height:26px;border-radius:3px;border:2px solid #fff;box-shadow:0 0 0 1px #000;pointer-events:none;transform:translate(-50%,-3px);top:0;left:25%;"></div>
-      </div>
-      <div style="display:flex;align-items:center;gap:8px;">
-        <div id="ct-swatch-ac" style="width:36px;height:36px;border-radius:8px;border:1px solid var(--border);flex-shrink:0;"></div>
-        <input type="text" id="ct-hex-ac" maxlength="7" placeholder="#f0c040" oninput="ctHexInput('ac')" style="flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:9px 12px;color:var(--text);font-size:14px;font-family:'JetBrains Mono',monospace;outline:none;">
+
+    <!-- Акцент -->
+    <div style="margin-bottom:16px;">
+      <div style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">✨ Акцент</div>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <input type="color" id="ct-ac" value="#f0c040" oninput="ctColorChange()" style="width:52px;height:52px;border:none;border-radius:12px;cursor:pointer;padding:3px;background:var(--bg3);flex-shrink:0;">
+        <input type="text" id="ct-ac-hex" maxlength="7" placeholder="#f0c040" oninput="ctHexChange('ac')" style="flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:12px;color:var(--text);font-size:15px;font-family:'JetBrains Mono',monospace;outline:none;">
       </div>
     </div>
-    <div style="font-size:11px;color:var(--text2);margin:14px 0 6px;">Прев'ю:</div>
-    <div id="ct-preview" style="border-radius:12px;padding:14px;margin-bottom:14px;font-size:13px;transition:all .2s;">
-      <div style="font-weight:700;margin-bottom:4px;" id="ct-prev-title">StudentHub</div>
-      <div style="font-size:11px;opacity:.6;" id="ct-prev-sub">Дедлайни · Файли · Чат</div>
-      <div style="margin-top:10px;display:flex;gap:8px;">
-        <div id="ct-prev-btn" style="border-radius:8px;padding:6px 14px;font-size:12px;font-weight:700;">Увійти →</div>
-        <div id="ct-prev-tag" style="border-radius:8px;padding:6px 10px;font-size:12px;border:1px solid;">Тег</div>
+
+    <!-- Прев'ю -->
+    <div style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">Прев'ю</div>
+    <div id="ct-preview" style="border-radius:12px;padding:16px;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;transition:background .2s,color .2s;">
+      <div>
+        <div style="font-weight:700;font-size:15px;margin-bottom:3px;" id="ct-prev-title">StudentHub</div>
+        <div style="font-size:11px;opacity:.6;" id="ct-prev-sub">Дедлайни · Файли · Чат</div>
+      </div>
+      <div style="display:flex;gap:6px;align-items:center;">
+        <div id="ct-prev-btn" style="border-radius:8px;padding:7px 14px;font-size:12px;font-weight:700;">Увійти</div>
+        <div id="ct-prev-tag" style="border-radius:8px;padding:7px 10px;font-size:12px;border:1px solid;">Тег</div>
       </div>
     </div>
-    <div style="font-size:11px;color:var(--text2);margin-bottom:8px;">Готові пресети:</div>
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:14px;">
-      <button onclick="applyCtPreset('#0a0a18','#f0c040')" style="background:linear-gradient(135deg,#0a0a18,#f0c04055);border:1px solid #f0c04066;border-radius:8px;padding:8px 4px;color:#f0c040;font-size:11px;cursor:pointer;">⭐ Золотий</button>
-      <button onclick="applyCtPreset('#0d0820','#a57fff')" style="background:linear-gradient(135deg,#0d0820,#a57fff55);border:1px solid #a57fff66;border-radius:8px;padding:8px 4px;color:#a57fff;font-size:11px;cursor:pointer;">🔮 Фіолет</button>
-      <button onclick="applyCtPreset('#001a10','#00e887')" style="background:linear-gradient(135deg,#001a10,#00e88755);border:1px solid #00e88766;border-radius:8px;padding:8px 4px;color:#00e887;font-size:11px;cursor:pointer;">🌿 Мінт</button>
-      <button onclick="applyCtPreset('#180010','#ff4da6')" style="background:linear-gradient(135deg,#180010,#ff4da655);border:1px solid #ff4da666;border-radius:8px;padding:8px 4px;color:#ff4da6;font-size:11px;cursor:pointer;">🌸 Рожевий</button>
-      <button onclick="applyCtPreset('#001020','#38bdf8')" style="background:linear-gradient(135deg,#001020,#38bdf855);border:1px solid #38bdf866;border-radius:8px;padding:8px 4px;color:#38bdf8;font-size:11px;cursor:pointer;">🌊 Блакит</button>
-      <button onclick="applyCtPreset('#1a0a00','#fb923c')" style="background:linear-gradient(135deg,#1a0a00,#fb923c55);border:1px solid #fb923c66;border-radius:8px;padding:8px 4px;color:#fb923c;font-size:11px;cursor:pointer;">🔥 Помаранч</button>
+
+    <!-- Пресети -->
+    <div style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">Пресети</div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:18px;">
+      <button onclick="ctPreset('#0a0a18','#f0c040')" style="background:linear-gradient(135deg,#0a0a18,#f0c04055);border:1px solid #f0c04077;border-radius:10px;padding:10px 4px;color:#f0c040;font-size:12px;cursor:pointer;min-height:44px;">⭐ Золотий</button>
+      <button onclick="ctPreset('#0d0820','#a57fff')" style="background:linear-gradient(135deg,#0d0820,#a57fff55);border:1px solid #a57fff77;border-radius:10px;padding:10px 4px;color:#a57fff;font-size:12px;cursor:pointer;min-height:44px;">🔮 Фіолет</button>
+      <button onclick="ctPreset('#001a10','#00e887')" style="background:linear-gradient(135deg,#001a10,#00e88755);border:1px solid #00e88777;border-radius:10px;padding:10px 4px;color:#00e887;font-size:12px;cursor:pointer;min-height:44px;">🌿 Мінт</button>
+      <button onclick="ctPreset('#180010','#ff4da6')" style="background:linear-gradient(135deg,#180010,#ff4da655);border:1px solid #ff4da677;border-radius:10px;padding:10px 4px;color:#ff4da6;font-size:12px;cursor:pointer;min-height:44px;">🌸 Рожевий</button>
+      <button onclick="ctPreset('#001020','#38bdf8')" style="background:linear-gradient(135deg,#001020,#38bdf855);border:1px solid #38bdf877;border-radius:10px;padding:10px 4px;color:#38bdf8;font-size:12px;cursor:pointer;min-height:44px;">🌊 Блакит</button>
+      <button onclick="ctPreset('#1a0a00','#fb923c')" style="background:linear-gradient(135deg,#1a0a00,#fb923c55);border:1px solid #fb923c77;border-radius:10px;padding:10px 4px;color:#fb923c;font-size:12px;cursor:pointer;min-height:44px;">🔥 Помаранч</button>
     </div>
-    <button onclick="saveCustomTheme()" style="width:100%;background:var(--accent);color:#000;border:none;border-radius:10px;padding:13px;font-size:14px;font-weight:700;cursor:pointer;">Застосувати</button>
+
+    <button onclick="saveCustomTheme()" style="width:100%;background:var(--accent);color:#000;border:none;border-radius:12px;padding:15px;font-size:15px;font-weight:700;cursor:pointer;min-height:52px;">Застосувати</button>
   </div>
 </div>
 </body>

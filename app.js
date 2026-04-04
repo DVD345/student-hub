@@ -2260,189 +2260,110 @@ function updateThemeIcon(t) {
 }
 
 
-// ── CUSTOM THEME — HSV picker ──
-var _ct = {
-  bg: { h:240, s:0.6, v:0.1 },
-  ac: { h:45,  s:0.75, v:0.94 }
-};
-var _ctActive = 'bg';
+// ── CUSTOM THEME ──
+function _hexToRgbCt(hex) {
+  if(!hex||hex.length<7) return {r:0,g:0,b:0};
+  return {r:parseInt(hex.slice(1,3),16),g:parseInt(hex.slice(3,5),16),b:parseInt(hex.slice(5,7),16)};
+}
+function _isDarkCt(hex) {
+  var c=_hexToRgbCt(hex);
+  return (c.r*0.299+c.g*0.587+c.b*0.114)<140;
+}
+function _mixHex(hex,target,amt) {
+  var a=_hexToRgbCt(hex),b=_hexToRgbCt(target);
+  return '#'+['r','g','b'].map(function(k){return Math.round(a[k]+(b[k]-a[k])*amt).toString(16).padStart(2,'0');}).join('');
+}
+function _isDark(hex){return _isDarkCt(hex);}
+function _lighten(hex,a){return _mixHex(hex,'#ffffff',a);}
+function _darken(hex,a){return _mixHex(hex,'#000000',a);}
+function _hexToRgb(hex){return _hexToRgbCt(hex);}
 
-function _hsvToHex(h,s,v) {
-  h = ((h%360)+360)%360;
-  var c=v*s, x=c*(1-Math.abs((h/60)%2-1)), m=v-c, r,g,b;
-  if(h<60){r=c;g=x;b=0;}else if(h<120){r=x;g=c;b=0;}else if(h<180){r=0;g=c;b=x;}
-  else if(h<240){r=0;g=x;b=c;}else if(h<300){r=x;g=0;b=c;}else{r=c;g=0;b=x;}
-  return '#'+[r+m,g+m,b+m].map(v=>Math.round(v*255).toString(16).padStart(2,'0')).join('');
-}
-function _hexToHsv(hex) {
-  var r=parseInt(hex.slice(1,3),16)/255,g=parseInt(hex.slice(3,5),16)/255,b=parseInt(hex.slice(5,7),16)/255;
-  var max=Math.max(r,g,b),min=Math.min(r,g,b),d=max-min,h,s=max?d/max:0,v=max;
-  if(!d){h=0;}else if(max===r){h=((g-b)/d+6)%6*60;}else if(max===g){h=((b-r)/d+2)*60;}else{h=((r-g)/d+4)*60;}
-  return {h,s,v};
-}
-function _ctDrawCanvas(which) {
-  var canvas=document.getElementById('ct-canvas-'+which);
-  if(!canvas)return;
-  var ctx=canvas.getContext('2d'),w=canvas.width,h=canvas.height;
-  var hue=_ct[which].h;
-  ctx.clearRect(0,0,w,h);
-  var gH=ctx.createLinearGradient(0,0,w,0);
-  gH.addColorStop(0,'#fff');
-  gH.addColorStop(1,'hsl('+hue+',100%,50%)');
-  ctx.fillStyle=gH; ctx.fillRect(0,0,w,h);
-  var gV=ctx.createLinearGradient(0,0,0,h);
-  gV.addColorStop(0,'rgba(0,0,0,0)');
-  gV.addColorStop(1,'#000');
-  ctx.fillStyle=gV; ctx.fillRect(0,0,w,h);
-  // cursor
-  var cx=_ct[which].s*w, cy=(1-_ct[which].v)*h;
-  var cur=document.getElementById('ct-cursor-'+which);
-  if(cur){cur.style.left=cx+'px';cur.style.top=cy+'px';}
-}
-function _ctDrawHue(which) {
-  var canvas=document.getElementById('ct-hue-'+which);
-  if(!canvas)return;
-  var ctx=canvas.getContext('2d'),w=canvas.width,h=canvas.height;
-  var g=ctx.createLinearGradient(0,0,w,0);
-  for(var i=0;i<=360;i+=10) g.addColorStop(i/360,'hsl('+i+',100%,50%)');
-  ctx.fillStyle=g; ctx.fillRect(0,0,w,h);
-  var cur=document.getElementById('ct-hue-cursor-'+which);
-  if(cur) cur.style.left=(_ct[which].h/360*100)+'%';
-}
-function _ctUpdate(which) {
-  var hex=_hsvToHex(_ct[which].h,_ct[which].s,_ct[which].v);
-  var hexEl=document.getElementById('ct-hex-'+which);
-  var swEl=document.getElementById('ct-swatch-'+which);
-  if(hexEl) hexEl.value=hex;
-  if(swEl) swEl.style.background=hex;
-  _ctDrawCanvas(which);
-  _ctDrawHue(which);
-  _updateCtPreview();
-}
-function _ctCanvasDrag(which, e) {
-  var canvas=document.getElementById('ct-canvas-'+which);
-  var r=canvas.getBoundingClientRect();
-  var cx=e.touches?e.touches[0].clientX:e.clientX;
-  var cy=e.touches?e.touches[0].clientY:e.clientY;
-  _ct[which].s=Math.max(0,Math.min(1,(cx-r.left)/r.width));
-  _ct[which].v=Math.max(0,Math.min(1,1-(cy-r.top)/r.height));
-  _ctUpdate(which);
-}
-function _ctHueDrag(which, e) {
-  var canvas=document.getElementById('ct-hue-'+which);
-  var r=canvas.getBoundingClientRect();
-  var cx=e.touches?e.touches[0].clientX:e.clientX;
-  _ct[which].h=Math.max(0,Math.min(360,((cx-r.left)/r.width)*360));
-  _ctUpdate(which);
-}
-function _ctBindEvents(which) {
-  var canvas=document.getElementById('ct-canvas-'+which);
-  var hue=document.getElementById('ct-hue-'+which);
-  if(!canvas||!hue)return;
-  var drag=false, hueDrag=false;
-  // Canvas — тільки dragging всередині канвасу
-  canvas.addEventListener('mousedown', function(e){drag=true;_ctCanvasDrag(which,e);});
-  canvas.addEventListener('touchstart',function(e){drag=true;e.preventDefault();_ctCanvasDrag(which,e);},{passive:false});
-  canvas.addEventListener('mousemove', function(e){if(drag)_ctCanvasDrag(which,e);});
-  canvas.addEventListener('touchmove', function(e){if(drag){e.preventDefault();_ctCanvasDrag(which,e);}},{passive:false});
-  canvas.addEventListener('mouseleave',function(){drag=false;});
-  // Hue — тільки всередині hue-канвасу
-  hue.addEventListener('mousedown', function(e){hueDrag=true;_ctHueDrag(which,e);});
-  hue.addEventListener('touchstart',function(e){hueDrag=true;e.preventDefault();_ctHueDrag(which,e);},{passive:false});
-  hue.addEventListener('mousemove', function(e){if(hueDrag)_ctHueDrag(which,e);});
-  hue.addEventListener('touchmove', function(e){if(hueDrag){e.preventDefault();_ctHueDrag(which,e);}},{passive:false});
-  hue.addEventListener('mouseleave',function(){hueDrag=false;});
-  // Скидаємо тільки через window mouseup/touchend
-  window.addEventListener('mouseup', function(){drag=false;hueDrag=false;});
-  window.addEventListener('touchend',function(){drag=false;hueDrag=false;});
-  window.addEventListener('touchcancel',function(){drag=false;hueDrag=false;});
-}
-var _ctBound=false;
-function ctSwitchTab(which) {
-  _ctActive=which;
-  document.getElementById('ct-panel-bg').style.display=which==='bg'?'':'none';
-  document.getElementById('ct-panel-ac').style.display=which==='ac'?'':'none';
-  var acBg=which==='bg'?'var(--accent)':'var(--bg3)', acAc=which==='ac'?'var(--accent)':'var(--bg3)';
-  var tbg=document.getElementById('ct-tab-bg'), tac=document.getElementById('ct-tab-ac');
-  tbg.style.background=acBg; tbg.style.color=which==='bg'?'#000':'var(--text2)'; tbg.style.borderColor=which==='bg'?'var(--accent)':'var(--border)';
-  tac.style.background=acAc; tac.style.color=which==='ac'?'#000':'var(--text2)'; tac.style.borderColor=which==='ac'?'var(--accent)':'var(--border)';
-  setTimeout(function(){ _ctUpdate(which); },10);
-}
-function ctHexInput(which) {
-  var val=document.getElementById('ct-hex-'+which).value;
-  if(/^#[0-9a-fA-F]{6}$/.test(val)) {
-    var hsv=_hexToHsv(val);
-    _ct[which]=hsv;
-    _ctUpdate(which);
-  }
-}
-function applyCtPreset(bg, ac) {
-  var bgHsv=_hexToHsv(bg), acHsv=_hexToHsv(ac);
-  _ct.bg=bgHsv; _ct.ac=acHsv;
-  _ctUpdate('bg'); _ctUpdate('ac');
-}
 function _updateCtPreview() {
-  var bg=_hsvToHex(_ct.bg.h,_ct.bg.s,_ct.bg.v);
-  var ac=_hsvToHex(_ct.ac.h,_ct.ac.s,_ct.ac.v);
-  var dark=_isDark(bg);
-  var bg3=dark?_lighten(bg,.09):_darken(bg,.09);
+  var bg=(document.getElementById('ct-bg')||{value:'#0a0a18'}).value;
+  var ac=(document.getElementById('ct-ac')||{value:'#f0c040'}).value;
+  var dark=_isDarkCt(bg);
+  var bg3=dark?_mixHex(bg,'#ffffff',.09):_mixHex(bg,'#000000',.09);
   var text=dark?'#eeeef5':'#14142a';
   var p=document.getElementById('ct-preview');
-  if(!p)return;
+  if(!p) return;
   p.style.background=bg3; p.style.color=text;
-  document.getElementById('ct-prev-title').style.color=text;
-  document.getElementById('ct-prev-sub').style.color=text;
-  document.getElementById('ct-prev-btn').style.background=ac;
-  document.getElementById('ct-prev-btn').style.color=_isDark(ac)?'#fff':'#000';
-  document.getElementById('ct-prev-tag').style.borderColor=ac+'88';
-  document.getElementById('ct-prev-tag').style.color=ac;
-  document.getElementById('ct-prev-tag').style.background=ac+'18';
+  var t=document.getElementById('ct-prev-title'); if(t) t.style.color=text;
+  var s=document.getElementById('ct-prev-sub'); if(s) s.style.color=text;
+  var btn=document.getElementById('ct-prev-btn');
+  if(btn){btn.style.background=ac;btn.style.color=_isDarkCt(ac)?'#fff':'#000';}
+  var tag=document.getElementById('ct-prev-tag');
+  if(tag){tag.style.borderColor=ac+'99';tag.style.color=ac;tag.style.background=ac+'22';}
   var sw=document.getElementById('custom-swatch');
-  if(sw) sw.style.background='linear-gradient(135deg,'+bg+','+ac+'44)';
+  if(sw) sw.style.background='linear-gradient(135deg,'+bg+','+ac+'66)';
 }
-function _applyCustomThemeVars(bg, ac) {
-  var storedBg=localStorage.getItem('sh_ct_bg')||'#0a0a18';
-  var storedAc=localStorage.getItem('sh_ct_ac')||'#f0c040';
-  bg=bg||storedBg; ac=ac||storedAc;
-  var dark=_isDark(bg), root=document.documentElement;
-  root.style.setProperty('--ct-bg',bg);
-  root.style.setProperty('--ct-bg2',dark?_lighten(bg,.04):_darken(bg,.04));
-  root.style.setProperty('--ct-bg3',dark?_lighten(bg,.09):_darken(bg,.09));
-  root.style.setProperty('--ct-border',dark?_lighten(bg,.16):_darken(bg,.16));
-  root.style.setProperty('--ct-card',dark?_lighten(bg,.02):_lighten(bg,.06));
-  root.style.setProperty('--ct-text',dark?'#eeeef5':'#14142a');
-  root.style.setProperty('--ct-text2',dark?'#6666a0':'#5858a0');
-  root.style.setProperty('--ct-ac',ac);
-  root.style.setProperty('--ct-ac2',_darken(ac,.2));
+function ctColorChange() {
+  var bg=document.getElementById('ct-bg').value;
+  var ac=document.getElementById('ct-ac').value;
+  var bh=document.getElementById('ct-bg-hex'); if(bh) bh.value=bg;
+  var ah=document.getElementById('ct-ac-hex'); if(ah) ah.value=ac;
+  _updateCtPreview();
 }
+function ctHexChange(which) {
+  var val=document.getElementById('ct-'+which+'-hex').value;
+  if(/^#[0-9a-fA-F]{6}$/.test(val)) {
+    document.getElementById('ct-'+which).value=val;
+    _updateCtPreview();
+  }
+}
+function ctPreset(bg,ac) {
+  document.getElementById('ct-bg').value=bg;
+  var bh=document.getElementById('ct-bg-hex'); if(bh) bh.value=bg;
+  document.getElementById('ct-ac').value=ac;
+  var ah=document.getElementById('ct-ac-hex'); if(ah) ah.value=ac;
+  _updateCtPreview();
+}
+function applyCtPreset(bg,ac){ctPreset(bg,ac);}
 function openCustomTheme() {
-  var storedBg=localStorage.getItem('sh_ct_bg')||'#0a0a18';
-  var storedAc=localStorage.getItem('sh_ct_ac')||'#f0c040';
-  _ct.bg=_hexToHsv(storedBg); _ct.ac=_hexToHsv(storedAc);
+  var bg=localStorage.getItem('sh_ct_bg')||'#0a0a18';
+  var ac=localStorage.getItem('sh_ct_ac')||'#f0c040';
+  document.getElementById('ct-bg').value=bg;
+  var bh=document.getElementById('ct-bg-hex'); if(bh) bh.value=bg;
+  document.getElementById('ct-ac').value=ac;
+  var ah=document.getElementById('ct-ac-hex'); if(ah) ah.value=ac;
   document.getElementById('modal-custom-theme').style.display='flex';
-  ctSwitchTab('bg');
-  if(!_ctBound){_ctBindEvents('bg');_ctBindEvents('ac');_ctBound=true;}
-  setTimeout(function(){_ctUpdate('bg');_ctUpdate('ac');},30);
+  _updateCtPreview();
 }
 function closeCustomTheme() {
   document.getElementById('modal-custom-theme').style.display='none';
 }
 function saveCustomTheme() {
-  var bg=_hsvToHex(_ct.bg.h,_ct.bg.s,_ct.bg.v);
-  var ac=_hsvToHex(_ct.ac.h,_ct.ac.s,_ct.ac.v);
-  localStorage.setItem('sh_ct_bg',bg); localStorage.setItem('sh_ct_ac',ac);
+  var bg=document.getElementById('ct-bg').value;
+  var ac=document.getElementById('ct-ac').value;
+  localStorage.setItem('sh_ct_bg',bg);
+  localStorage.setItem('sh_ct_ac',ac);
   _applyCustomThemeVars(bg,ac);
   setTheme('custom');
   closeCustomTheme();
 }
+function _applyCustomThemeVars(bg,ac) {
+  var storedBg=localStorage.getItem('sh_ct_bg')||'#0a0a18';
+  var storedAc=localStorage.getItem('sh_ct_ac')||'#f0c040';
+  bg=bg||storedBg; ac=ac||storedAc;
+  var dark=_isDarkCt(bg);
+  var root=document.documentElement;
+  root.style.setProperty('--ct-bg',bg);
+  root.style.setProperty('--ct-bg2',dark?_mixHex(bg,'#ffffff',.04):_mixHex(bg,'#000000',.04));
+  root.style.setProperty('--ct-bg3',dark?_mixHex(bg,'#ffffff',.09):_mixHex(bg,'#000000',.09));
+  root.style.setProperty('--ct-border',dark?_mixHex(bg,'#ffffff',.16):_mixHex(bg,'#000000',.16));
+  root.style.setProperty('--ct-card',dark?_mixHex(bg,'#ffffff',.02):_mixHex(bg,'#ffffff',.06));
+  root.style.setProperty('--ct-text',dark?'#eeeef5':'#14142a');
+  root.style.setProperty('--ct-text2',dark?'#6666a0':'#5858a0');
+  root.style.setProperty('--ct-ac',ac);
+  root.style.setProperty('--ct-ac2',_mixHex(ac,'#000000',.2));
+}
 (function(){
   var st2=localStorage.getItem('sh_theme');
-  if(st2==='custom'){_applyCustomThemeVars();}
+  if(st2==='custom') _applyCustomThemeVars();
   var sw=document.getElementById('custom-swatch');
   if(sw){
     var bg=localStorage.getItem('sh_ct_bg')||'#0a0a18';
     var ac=localStorage.getItem('sh_ct_ac')||'#f0c040';
-    sw.style.background='linear-gradient(135deg,'+bg+','+ac+'44)';
+    sw.style.background='linear-gradient(135deg,'+bg+','+ac+'66)';
   }
 })();
 

@@ -2340,18 +2340,22 @@ function _ctBindEvents(which) {
   var hue=document.getElementById('ct-hue-'+which);
   if(!canvas||!hue)return;
   var drag=false, hueDrag=false;
+  // Canvas — тільки dragging всередині канвасу
   canvas.addEventListener('mousedown', function(e){drag=true;_ctCanvasDrag(which,e);});
   canvas.addEventListener('touchstart',function(e){drag=true;e.preventDefault();_ctCanvasDrag(which,e);},{passive:false});
-  window.addEventListener('mousemove', function(e){if(drag)_ctCanvasDrag(which,e);});
-  window.addEventListener('touchmove', function(e){if(drag){e.preventDefault();_ctCanvasDrag(which,e);}},{passive:false});
-  window.addEventListener('mouseup',   function(){drag=false;});
-  window.addEventListener('touchend',  function(){drag=false;});
+  canvas.addEventListener('mousemove', function(e){if(drag)_ctCanvasDrag(which,e);});
+  canvas.addEventListener('touchmove', function(e){if(drag){e.preventDefault();_ctCanvasDrag(which,e);}},{passive:false});
+  canvas.addEventListener('mouseleave',function(){drag=false;});
+  // Hue — тільки всередині hue-канвасу
   hue.addEventListener('mousedown', function(e){hueDrag=true;_ctHueDrag(which,e);});
   hue.addEventListener('touchstart',function(e){hueDrag=true;e.preventDefault();_ctHueDrag(which,e);},{passive:false});
-  window.addEventListener('mousemove', function(e){if(hueDrag)_ctHueDrag(which,e);});
-  window.addEventListener('touchmove', function(e){if(hueDrag){e.preventDefault();_ctHueDrag(which,e);}},{passive:false});
-  window.addEventListener('mouseup',   function(){hueDrag=false;});
-  window.addEventListener('touchend',  function(){hueDrag=false;});
+  hue.addEventListener('mousemove', function(e){if(hueDrag)_ctHueDrag(which,e);});
+  hue.addEventListener('touchmove', function(e){if(hueDrag){e.preventDefault();_ctHueDrag(which,e);}},{passive:false});
+  hue.addEventListener('mouseleave',function(){hueDrag=false;});
+  // Скидаємо тільки через window mouseup/touchend
+  window.addEventListener('mouseup', function(){drag=false;hueDrag=false;});
+  window.addEventListener('touchend',function(){drag=false;hueDrag=false;});
+  window.addEventListener('touchcancel',function(){drag=false;hueDrag=false;});
 }
 var _ctBound=false;
 function ctSwitchTab(which) {

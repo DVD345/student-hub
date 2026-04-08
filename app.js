@@ -1453,7 +1453,10 @@ function _gradeStatCard(ico, val, lbl) {
 }
 
 function openGrCourseFilter() {
-  if(!_gradesCache || !_gradesCache.length) { alert('Спочатку завантажте оцінки'); return; }
+  if(!_gradesCache || !_gradesCache.length) {
+    loadGrades();
+    return;
+  }
   // Build course names if not yet built
   if(!_grCourseNames) {
     _grCourseNames = [...new Set(_gradesCache.map(i=>i.courseName))].sort();

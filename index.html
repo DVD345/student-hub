@@ -182,6 +182,7 @@ function _loadKaTeX() {
       <div class="nav-item active" onclick="go('dashboard')"><span class="ni">🏠</span>Головна</div>
       <div class="nav-item" onclick="go('deadlines')"><span class="ni">⏰</span>Дедлайни</div>
       <div class="nav-item" onclick="go('courses')"><span class="ni">📚</span>Курси</div>
+      <div class="nav-item" onclick="go('grades')"><span class="ni">🎓</span>Оцінки</div>
       <div class="nav-item" onclick="go('calendar')"><span class="ni">📅</span>Календар</div>
       <div class="nav-item" onclick="go('assistant')"><span class="ni">🤖</span>Асистент</div>
       <div class="nav-section">Група</div>
@@ -356,6 +357,24 @@ function _loadKaTeX() {
           </div>
         </div>
         <div id="courses-list"><div class="loading"><div class="spinner"></div>Завантаження...</div></div>
+      </div>
+
+
+      <!-- GRADES -->
+      <div class="page" id="page-grades">
+        <div class="page-header"><h2>🎓 Оцінки</h2><p>З Moodle — автоматично</p></div>
+        <div class="toolbar">
+          <input class="tb-input" id="gr-q" placeholder="🔍 Пошук завдання або курсу..." oninput="renderGrades()">
+          <select class="tb-select" id="gr-course" onchange="renderGrades()">
+            <option value="all">Всі курси</option>
+          </select>
+          <div class="tb-right">
+            <button class="btn a" onclick="loadGrades(true)">🔄</button>
+          </div>
+        </div>
+        <!-- Summary row -->
+        <div id="grades-summary" style="display:none;gap:10px;margin-bottom:14px;flex-wrap:wrap;"></div>
+        <div id="grades-list"><div class="loading"><div class="spinner"></div>Завантаження...</div></div>
       </div>
 
       <!-- FILES -->

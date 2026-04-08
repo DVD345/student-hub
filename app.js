@@ -1285,6 +1285,179 @@ function renderDashDl() {
   renderDl(top,el);
 }
 
+// ── GRADES ──
+var _gradesCache = null;
+var _gradesLoading = false;
+
+async function loadGrades(forceRefresh) {
+  if(_gradesLoading) return;
+  const el = document.getElementById('grades-list');
+  const sumEl = document.getElementById('grades-summary');
+  if(!el) return;
+
+  // Show cached data immediately
+  if(_gradesCache && !forceRefresh) { renderGrades(); return; }
+
+  _gradesLoading = true;
+  el.innerHTML = '<div class="loading"><div class="spinner"></div>Завантаження оцінок...</div>';
+  if(sumEl) sumEl.style.display = 'none';
+
+  try {
+    if(!token || !userData.userid) { el.innerHTML = '<div class="empty"><div class="emo">🔒</div><p>Спочатку увійдіть через Moodle</p></div>'; return; }
+    if(!courses.length) {
+      const d = await moodleCall('core_enrol_get_users_courses', {userid: userData.userid});
+      if(d) courses = d;
+    }
+
+    const allItems = [];
+    // Chunk courses by 10
+    const chunks = [];
+    for(let i=0;i<courses.length;i+=10) chunks.push(courses.slice(i,i+10));
+
+    await Promise.all(chunks.map(async chunk => {
+      await Promise.all(chunk.map(async course => {
+        try {
+          const data = await moodleCall('gradereport_user_get_grade_items', {
+            courseid: course.id,
+            userid: userData.userid
+          });
+          if(!data || !data.usergrades || !data.usergrades[0]) return;
+          const items = data.usergrades[0].gradeitems || [];
+          items.forEach(item => {
+            // Skip course total and category totals with no grade
+            if(item.gradetype === 0) return; // "none" type
+            if(item.itemtype === 'course') return; // skip total row
+            const grade = item.graderaw;
+            const gradeMax = item.grademax;
+            if(grade === null || grade === undefined || grade === '') return;
+            allItems.push({
+              id: item.id,
+              name: item.itemname || item.itemmodule || 'Завдання',
+              courseName: course.fullname || course.shortname,
+              courseId: course.id,
+              grade: parseFloat(grade),
+              gradeMax: parseFloat(gradeMax) || 100,
+              gradeFormatted: item.gradeformatted || String(Math.round(grade)),
+              gradeMin: parseFloat(item.grademin) || 0,
+              feedback: item.feedback || '',
+              itemtype: item.itemtype,
+              itemmodule: item.itemmodule,
+              dateGraded: item.gradedategraded || 0,
+            });
+          });
+        } catch(e) {}
+      }));
+    }));
+
+    // Sort: newest first
+    allItems.sort((a,b) => (b.dateGraded||0) - (a.dateGraded||0));
+    _gradesCache = allItems;
+    renderGrades();
+  } catch(e) {
+    el.innerHTML = '<div class="empty"><div class="emo">⚠️</div><p>Помилка завантаження: '+escHtml(String(e.message||e))+'</p></div>';
+  } finally {
+    _gradesLoading = false;
+  }
+}
+
+function renderGrades() {
+  const el = document.getElementById('grades-list');
+  const sumEl = document.getElementById('grades-summary');
+  if(!el || !_gradesCache) return;
+
+  const q = (document.getElementById('gr-q')||{value:''}).value.toLowerCase();
+  const courseFilter = (document.getElementById('gr-course')||{value:'all'}).value;
+
+  // Build course filter dropdown
+  const coursesSel = document.getElementById('gr-course');
+  if(coursesSel && coursesSel.options.length <= 1) {
+    const courseNames = [...new Set(_gradesCache.map(i=>i.courseName))].sort();
+    courseNames.forEach(name => {
+      const opt = document.createElement('option');
+      opt.value = name; opt.textContent = name.length > 35 ? name.slice(0,35)+'…' : name;
+      coursesSel.appendChild(opt);
+    });
+  }
+
+  let list = _gradesCache;
+  if(q) list = list.filter(i => i.name.toLowerCase().includes(q) || i.courseName.toLowerCase().includes(q));
+  if(courseFilter !== 'all') list = list.filter(i => i.courseName === courseFilter);
+
+  // Summary stats
+  if(sumEl && list.length) {
+    const avg = list.reduce((s,i) => s + (i.gradeMax > 0 ? i.grade/i.gradeMax*100 : 0), 0) / list.length;
+    const passing = list.filter(i => i.gradeMax > 0 && (i.grade/i.gradeMax) >= 0.6).length;
+    sumEl.style.display = 'flex';
+    sumEl.innerHTML =
+      _gradeStatCard('📊', Math.round(avg)+'%', 'Середній %') +
+      _gradeStatCard('✅', passing, 'Зараховано') +
+      _gradeStatCard('📝', list.length, 'Всього оцінок');
+  } else if(sumEl) { sumEl.style.display = 'none'; }
+
+  if(!list.length) {
+    el.innerHTML = '<div class="empty"><div class="emo">🎓</div><p>Оцінок не знайдено</p></div>';
+    return;
+  }
+
+  // Group by course
+  const byCourse = {};
+  list.forEach(item => {
+    if(!byCourse[item.courseName]) byCourse[item.courseName] = [];
+    byCourse[item.courseName].push(item);
+  });
+
+  let html = '';
+  Object.entries(byCourse).forEach(([cname, items]) => {
+    const courseAvg = items.reduce((s,i) => s + (i.gradeMax>0 ? i.grade/i.gradeMax*100 : 0),0) / items.length;
+    html += '<div style="margin-bottom:18px;">';
+    html += '<div style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;padding:0 2px;display:flex;align-items:center;justify-content:space-between;">';
+    html += '<span>'+escHtml(cname.length>50?cname.slice(0,50)+'…':cname)+'</span>';
+    html += '<span style="color:'+_gradeColor(courseAvg/100)+'">∅ '+Math.round(courseAvg)+'%</span>';
+    html += '</div>';
+    html += '<div style="background:var(--card);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;">';
+    items.forEach((item, idx) => {
+      const pct = item.gradeMax > 0 ? item.grade / item.gradeMax : 0;
+      const color = _gradeColor(pct);
+      const pctStr = Math.round(pct*100)+'%';
+      const moduleIco = {assign:'📋',quiz:'📝',forum:'💬',workshop:'🔧'}[item.itemmodule||''] || '📄';
+      const dateStr = item.dateGraded ? new Date(item.dateGraded*1000).toLocaleDateString('uk',{day:'2-digit',month:'2-digit'}) : '';
+      html += '<div style="display:flex;align-items:center;gap:12px;padding:12px 14px;'+(idx>0?'border-top:1px solid var(--border)':'')+'">';
+      html += '<div style="font-size:16px;flex-shrink:0;">'+moduleIco+'</div>';
+      html += '<div style="flex:1;min-width:0;">';
+      html += '<div style="font-size:13px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+escHtml(item.name)+'</div>';
+      if(item.feedback) html += '<div style="font-size:11px;color:var(--text2);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+escHtml(item.feedback.slice(0,80))+'</div>';
+      html += '</div>';
+      html += '<div style="flex-shrink:0;text-align:right;">';
+      html += '<div style="font-size:15px;font-weight:700;color:'+color+';">'+escHtml(item.gradeFormatted)+'</div>';
+      html += '<div style="font-size:10px;color:var(--text2);">з '+Math.round(item.gradeMax)+(dateStr?' · '+dateStr:'')+'</div>';
+      // Progress bar
+      html += '<div style="width:70px;height:4px;background:var(--bg3);border-radius:2px;margin-top:4px;overflow:hidden;">';
+      html += '<div style="width:'+pctStr+';height:100%;background:'+color+';border-radius:2px;transition:width .3s;"></div>';
+      html += '</div>';
+      html += '</div>';
+      html += '</div>';
+    });
+    html += '</div></div>';
+  });
+
+  el.innerHTML = html;
+}
+
+function _gradeStatCard(ico, val, lbl) {
+  return '<div style="flex:1;min-width:80px;background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:12px;text-align:center;">'+
+    '<div style="font-size:18px;">'+ico+'</div>'+
+    '<div style="font-size:20px;font-weight:700;color:var(--text);margin:2px 0;">'+val+'</div>'+
+    '<div style="font-size:11px;color:var(--text2);">'+lbl+'</div>'+
+    '</div>';
+}
+
+function _gradeColor(pct) {
+  if(pct >= 0.9) return 'var(--success)';
+  if(pct >= 0.75) return 'var(--accent)';
+  if(pct >= 0.6) return 'var(--warning)';
+  return 'var(--accent2)';
+}
+
 // ── FILES ──
 function listenFiles() {
   if(!window._db||!group.id) return;
@@ -2136,8 +2309,8 @@ function editGroup(id,name,faculty,course){
 async function delGroup(id){ if(!confirm('Видалити групу?'))return; const {doc,deleteDoc}=window._fb; await deleteDoc(doc(window._db,'groups',id)); }
 
 // ── NAV ──
-var PAGE_TITLES={dashboard:'Головна',deadlines:'Дедлайни',courses:'Курси',files:'Файли',materials:'Матеріали',chat:'Чати',admin:'Адмін-панель',calendar:'Календар',notes:'Нотатки',assistant:'Асистент',notifications:'Сповіщення'};
-const PAGE_ORDER = ['dashboard','deadlines','courses','calendar','assistant','files','materials','notes','chat','notifications','admin'];
+var PAGE_TITLES={dashboard:'Головна',deadlines:'Дедлайни',courses:'Курси',grades:'Оцінки',files:'Файли',materials:'Матеріали',chat:'Чати',admin:'Адмін-панель',calendar:'Календар',notes:'Нотатки',assistant:'Асистент',notifications:'Сповіщення'};
+const PAGE_ORDER = ['dashboard','deadlines','courses','grades','calendar','assistant','files','materials','notes','chat','notifications','admin'];
 let _currentPage = 'dashboard';
 
 function go(name) {
@@ -2166,13 +2339,14 @@ function go(name) {
   const inChat = name === 'chat';
   if(backBtn) backBtn.style.display = inChat ? '' : 'none';
   if(hamburger) hamburger.style.display = inChat ? 'none' : '';
-  const labels={dashboard:'Голов',deadlines:'Дедл',courses:'Курс',files:'Файл',materials:'Матер',chat:'Чат',admin:'Адмін',calendar:'Календ',notes:'Нотат',assistant:'Асист',notifications:'Сповіщ'};
+  const labels={dashboard:'Голов',deadlines:'Дедл',courses:'Курс',grades:'Оцін',files:'Файл',materials:'Матер',chat:'Чат',admin:'Адмін',calendar:'Календ',notes:'Нотат',assistant:'Асист',notifications:'Сповіщ'};
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.toggle('active',n.textContent.trim().startsWith(labels[name]||'_')));
   document.getElementById('topbar-title').textContent=PAGE_TITLES[name]||name;
   if(name==='calendar') renderCalendar();
   if(name==='chat') _clearChatBadge();
   if(name==='assistant'||name==='notes') _loadKaTeX();
   if(name==='notes') loadNotes();
+  if(name==='grades') loadGrades();
   if(name==='notifications') markAllRead();
   closeSidebar();
 }

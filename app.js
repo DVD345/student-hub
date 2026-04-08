@@ -1424,10 +1424,12 @@ function renderGrades() {
       html += '<div style="font-size:16px;flex-shrink:0;">'+moduleIco+'</div>';
       html += '<div style="flex:1;min-width:0;">';
       html += '<div style="font-size:13px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+escHtml(item.name)+'</div>';
-      if(item.feedback) html += '<div style="font-size:11px;color:var(--text2);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+escHtml(item.feedback.slice(0,80))+'</div>';
+      var _fb=(item.feedback||'').replace(/<[^>]*>/g,'').replace(/&[a-z#0-9]+;/gi,'').trim();
+      if(_fb) html += '<div style="font-size:11px;color:var(--text2);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+escHtml(_fb.slice(0,80))+'</div>';
       html += '</div>';
       html += '<div style="flex-shrink:0;text-align:right;">';
-      html += '<div style="font-size:15px;font-weight:700;color:'+color+';">'+escHtml(item.gradeFormatted)+'</div>';
+      var _gf=(item.gradeFormatted||'').replace(/<[^>]*>/g,'').replace(/&[a-z#0-9]+;/gi,'').trim();
+      html += '<div style="font-size:15px;font-weight:700;color:'+color+';">'+escHtml(_gf)+'</div>';
       html += '<div style="font-size:10px;color:var(--text2);">з '+Math.round(item.gradeMax)+(dateStr?' · '+dateStr:'')+'</div>';
       // Progress bar
       html += '<div style="width:70px;height:4px;background:var(--bg3);border-radius:2px;margin-top:4px;overflow:hidden;">';
@@ -1451,7 +1453,13 @@ function _gradeStatCard(ico, val, lbl) {
 }
 
 function openGrCourseFilter() {
-  if(!_grCourseNames || !_grCourseNames.length) return;
+  if(!_gradesCache || !_gradesCache.length) { alert('Спочатку завантажте оцінки'); return; }
+  // Build course names if not yet built
+  if(!_grCourseNames) {
+    _grCourseNames = [...new Set(_gradesCache.map(i=>i.courseName))].sort();
+    _grSelectedCourses = null;
+  }
+  if(!_grCourseNames.length) return;
   _grTempSelected = _grSelectedCourses ? new Set(_grSelectedCourses) : new Set(_grCourseNames);
   const listEl = document.getElementById('gr-course-list');
   listEl.innerHTML = _grCourseNames.map(name => {

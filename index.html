@@ -364,13 +364,10 @@ function _loadKaTeX() {
       <div class="page" id="page-grades">
         <div class="page-header"><h2>🎓 Оцінки</h2><p>З Moodle — автоматично</p></div>
         <div class="toolbar">
-          <input class="tb-input" id="gr-q" placeholder="🔍 Пошук завдання або курсу..." oninput="renderGrades()">
-          <div class="tb-right" style="flex:1;justify-content:flex-end;">
-            <button class="btn" onclick="openGrCourseFilter()" id="gr-course-btn" style="font-size:12px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">📚 Всі курси</button>
-          </div>
-          <div class="tb-right">
-            <button class="btn a" onclick="loadGrades(true)">🔄</button>
-          </div>
+          <input class="tb-input" id="gr-q" placeholder="🔍 Пошук..." oninput="renderGrades()" style="max-width:160px;">
+          <button class="btn" onclick="openGrCourseFilter()" id="gr-course-btn" title="Фільтр курсів" style="font-size:12px;flex-shrink:0;">📚 Курси</button>
+          <button class="btn a" onclick="loadGrades(true)" style="flex-shrink:0;">🔄</button>
+
         </div>
         <!-- Summary row -->
         <div id="grades-summary" style="display:none;gap:10px;margin-bottom:14px;flex-wrap:wrap;"></div>

@@ -365,9 +365,9 @@ function _loadKaTeX() {
         <div class="page-header"><h2>🎓 Оцінки</h2><p>З Moodle — автоматично</p></div>
         <div class="toolbar">
           <input class="tb-input" id="gr-q" placeholder="🔍 Пошук завдання або курсу..." oninput="renderGrades()">
-          <select class="tb-select" id="gr-course" onchange="renderGrades()">
-            <option value="all">Всі курси</option>
-          </select>
+          <div class="tb-right" style="flex:1;justify-content:flex-end;">
+            <button class="btn" onclick="openGrCourseFilter()" id="gr-course-btn" style="font-size:12px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">📚 Всі курси</button>
+          </div>
           <div class="tb-right">
             <button class="btn a" onclick="loadGrades(true)">🔄</button>
           </div>
@@ -755,6 +755,22 @@ window._loadGroupsForLogin = loadGroupsForLogin;
     </div>
 
     <button onclick="saveCustomTheme()" style="width:100%;background:var(--accent);color:#000;border:none;border-radius:12px;padding:15px;font-size:15px;font-weight:700;cursor:pointer;min-height:52px;">Застосувати</button>
+  </div>
+</div>
+
+<!-- Grades course filter modal -->
+<div id="modal-gr-courses" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:4000;align-items:flex-end;justify-content:center;backdrop-filter:blur(4px);" onclick="if(event.target===this)closeGrCourseFilter()">
+  <div style="background:var(--card);border:1px solid var(--border);border-radius:20px 20px 0 0;padding:20px;width:100%;max-width:600px;max-height:75vh;display:flex;flex-direction:column;padding-bottom:max(20px,env(safe-area-inset-bottom,20px));" onclick="event.stopPropagation()">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+      <div style="font-size:13px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;">📚 Вибір курсів</div>
+      <div style="display:flex;gap:8px;">
+        <button onclick="grSelectAll()" style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:6px 12px;color:var(--text2);font-size:12px;cursor:pointer;">Всі</button>
+        <button onclick="grSelectNone()" style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:6px 12px;color:var(--text2);font-size:12px;cursor:pointer;">Жодного</button>
+        <button onclick="closeGrCourseFilter()" style="background:none;border:none;color:var(--text2);font-size:20px;cursor:pointer;padding:0 4px;min-width:36px;">✕</button>
+      </div>
+    </div>
+    <div id="gr-course-list" style="overflow-y:auto;flex:1;display:flex;flex-direction:column;gap:6px;"></div>
+    <button onclick="applyGrCourseFilter()" style="margin-top:14px;width:100%;background:var(--accent);color:#000;border:none;border-radius:10px;padding:13px;font-size:14px;font-weight:700;cursor:pointer;">Застосувати</button>
   </div>
 </div>
 </body>

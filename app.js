@@ -1288,6 +1288,9 @@ function renderDashDl() {
 // ── GRADES ──
 var _gradesCache = null;
 var _gradesLoading = false;
+var _grCourseNames = null;
+var _grSelectedCourses = null; // null = all, Set = selected
+var _grTempSelected = null;
 
 async function loadGrades(forceRefresh) {
   if(_gradesLoading) return;
@@ -1299,6 +1302,7 @@ async function loadGrades(forceRefresh) {
   if(_gradesCache && !forceRefresh) { renderGrades(); return; }
 
   _gradesLoading = true;
+  if(forceRefresh) { _grCourseNames = null; _grSelectedCourses = null; }
   el.innerHTML = '<div class="loading"><div class="spinner"></div>Завантаження оцінок...</div>';
   if(sumEl) sumEl.style.display = 'none';
 
@@ -1337,9 +1341,9 @@ async function loadGrades(forceRefresh) {
               courseId: course.id,
               grade: parseFloat(grade),
               gradeMax: parseFloat(gradeMax) || 100,
-              gradeFormatted: item.gradeformatted || String(Math.round(grade)),
+              gradeFormatted: item.gradeformatted ? item.gradeformatted.replace(/<[^>]*>/g,'').trim() : String(Math.round(grade)),
               gradeMin: parseFloat(item.grademin) || 0,
-              feedback: item.feedback || '',
+              feedback: item.feedback ? item.feedback.replace(/<[^>]*>/g,'').replace(/&[a-z]+;/gi,'').trim() : '',
               itemtype: item.itemtype,
               itemmodule: item.itemmodule,
               dateGraded: item.gradedategraded || 0,
@@ -1366,22 +1370,17 @@ function renderGrades() {
   if(!el || !_gradesCache) return;
 
   const q = (document.getElementById('gr-q')||{value:''}).value.toLowerCase();
-  const courseFilter = (document.getElementById('gr-course')||{value:'all'}).value;
-
-  // Build course filter dropdown
-  const coursesSel = document.getElementById('gr-course');
-  if(coursesSel && coursesSel.options.length <= 1) {
-    const courseNames = [...new Set(_gradesCache.map(i=>i.courseName))].sort();
-    courseNames.forEach(name => {
-      const opt = document.createElement('option');
-      opt.value = name; opt.textContent = name.length > 35 ? name.slice(0,35)+'…' : name;
-      coursesSel.appendChild(opt);
-    });
+  // Build course list for filter (once)
+  if(!_grCourseNames) {
+    _grCourseNames = [...new Set(_gradesCache.map(i=>i.courseName))].sort();
+    _grSelectedCourses = null; // null = all
   }
 
   let list = _gradesCache;
   if(q) list = list.filter(i => i.name.toLowerCase().includes(q) || i.courseName.toLowerCase().includes(q));
-  if(courseFilter !== 'all') list = list.filter(i => i.courseName === courseFilter);
+  if(_grSelectedCourses && _grSelectedCourses.size < _grCourseNames.length) {
+    list = list.filter(i => _grSelectedCourses.has(i.courseName));
+  }
 
   // Summary stats
   if(sumEl && list.length) {
@@ -1451,6 +1450,45 @@ function _gradeStatCard(ico, val, lbl) {
     '</div>';
 }
 
+function openGrCourseFilter() {
+  if(!_grCourseNames || !_grCourseNames.length) return;
+  _grTempSelected = _grSelectedCourses ? new Set(_grSelectedCourses) : new Set(_grCourseNames);
+  const listEl = document.getElementById('gr-course-list');
+  listEl.innerHTML = _grCourseNames.map(name => {
+    const checked = _grTempSelected.has(name);
+    const shortName = name.length > 55 ? name.slice(0,55)+'…' : name;
+    const cnt = _gradesCache.filter(i=>i.courseName===name).length;
+    return '<label style="display:flex;align-items:center;gap:12px;padding:11px 12px;background:var(--bg3);border-radius:10px;cursor:pointer;min-height:44px;">' +
+      '<input type="checkbox" data-course="'+escHtml(name)+'" '+(checked?'checked':'')+' style="width:18px;height:18px;accent-color:var(--accent);flex-shrink:0;">' +
+      '<span style="flex:1;font-size:13px;color:var(--text);">'+escHtml(shortName)+'</span>' +
+      '<span style="font-size:11px;color:var(--text2);flex-shrink:0;">'+cnt+'</span>' +
+      '</label>';
+  }).join('');
+  document.getElementById('modal-gr-courses').style.display='flex';
+}
+function closeGrCourseFilter() {
+  document.getElementById('modal-gr-courses').style.display='none';
+}
+function grSelectAll() {
+  document.querySelectorAll('#gr-course-list input[type=checkbox]').forEach(cb=>cb.checked=true);
+}
+function grSelectNone() {
+  document.querySelectorAll('#gr-course-list input[type=checkbox]').forEach(cb=>cb.checked=false);
+}
+function applyGrCourseFilter() {
+  const checked = new Set();
+  document.querySelectorAll('#gr-course-list input[type=checkbox]:checked').forEach(cb=>checked.add(cb.dataset.course));
+  _grSelectedCourses = checked.size === _grCourseNames.length ? null : checked;
+  // Update button label
+  const btn = document.getElementById('gr-course-btn');
+  if(btn) {
+    if(!_grSelectedCourses) btn.textContent='📚 Всі курси';
+    else if(_grSelectedCourses.size===1) btn.textContent='📚 '+[..._grSelectedCourses][0].slice(0,20)+'…';
+    else btn.textContent='📚 '+_grSelectedCourses.size+' курси';
+  }
+  closeGrCourseFilter();
+  renderGrades();
+}
 function _gradeColor(pct) {
   if(pct >= 0.9) return 'var(--success)';
   if(pct >= 0.75) return 'var(--accent)';

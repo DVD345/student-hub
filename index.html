@@ -366,7 +366,7 @@ function _loadKaTeX() {
         <div class="toolbar">
           <input class="tb-input" id="gr-q" placeholder="🔍 Пошук..." oninput="renderGrades()" style="max-width:160px;">
           <button class="btn" onclick="openGrCourseFilter()" id="gr-course-btn" title="Фільтр курсів" style="font-size:12px;flex-shrink:0;">📚 Курси</button>
-          <button class="btn" onclick="openGrAdd()" title="Додати завдання" style="flex-shrink:0;font-size:16px;">＋</button>
+          <button class="btn" onclick="openGrAdd()" title="Додати завдання" style="flex-shrink:0;font-size:18px;min-width:40px;min-height:40px;">＋</button>
           <button class="btn a" onclick="loadGrades(true)" style="flex-shrink:0;">🔄</button>
 
         </div>
@@ -758,7 +758,7 @@ window._loadGroupsForLogin = loadGroupsForLogin;
 
 <!-- Grades course filter modal -->
 <div id="modal-gr-courses" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:4000;align-items:flex-end;justify-content:center;backdrop-filter:blur(4px);" onclick="if(event.target===this)closeGrCourseFilter()">
-  <div style="background:var(--card);border:1px solid var(--border);border-radius:20px 20px 0 0;padding:20px;width:100%;max-width:600px;max-height:75vh;display:flex;flex-direction:column;padding-bottom:max(20px,env(safe-area-inset-bottom,20px));" onclick="event.stopPropagation()">
+  <div style="background:var(--card);border:1px solid var(--border);border-radius:20px 20px 0 0;padding:20px 20px 0 20px;width:100%;max-width:600px;height:70vh;display:flex;flex-direction:column;" onclick="event.stopPropagation()">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
       <div style="font-size:13px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;">📚 Вибір курсів</div>
       <div style="display:flex;gap:8px;">
@@ -767,8 +767,8 @@ window._loadGroupsForLogin = loadGroupsForLogin;
         <button onclick="closeGrCourseFilter()" style="background:none;border:none;color:var(--text2);font-size:20px;cursor:pointer;padding:0 4px;min-width:36px;">✕</button>
       </div>
     </div>
-    <div id="gr-course-list" style="overflow-y:auto;flex:1;display:flex;flex-direction:column;gap:6px;"></div>
-    <button onclick="applyGrCourseFilter()" style="margin-top:14px;width:100%;background:var(--accent);color:#000;border:none;border-radius:10px;padding:13px;font-size:14px;font-weight:700;cursor:pointer;">Застосувати</button>
+    <div id="gr-course-list" style="overflow-y:auto;flex:1;display:flex;flex-direction:column;gap:6px;padding-bottom:4px;-webkit-overflow-scrolling:touch;"></div>
+    <button onclick="applyGrCourseFilter()" style="flex-shrink:0;margin:12px 0;padding:13px;width:100%;background:var(--accent);color:#000;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;padding-bottom:max(13px,calc(env(safe-area-inset-bottom,0px) + 13px));">Застосувати</button>
   </div>
 </div>
 

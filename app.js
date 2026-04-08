@@ -1462,19 +1462,19 @@ function renderGrades() {
       html += '<div style="width:70px;height:4px;background:var(--bg3);border-radius:2px;margin-top:4px;overflow:hidden;">';
       html += '<div style="width:'+pctStr+';height:100%;background:'+color+';border-radius:2px;transition:width .3s;"></div>';
       html += '</div>';
+      html += '</div>'; // close dl-right
       // Action buttons
-      const sid = escHtml(String(item.id));
+      const rawId = String(item.id);
       const isCustom = !!item._custom;
-      html += '<div style="display:flex;flex-direction:column;gap:3px;margin-left:4px;flex-shrink:0;">';
-      html += '<button onclick="event.stopPropagation();openGrEdit(''+sid+'')" title="Редагувати" style="background:none;border:none;color:var(--text2);font-size:13px;cursor:pointer;padding:3px;opacity:.5;line-height:1;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=.5">✏️</button>';
+      html += '<div style="display:flex;flex-direction:column;gap:2px;flex-shrink:0;align-self:center;">';
+      html += '<button onclick="event.stopPropagation();openGrEdit(this.dataset.id)" data-id="'+rawId+'" title="Редагувати" style="background:none;border:none;color:var(--accent);font-size:15px;cursor:pointer;padding:4px 6px;min-height:32px;min-width:32px;border-radius:6px;">✏️</button>';
       if(isCustom) {
-        html += '<button onclick="event.stopPropagation();deleteGrCustom(''+sid+'')" title="Видалити" style="background:none;border:none;color:var(--accent2);font-size:13px;cursor:pointer;padding:3px;opacity:.5;line-height:1;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=.5">🗑</button>';
+        html += '<button onclick="event.stopPropagation();deleteGrCustom(this.dataset.id)" data-id="'+rawId+'" title="Видалити" style="background:none;border:none;color:var(--accent2);font-size:15px;cursor:pointer;padding:4px 6px;min-height:32px;min-width:32px;border-radius:6px;">🗑</button>';
       } else {
-        html += '<button onclick="event.stopPropagation();hideGrItem(''+sid+'')" title="Сховати" style="background:none;border:none;color:var(--text2);font-size:13px;cursor:pointer;padding:3px;opacity:.5;line-height:1;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=.5">✕</button>';
+        html += '<button onclick="event.stopPropagation();hideGrItem(this.dataset.id)" data-id="'+rawId+'" title="Сховати" style="background:none;border:none;color:var(--text2);font-size:15px;cursor:pointer;padding:4px 6px;min-height:32px;min-width:32px;border-radius:6px;">✕</button>';
       }
       html += '</div>';
-      html += '</div>';
-      html += '</div>';
+      html += '</div>'; // close row
     });
     html += '</div></div>';
   });

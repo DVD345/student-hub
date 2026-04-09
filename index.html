@@ -37,7 +37,7 @@ document.getElementById('pwa-manifest').href = URL.createObjectURL(_mBlob);
 // Service Worker
 if('serviceWorker' in navigator) {
   const swCode = `
-const CACHE = 'sh-v43';
+const CACHE = 'sh-v53';
 const PRECACHE = ['./'];
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(PRECACHE)).then(() => self.skipWaiting()));
@@ -361,19 +361,18 @@ function _loadKaTeX() {
 
 
       <!-- GRADES -->
-      <div class="page" id="page-grades">
-        <div class="page-header"><h2>🎓 Оцінки</h2><p>З Moodle + власні</p></div>
+            <div class="page" id="page-grades">
+        <div class="page-header"><h2>🎓 Оцінки</h2><p>Moodle + власні · синхронізація</p></div>
         <div class="toolbar">
           <input class="tb-input" id="gr-q" placeholder="🔍 Пошук предмету..." oninput="renderGradesTable()">
           <div class="tb-right">
-            <button class="btn" onclick="openGrAdd()" title="Додати предмет">＋ Предмет</button>
+            <button class="btn" onclick="openGrAdd()">＋ Предмет</button>
             <button class="btn a" onclick="loadGrades(true)">🔄</button>
           </div>
         </div>
-        <div id="grades-summary" style="display:none;gap:10px;margin-bottom:14px;flex-wrap:wrap;"></div>
+        <div id="grades-summary" style="display:none;gap:8px;margin-bottom:12px;flex-wrap:wrap;"></div>
         <div id="grades-list"><div class="loading"><div class="spinner"></div>Завантаження...</div></div>
       </div>
-
       <!-- FILES -->
       <div class="page" id="page-files">
         <div class="page-header"><h2>📁 Файли</h2><p id="files-lbl">Спільні файли вашої групи</p></div>
@@ -775,30 +774,46 @@ window._loadGroupsForLogin = loadGroupsForLogin;
 <div id="modal-gr-edit" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:4000;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(4px);" onclick="if(event.target===this)closeGrEdit()">
   <div style="background:var(--card);border:1px solid var(--border);border-radius:20px;padding:22px;width:100%;max-width:380px;animation:fadeUp .2s ease;" onclick="event.stopPropagation()">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;">
-      <div id="gre-title" style="font-size:15px;font-weight:700;color:var(--text);">✏️ Редагувати</div>
+      <div id="gre-title" style="font-size:15px;font-weight:700;color:var(--text);">✏️ Оцінка</div>
       <button onclick="closeGrEdit()" style="background:none;border:none;color:var(--text2);font-size:20px;cursor:pointer;min-width:36px;min-height:36px;">✕</button>
     </div>
-    <div style="display:flex;flex-direction:column;gap:12px;">
+    <div style="display:flex;flex-direction:column;gap:11px;">
       <label style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.4px;">
-        Назва завдання
-        <input id="gre-name" type="text" placeholder="Наприклад: Контрольна робота №1" style="display:block;width:100%;margin-top:6px;background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:11px 13px;color:var(--text);font-size:14px;outline:none;box-sizing:border-box;">
+        Назва
+        <input id="gre-name" type="text" placeholder="Наприклад: Тест №3" style="display:block;width:100%;margin-top:5px;background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:11px 13px;color:var(--text);font-size:14px;outline:none;box-sizing:border-box;">
       </label>
       <label style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.4px;">
-        Курс
-        <input id="gre-course" type="text" placeholder="Назва курсу" style="display:block;width:100%;margin-top:6px;background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:11px 13px;color:var(--text);font-size:14px;outline:none;box-sizing:border-box;">
+        Предмет
+        <input id="gre-course" type="text" placeholder="Назва курсу" style="display:block;width:100%;margin-top:5px;background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:11px 13px;color:var(--text);font-size:14px;outline:none;box-sizing:border-box;opacity:.6;">
       </label>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
         <label style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.4px;">
           Оцінка
-          <input id="gre-grade" type="number" min="0" placeholder="0" style="display:block;width:100%;margin-top:6px;background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:11px 13px;color:var(--text);font-size:16px;outline:none;box-sizing:border-box;">
+          <input id="gre-grade" type="number" min="0" placeholder="0" style="display:block;width:100%;margin-top:5px;background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:11px 13px;color:var(--text);font-size:16px;outline:none;box-sizing:border-box;">
         </label>
         <label style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.4px;">
           Максимум
-          <input id="gre-max" type="number" min="1" value="100" style="display:block;width:100%;margin-top:6px;background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:11px 13px;color:var(--text);font-size:16px;outline:none;box-sizing:border-box;">
+          <input id="gre-max" type="number" min="1" value="100" style="display:block;width:100%;margin-top:5px;background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:11px 13px;color:var(--text);font-size:16px;outline:none;box-sizing:border-box;">
+        </label>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <label style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.4px;">
+          Модуль
+          <select id="gre-mod" style="display:block;width:100%;margin-top:5px;background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:11px 13px;color:var(--text);font-size:14px;outline:none;box-sizing:border-box;-webkit-appearance:none;">
+            <option value="1">Модуль 1</option>
+            <option value="2">Модуль 2</option>
+          </select>
+        </label>
+        <label style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.4px;">
+          Тип
+          <select id="gre-type" style="display:block;width:100%;margin-top:5px;background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:11px 13px;color:var(--text);font-size:14px;outline:none;box-sizing:border-box;-webkit-appearance:none;">
+            <option value="cur">Поточна</option>
+            <option value="mod">Модульна</option>
+          </select>
         </label>
       </div>
     </div>
-    <button onclick="saveGrEdit()" style="width:100%;margin-top:18px;background:var(--accent);color:#000;border:none;border-radius:10px;padding:13px;font-size:15px;font-weight:700;cursor:pointer;min-height:50px;">Зберегти</button>
+    <button onclick="saveGrEdit()" style="width:100%;margin-top:16px;background:var(--accent);color:#000;border:none;border-radius:10px;padding:13px;font-size:15px;font-weight:700;cursor:pointer;min-height:50px;">Зберегти</button>
   </div>
 </div>
 </body>

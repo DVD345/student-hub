@@ -362,11 +362,11 @@ function _loadKaTeX() {
 
       <!-- GRADES -->
       <div class="page" id="page-grades">
-        <div class="page-header"><h2>🎓 Оцінки</h2><p>Натисніть предмет щоб розгорнути</p></div>
+        <div class="page-header"><h2>🎓 Оцінки</h2><p>З Moodle + власні</p></div>
         <div class="toolbar">
-          <input class="tb-input" id="gr-q" placeholder="🔍 Пошук предмету..." oninput="renderGrades()">
+          <input class="tb-input" id="gr-q" placeholder="🔍 Пошук предмету..." oninput="renderGradesTable()">
           <div class="tb-right">
-            <button class="btn" onclick="openGrAdd()" title="Додати оцінку вручну">＋</button>
+            <button class="btn" onclick="openGrAdd()" title="Додати предмет">＋ Предмет</button>
             <button class="btn a" onclick="loadGrades(true)">🔄</button>
           </div>
         </div>

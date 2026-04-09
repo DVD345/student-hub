@@ -1197,3 +1197,23 @@ a { text-decoration: none; color: inherit; }
 .chat-header-wrap{display:flex;align-items:center;justify-content:space-between;padding:0 14px;}
 .chat-online-bar{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text2);}
 .chat-online-dot{width:7px;height:7px;border-radius:50%;background:#4caf50;flex-shrink:0;box-shadow:0 0 6px #4caf50;}
+
+/* ── GRADES TABLE ── */
+.grades-table {
+  width:100%; border-collapse:collapse;
+  background:var(--card);
+  border-radius:var(--r); overflow:hidden;
+  font-size:13px;
+}
+.grades-table th {
+  background:var(--bg3); padding:10px 12px;
+  font-size:11px; font-weight:700; color:var(--text2);
+  text-transform:uppercase; letter-spacing:.4px;
+  border-bottom:1px solid var(--border);
+}
+.grades-table td {
+  padding:10px 10px; border-bottom:1px solid var(--border);
+  vertical-align:middle;
+}
+.grades-table tbody tr:last-child td { border-bottom:none; }
+.grades-table tbody tr:hover td { background:var(--bg3); transition:background .15s; }

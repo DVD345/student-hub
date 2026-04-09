@@ -1286,357 +1286,389 @@ function renderDashDl() {
 }
 
 // ── GRADES ──
-var _gradesCache = null;
+var _gradesCache  = null;
 var _gradesLoading = false;
-var _grCourseNames = null;
-var _grSelectedCourses = null;
-var _grTempSelected = null;
-var _grHidden = new Set(); // hidden moodle item ids
-var _grCustom = [];        // user-added items
-var _grEditId = null;      // currently editing
+var _grHidden     = new Set();   // hidden moodle item ids (string)
+var _grCustomPot  = [];          // user-added поточна items   [{id,courseName,name,grade,gradeMax}]
+var _grCustomMod  = [];          // user-added модульна items
+var _grExpandedCourse = null;    // course name currently expanded
+var _grEditCtx    = null;        // {mode:'pot'|'mod', courseId, itemId|null}
 
+// ─── helpers ────────────────────────────────────────────
+function _grKey() { return 'sh_gr2_'+(userData.userid||'x'); }
 function _grSave() {
-  try {
-    const key = 'sh_grades_'+(userData.userid||'x');
-    localStorage.setItem(key, JSON.stringify({
-      hidden: [..._grHidden],
-      custom: _grCustom
-    }));
-  } catch(e) {}
+  try { localStorage.setItem(_grKey(), JSON.stringify({
+    hidden:[..._grHidden], pot:_grCustomPot, mod:_grCustomMod
+  })); } catch(e) {}
 }
 function _grLoad() {
   try {
-    const key = 'sh_grades_'+(userData.userid||'x');
-    const d = JSON.parse(localStorage.getItem(key)||'{}');
+    const d = JSON.parse(localStorage.getItem(_grKey())||'{}');
     if(Array.isArray(d.hidden)) _grHidden = new Set(d.hidden);
-    if(Array.isArray(d.custom)) _grCustom = d.custom;
+    if(Array.isArray(d.pot))    _grCustomPot = d.pot;
+    if(Array.isArray(d.mod))    _grCustomMod = d.mod;
   } catch(e) {}
 }
 
+// Is this item "відвідування"?
+function _grIsAttendance(name) {
+  return /відвідув|attendance|присутн/i.test(name||'');
+}
+// Is this item a "модульна"?
+function _grIsModule(name) {
+  return /модул|мкр|підсумков|semest|залік|іспит|exam|final/i.test(name||'');
+}
+// Strip HTML from Moodle feedback/grades
+function _grStrip(s) {
+  return (s||'').replace(/<[^>]*>/g,'').replace(/&[a-z#0-9]+;/gi,'').trim();
+}
+// Average of array of {grade, gradeMax}
+function _grAvg(items) {
+  const valid = items.filter(i => i.gradeMax > 0 && i.grade != null && !isNaN(i.grade));
+  if(!valid.length) return null;
+  return valid.reduce((s,i) => s + i.grade/i.gradeMax*100, 0) / valid.length;
+}
+function _grColor(pct) {
+  if(pct == null) return 'var(--text2)';
+  if(pct >= 90) return 'var(--success)';
+  if(pct >= 75) return 'var(--accent)';
+  if(pct >= 60) return 'var(--warning)';
+  return 'var(--accent2)';
+}
+function _grLabel(pct) {
+  if(pct == null) return '—';
+  return Math.round(pct)+'%';
+}
+
+// ─── load from Moodle ───────────────────────────────────
 async function loadGrades(forceRefresh) {
   if(_gradesLoading) return;
   const el = document.getElementById('grades-list');
-  const sumEl = document.getElementById('grades-summary');
   if(!el) return;
-
-  // Load local prefs once
   if(!_gradesCache) _grLoad();
-
-  // Show cached data immediately
   if(_gradesCache && !forceRefresh) { renderGrades(); return; }
 
   _gradesLoading = true;
-  if(forceRefresh) { _grCourseNames = null; _grSelectedCourses = null; }
   el.innerHTML = '<div class="loading"><div class="spinner"></div>Завантаження оцінок...</div>';
-  if(sumEl) sumEl.style.display = 'none';
+  document.getElementById('grades-summary').style.display = 'none';
 
   try {
-    if(!token || !userData.userid) { el.innerHTML = '<div class="empty"><div class="emo">🔒</div><p>Спочатку увійдіть через Moodle</p></div>'; return; }
+    if(!token || !userData.userid) {
+      el.innerHTML = '<div class="empty"><div class="emo">🔒</div><p>Спочатку увійдіть через Moodle</p></div>';
+      return;
+    }
     if(!courses.length) {
-      const d = await moodleCall('core_enrol_get_users_courses', {userid: userData.userid});
+      const d = await moodleCall('core_enrol_get_users_courses',{userid:userData.userid});
       if(d) courses = d;
     }
-
-    const allItems = [];
-    // Chunk courses by 10
+    const all = [];
     const chunks = [];
     for(let i=0;i<courses.length;i+=10) chunks.push(courses.slice(i,i+10));
-
     await Promise.all(chunks.map(async chunk => {
       await Promise.all(chunk.map(async course => {
         try {
-          const data = await moodleCall('gradereport_user_get_grade_items', {
-            courseid: course.id,
-            userid: userData.userid
+          const data = await moodleCall('gradereport_user_get_grade_items',{
+            courseid: course.id, userid: userData.userid
           });
-          if(!data || !data.usergrades || !data.usergrades[0]) return;
-          const items = data.usergrades[0].gradeitems || [];
-          items.forEach(item => {
-            // Skip course total and category totals with no grade
-            if(item.gradetype === 0) return; // "none" type
-            if(item.itemtype === 'course') return; // skip total row
+          if(!data||!data.usergrades||!data.usergrades[0]) return;
+          (data.usergrades[0].gradeitems||[]).forEach(item => {
+            if(item.gradetype===0||item.itemtype==='course') return;
             const grade = item.graderaw;
-            const gradeMax = item.grademax;
-            if(grade === null || grade === undefined || grade === '') return;
-            allItems.push({
-              id: item.id,
-              name: item.itemname || item.itemmodule || 'Завдання',
-              courseName: course.fullname || course.shortname,
+            if(grade===null||grade===undefined||grade==='') return;
+            all.push({
+              id: String(item.id),
+              name: _grStrip(item.itemname||item.itemmodule||'Завдання'),
+              courseName: course.fullname||course.shortname,
               courseId: course.id,
               grade: parseFloat(grade),
-              gradeMax: parseFloat(gradeMax) || 100,
-              gradeFormatted: item.gradeformatted ? item.gradeformatted.replace(/<[^>]*>/g,'').trim() : String(Math.round(grade)),
-              gradeMin: parseFloat(item.grademin) || 0,
-              feedback: item.feedback ? item.feedback.replace(/<[^>]*>/g,'').replace(/&[a-z]+;/gi,'').trim() : '',
-              itemtype: item.itemtype,
-              itemmodule: item.itemmodule,
-              dateGraded: item.gradedategraded || 0,
+              gradeMax: parseFloat(item.grademax)||100,
+              gradeFormatted: _grStrip(item.gradeformatted||String(Math.round(grade))),
+              feedback: _grStrip(item.feedback||''),
+              itemmodule: item.itemmodule||'',
+              dateGraded: item.gradedategraded||0,
             });
           });
         } catch(e) {}
       }));
     }));
-
-    // Sort: newest first
-    allItems.sort((a,b) => (b.dateGraded||0) - (a.dateGraded||0));
-    _gradesCache = allItems;
+    _gradesCache = all;
     renderGrades();
   } catch(e) {
-    el.innerHTML = '<div class="empty"><div class="emo">⚠️</div><p>Помилка завантаження: '+escHtml(String(e.message||e))+'</p></div>';
-  } finally {
-    _gradesLoading = false;
-  }
+    el.innerHTML = '<div class="empty"><div class="emo">⚠️</div><p>Помилка: '+escHtml(String(e.message||e))+'</p></div>';
+  } finally { _gradesLoading = false; }
 }
 
+// ─── render ─────────────────────────────────────────────
 function renderGrades() {
   const el = document.getElementById('grades-list');
   const sumEl = document.getElementById('grades-summary');
-  if(!el || !_gradesCache) return;
+  if(!el) return;
 
-  const q = (document.getElementById('gr-q')||{value:''}).value.toLowerCase();
-  // Build course list for filter (once)
-  if(!_grCourseNames) {
-    _grCourseNames = [...new Set(_gradesCache.map(i=>i.courseName))].sort();
-    _grSelectedCourses = null; // null = all
-  }
+  const q = (document.getElementById('gr-q')||{value:''}).value.toLowerCase().trim();
 
-  // Merge moodle + custom, exclude hidden
-  const moodleList = (_gradesCache||[]).filter(i => !_grHidden.has(String(i.id)));
-  const customList = _grCustom.map(c => ({...c, _custom: true}));
-  let list = [...moodleList, ...customList];
-  if(q) list = list.filter(i => i.name.toLowerCase().includes(q) || i.courseName.toLowerCase().includes(q));
-  if(_grSelectedCourses && _grCourseNames && _grSelectedCourses.size < _grCourseNames.length) {
-    list = list.filter(i => _grSelectedCourses.has(i.courseName));
-  }
+  // Build per-course data
+  const byCourseName = {};
+  (_gradesCache||[]).forEach(item => {
+    if(_grHidden.has(item.id)) return;
+    if(_grIsAttendance(item.name)) return;
+    const cn = item.courseName;
+    if(!byCourseName[cn]) byCourseName[cn] = {name:cn,pot:[],mod:[]};
+    if(_grIsModule(item.name)) byCourseName[cn].mod.push({...item,_moodle:true});
+    else byCourseName[cn].pot.push({...item,_moodle:true});
+  });
 
-  // Summary stats
-  if(sumEl && list.length) {
-    const avg = list.reduce((s,i) => s + (i.gradeMax > 0 ? i.grade/i.gradeMax*100 : 0), 0) / list.length;
-    const passing = list.filter(i => i.gradeMax > 0 && (i.grade/i.gradeMax) >= 0.6).length;
+  // Merge custom items
+  _grCustomPot.forEach(c => {
+    if(!byCourseName[c.courseName]) byCourseName[c.courseName] = {name:c.courseName,pot:[],mod:[]};
+    byCourseName[c.courseName].pot.push({...c,_custom:true});
+  });
+  _grCustomMod.forEach(c => {
+    if(!byCourseName[c.courseName]) byCourseName[c.courseName] = {name:c.courseName,pot:[],mod:[]};
+    byCourseName[c.courseName].mod.push({...c,_custom:true});
+  });
+
+  let courseList = Object.values(byCourseName);
+  if(q) courseList = courseList.filter(c =>
+    c.name.toLowerCase().includes(q) ||
+    c.pot.some(i=>i.name.toLowerCase().includes(q)) ||
+    c.mod.some(i=>i.name.toLowerCase().includes(q))
+  );
+  courseList.sort((a,b) => a.name.localeCompare(b.name,'uk'));
+
+  // Summary
+  if(sumEl && courseList.length) {
+    const allAvgs = courseList.map(c => {
+      const p = _grAvg(c.pot), m = _grAvg(c.mod);
+      if(p!=null&&m!=null) return (p+m)/2;
+      return p!=null?p:m;
+    }).filter(x=>x!=null);
+    const globalAvg = allAvgs.length ? allAvgs.reduce((a,b)=>a+b,0)/allAvgs.length : null;
     sumEl.style.display = 'flex';
     sumEl.innerHTML =
-      _gradeStatCard('📊', Math.round(avg)+'%', 'Середній %') +
-      _gradeStatCard('✅', passing, 'Зараховано') +
-      _gradeStatCard('📝', list.length, 'Всього оцінок');
-  } else if(sumEl) { sumEl.style.display = 'none'; }
+      '<div style="flex:1;background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:12px;text-align:center;"><div style="font-size:22px;font-weight:800;color:'+_grColor(globalAvg)+';">'+_grLabel(globalAvg)+'</div><div style="font-size:11px;color:var(--text2);margin-top:2px;">Середній бал</div></div>'+
+      '<div style="flex:1;background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:12px;text-align:center;"><div style="font-size:22px;font-weight:800;color:var(--text);">'+courseList.length+'</div><div style="font-size:11px;color:var(--text2);margin-top:2px;">Предметів</div></div>'+
+      '<div style="flex:1;background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:12px;text-align:center;"><div style="font-size:22px;font-weight:800;color:var(--text);">'+((_gradesCache||[]).filter(i=>!_grHidden.has(i.id)&&!_grIsAttendance(i.name)).length+_grCustomPot.length+_grCustomMod.length)+'</div><div style="font-size:11px;color:var(--text2);margin-top:2px;">Оцінок</div></div>';
+  } else if(sumEl) sumEl.style.display='none';
 
-  if(!list.length) {
+  if(!courseList.length) {
     el.innerHTML = '<div class="empty"><div class="emo">🎓</div><p>Оцінок не знайдено</p></div>';
     return;
   }
 
-  // Group by course
-  const byCourse = {};
-  list.forEach(item => {
-    if(!byCourse[item.courseName]) byCourse[item.courseName] = [];
-    byCourse[item.courseName].push(item);
-  });
+  // Table header
+  let html = '<div style="background:var(--card);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;">';
+  // header row
+  html += '<div style="display:grid;grid-template-columns:1fr 80px 80px 80px;gap:0;padding:10px 14px;border-bottom:1px solid var(--border);background:var(--bg3);">';
+  html += '<div style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.4px;">Предмет</div>';
+  html += '<div style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.4px;text-align:center;">Поточна</div>';
+  html += '<div style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.4px;text-align:center;">Модульна</div>';
+  html += '<div style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.4px;text-align:center;">Підсумок</div>';
+  html += '</div>';
 
-  let html = '';
-  Object.entries(byCourse).forEach(([cname, items]) => {
-    const courseAvg = items.reduce((s,i) => s + (i.gradeMax>0 ? i.grade/i.gradeMax*100 : 0),0) / items.length;
-    html += '<div style="margin-bottom:18px;">';
-    html += '<div style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;padding:0 2px;display:flex;align-items:center;justify-content:space-between;">';
-    html += '<span>'+escHtml(cname.length>50?cname.slice(0,50)+'…':cname)+'</span>';
-    html += '<span style="color:'+_gradeColor(courseAvg/100)+'">∅ '+Math.round(courseAvg)+'%</span>';
+  courseList.forEach((course, ci) => {
+    const potAvg = _grAvg(course.pot);
+    const modAvg = _grAvg(course.mod);
+    const total  = (potAvg!=null&&modAvg!=null) ? (potAvg+modAvg)/2 : (potAvg!=null?potAvg:modAvg);
+    const isExp  = _grExpandedCourse === course.name;
+    const shortName = course.name.length>60 ? course.name.slice(0,60)+'…' : course.name;
+
+    html += '<div'+(ci>0?' style="border-top:1px solid var(--border)"':'')+' data-course="'+escHtml(course.name)+'">';
+    // Main row
+    html += '<div onclick="grToggleCourse(this.dataset.c)" data-c="'+escHtml(course.name)+'" style="display:grid;grid-template-columns:1fr 80px 80px 80px;gap:0;padding:13px 14px;cursor:pointer;transition:background .15s;" onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background=''">';
+    html += '<div style="font-size:13px;font-weight:600;color:var(--text);display:flex;align-items:center;gap:6px;min-width:0;"><span style="flex-shrink:0;font-size:11px;color:var(--text2);transition:transform .2s;'+(isExp?'transform:rotate(90deg)':'')+'">▶</span><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+escHtml(shortName)+'</span></div>';
+    html += '<div style="text-align:center;font-size:14px;font-weight:700;color:'+_grColor(potAvg)+';">'+_grLabel(potAvg)+'</div>';
+    html += '<div style="text-align:center;font-size:14px;font-weight:700;color:'+_grColor(modAvg)+';">'+_grLabel(modAvg)+'</div>';
+    html += '<div style="text-align:center;font-size:14px;font-weight:800;color:'+_grColor(total)+';">'+_grLabel(total)+'</div>';
     html += '</div>';
-    html += '<div style="background:var(--card);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;">';
-    items.forEach((item, idx) => {
-      const pct = item.gradeMax > 0 ? item.grade / item.gradeMax : 0;
-      const color = _gradeColor(pct);
-      const pctStr = Math.round(pct*100)+'%';
-      const moduleIco = {assign:'📋',quiz:'📝',forum:'💬',workshop:'🔧'}[item.itemmodule||''] || '📄';
-      const dateStr = item.dateGraded ? new Date(item.dateGraded*1000).toLocaleDateString('uk',{day:'2-digit',month:'2-digit'}) : '';
-      html += '<div style="display:flex;align-items:center;gap:12px;padding:12px 14px;'+(idx>0?'border-top:1px solid var(--border)':'')+'">';
-      html += '<div style="font-size:16px;flex-shrink:0;">'+moduleIco+'</div>';
-      html += '<div style="flex:1;min-width:0;">';
-      html += '<div style="font-size:13px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+escHtml(item.name)+'</div>';
-      var _fb=(item.feedback||'').replace(/<[^>]*>/g,'').replace(/&[a-z#0-9]+;/gi,'').trim();
-      if(_fb) html += '<div style="font-size:11px;color:var(--text2);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+escHtml(_fb.slice(0,80))+'</div>';
-      html += '</div>';
-      html += '<div style="flex-shrink:0;text-align:right;">';
-      var _gf=(item.gradeFormatted||'').replace(/<[^>]*>/g,'').replace(/&[a-z#0-9]+;/gi,'').trim();
-      html += '<div style="font-size:15px;font-weight:700;color:'+color+';">'+escHtml(_gf)+'</div>';
-      html += '<div style="font-size:10px;color:var(--text2);">з '+Math.round(item.gradeMax)+(dateStr?' · '+dateStr:'')+'</div>';
-      // Progress bar
-      html += '<div style="width:70px;height:4px;background:var(--bg3);border-radius:2px;margin-top:4px;overflow:hidden;">';
-      html += '<div style="width:'+pctStr+';height:100%;background:'+color+';border-radius:2px;transition:width .3s;"></div>';
-      html += '</div>';
-      html += '</div>'; // close dl-right
-      // Action buttons
-      const rawId = String(item.id);
-      const isCustom = !!item._custom;
-      html += '<div style="display:flex;flex-direction:column;gap:2px;flex-shrink:0;align-self:center;">';
-      html += '<button onclick="event.stopPropagation();openGrEdit(this.dataset.id)" data-id="'+rawId+'" title="Редагувати" style="background:none;border:none;color:var(--accent);font-size:15px;cursor:pointer;padding:4px 6px;min-height:32px;min-width:32px;border-radius:6px;">✏️</button>';
-      if(isCustom) {
-        html += '<button onclick="event.stopPropagation();deleteGrCustom(this.dataset.id)" data-id="'+rawId+'" title="Видалити" style="background:none;border:none;color:var(--accent2);font-size:15px;cursor:pointer;padding:4px 6px;min-height:32px;min-width:32px;border-radius:6px;">🗑</button>';
+
+    // Expanded detail
+    if(isExp) {
+      html += '<div style="border-top:1px solid var(--border);background:var(--bg2);padding:12px 14px;">';
+      // Two sections side by side on desktop, stacked on mobile
+      html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">';
+
+      // Поточна section
+      html += '<div>';
+      html += '<div style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;">'+
+        '<span>📋 Поточна</span>'+
+        '<button onclick="grAddItem('pot',''+escHtml(course.name)+'')" style="background:var(--accent);border:none;border-radius:6px;padding:3px 8px;color:#000;font-size:11px;font-weight:700;cursor:pointer;">＋</button>'+
+        '</div>';
+      if(course.pot.length) {
+        html += '<div style="display:flex;flex-direction:column;gap:4px;">';
+        course.pot.forEach(item => {
+          html += _grItemRow(item, 'pot', course.name);
+        });
+        html += '</div>';
+        if(potAvg!=null) html += '<div style="margin-top:8px;text-align:right;font-size:12px;font-weight:700;color:'+_grColor(potAvg)+';">∅ '+_grLabel(potAvg)+'</div>';
       } else {
-        html += '<button onclick="event.stopPropagation();hideGrItem(this.dataset.id)" data-id="'+rawId+'" title="Сховати" style="background:none;border:none;color:var(--text2);font-size:15px;cursor:pointer;padding:4px 6px;min-height:32px;min-width:32px;border-radius:6px;">✕</button>';
+        html += '<div style="font-size:12px;color:var(--text2);text-align:center;padding:12px 0;">Немає оцінок</div>';
       }
       html += '</div>';
-      html += '</div>'; // close row
-    });
-    html += '</div></div>';
+
+      // Модульна section
+      html += '<div>';
+      html += '<div style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;">'+
+        '<span>📝 Модульна</span>'+
+        '<button onclick="grAddItem('mod',''+escHtml(course.name)+'')" style="background:var(--accent);border:none;border-radius:6px;padding:3px 8px;color:#000;font-size:11px;font-weight:700;cursor:pointer;">＋</button>'+
+        '</div>';
+      if(course.mod.length) {
+        html += '<div style="display:flex;flex-direction:column;gap:4px;">';
+        course.mod.forEach(item => {
+          html += _grItemRow(item, 'mod', course.name);
+        });
+        html += '</div>';
+        if(modAvg!=null) html += '<div style="margin-top:8px;text-align:right;font-size:12px;font-weight:700;color:'+_grColor(modAvg)+';">∅ '+_grLabel(modAvg)+'</div>';
+      } else {
+        html += '<div style="font-size:12px;color:var(--text2);text-align:center;padding:12px 0;">Немає оцінок</div>';
+      }
+      html += '</div>';
+
+      html += '</div>'; // grid
+
+      // Total bar
+      if(total!=null) {
+        html += '<div style="margin-top:12px;padding:10px 14px;background:var(--card);border:1px solid var(--border);border-radius:10px;display:flex;align-items:center;justify-content:space-between;">';
+        html += '<div style="font-size:13px;font-weight:700;color:var(--text);">Підсумок</div>';
+        html += '<div style="font-size:20px;font-weight:800;color:'+_grColor(total)+';">'+_grLabel(total)+'</div>';
+        html += '</div>';
+      }
+
+      html += '</div>'; // expanded
+    }
+    html += '</div>'; // course block
   });
 
-  // Shown hidden count + restore link
-  const hiddenCount = _grHidden.size;
-  if(hiddenCount) {
-    el.innerHTML = html + '<div style="text-align:center;padding:10px;font-size:12px;color:var(--text2);">'+hiddenCount+' прихованих · <span onclick="restoreAllGrHidden()" style="color:var(--accent);cursor:pointer;text-decoration:underline;">Відновити всі</span></div>';
-  } else {
-    el.innerHTML = html;
+  html += '</div>';
+
+  // Hidden items notice
+  if(_grHidden.size) {
+    html += '<div style="text-align:center;padding:10px;font-size:12px;color:var(--text2);margin-top:8px;">'+_grHidden.size+' прихованих · <span onclick="grRestoreAll()" style="color:var(--accent);cursor:pointer;">Відновити всі</span></div>';
   }
+
+  el.innerHTML = html;
 }
 
-function hideGrItem(id) {
-  _grHidden.add(String(id));
+function _grItemRow(item, mode, courseName) {
+  const pct = item.gradeMax>0 ? item.grade/item.gradeMax : 0;
+  const color = _grColor(pct);
+  const gf = _grStrip(item.gradeFormatted||String(item.grade));
+  const ico = item._custom ? '✍️' : ({assign:'📋',quiz:'📝',workshop:'🔧'}[item.itemmodule||'']||'📄');
+  const shortName = item.name.length>28 ? item.name.slice(0,28)+'…' : item.name;
+  return '<div style="display:flex;align-items:center;gap:6px;padding:7px 9px;background:var(--card);border:1px solid var(--border);border-radius:8px;">'+
+    '<span style="font-size:13px;flex-shrink:0;">'+ico+'</span>'+
+    '<span style="flex:1;font-size:12px;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="'+escHtml(item.name)+'">'+escHtml(shortName)+'</span>'+
+    '<span style="font-size:13px;font-weight:700;color:'+color+';flex-shrink:0;">'+escHtml(gf)+'</span>'+
+    '<span style="font-size:10px;color:var(--text2);flex-shrink:0;">/ '+Math.round(item.gradeMax)+'</span>'+
+    '<button onclick="grEditItem(''+escHtml(String(item.id))+'',''+mode+'',''+escHtml(courseName)+'')" style="background:none;border:none;color:var(--accent);font-size:13px;cursor:pointer;padding:2px 4px;flex-shrink:0;min-width:28px;min-height:28px;">✏️</button>'+
+    '<button onclick="grRemoveItem(''+escHtml(String(item.id))+'',''+mode+'','+(item._custom?'true':'false')+')" style="background:none;border:none;color:var(--text2);font-size:12px;cursor:pointer;padding:2px 4px;flex-shrink:0;min-width:28px;min-height:28px;">✕</button>'+
+    '</div>';
+}
+
+function grToggleCourse(name) {
+  _grExpandedCourse = (_grExpandedCourse===name) ? null : name;
+  renderGrades();
+}
+
+function grRemoveItem(id, mode, isCustom) {
+  if(isCustom) {
+    if(mode==='pot') _grCustomPot = _grCustomPot.filter(c=>String(c.id)!==String(id));
+    else             _grCustomMod = _grCustomMod.filter(c=>String(c.id)!==String(id));
+  } else {
+    _grHidden.add(String(id));
+  }
   _grSave();
   renderGrades();
 }
-function restoreAllGrHidden() {
+
+function grRestoreAll() {
   _grHidden.clear();
   _grSave();
   renderGrades();
 }
-function deleteGrCustom(id) {
-  _grCustom = _grCustom.filter(c => String(c.id) !== String(id));
-  _grSave();
-  _grCourseNames = null;
-  renderGrades();
-}
-function openGrEdit(id) {
-  _grEditId = String(id);
-  // Find item
-  var item = (_gradesCache||[]).find(i=>String(i.id)===_grEditId)
-          || _grCustom.find(c=>String(c.id)===_grEditId);
-  const modal = document.getElementById('modal-gr-edit');
-  modal.style.display = 'flex';
-  if(item) {
-    document.getElementById('gre-name').value = item.name || '';
-    document.getElementById('gre-course').value = item.courseName || '';
-    document.getElementById('gre-grade').value = item.grade != null ? item.grade : '';
-    document.getElementById('gre-max').value = item.gradeMax || 100;
-    document.getElementById('gre-title').textContent = item._custom ? '✏️ Редагувати' : '✏️ Виправити оцінку';
-  }
-}
-function openGrAdd() {
-  _grEditId = null;
+
+// ─── Add/Edit modal ─────────────────────────────────────
+function grAddItem(mode, courseName) {
+  _grEditCtx = {mode, courseName, itemId: null};
+  document.getElementById('gre-title').textContent = mode==='pot' ? '➕ Поточна оцінка' : '➕ Модульна оцінка';
   document.getElementById('gre-name').value = '';
-  document.getElementById('gre-course').value = '';
+  document.getElementById('gre-course').value = courseName;
   document.getElementById('gre-grade').value = '';
   document.getElementById('gre-max').value = '100';
-  document.getElementById('gre-title').textContent = '➕ Нове завдання';
   document.getElementById('modal-gr-edit').style.display = 'flex';
   setTimeout(()=>document.getElementById('gre-name').focus(), 80);
+}
+function grEditItem(id, mode, courseName) {
+  _grEditCtx = {mode, courseName, itemId: String(id)};
+  const list = mode==='pot' ? _grCustomPot : _grCustomMod;
+  const item = list.find(c=>String(c.id)===String(id))
+            || (_gradesCache||[]).find(i=>String(i.id)===String(id));
+  if(!item) return;
+  document.getElementById('gre-title').textContent = '✏️ Редагувати';
+  document.getElementById('gre-name').value = item.name||'';
+  document.getElementById('gre-course').value = item.courseName||courseName;
+  document.getElementById('gre-grade').value = item.grade!=null?item.grade:'';
+  document.getElementById('gre-max').value = item.gradeMax||100;
+  document.getElementById('modal-gr-edit').style.display = 'flex';
 }
 function closeGrEdit() {
   document.getElementById('modal-gr-edit').style.display = 'none';
 }
 function saveGrEdit() {
-  const name = document.getElementById('gre-name').value.trim();
+  if(!_grEditCtx) return;
+  const name   = document.getElementById('gre-name').value.trim();
   const course = document.getElementById('gre-course').value.trim();
-  const grade = parseFloat(document.getElementById('gre-grade').value);
-  const gradeMax = parseFloat(document.getElementById('gre-max').value) || 100;
-  if(!name) { document.getElementById('gre-name').focus(); return; }
-  if(isNaN(grade)) { document.getElementById('gre-grade').focus(); return; }
+  const grade  = parseFloat(document.getElementById('gre-grade').value);
+  const max    = parseFloat(document.getElementById('gre-max').value)||100;
+  if(!name||isNaN(grade)) return;
 
-  if(_grEditId) {
-    // Check if it's a custom item
-    const custIdx = _grCustom.findIndex(c=>String(c.id)===_grEditId);
-    if(custIdx >= 0) {
-      _grCustom[custIdx] = {..._grCustom[custIdx], name, courseName:course||_grCustom[custIdx].courseName, grade, gradeMax,
-        gradeFormatted: grade+' / '+gradeMax};
+  const {mode, courseName, itemId} = _grEditCtx;
+  const list = mode==='pot' ? _grCustomPot : _grCustomMod;
+
+  if(itemId) {
+    // Check if it's a moodle item — hide original, add custom override
+    const isMoodle = !!(_gradesCache||[]).find(i=>String(i.id)===itemId);
+    if(isMoodle) {
+      _grHidden.add(itemId);
+      list.push({id:'c_'+itemId, name, courseName:course||courseName, grade, gradeMax:max,
+        gradeFormatted:grade+'/'+max, feedback:'', itemmodule:'', dateGraded:Date.now()/1000});
     } else {
-      // Override moodle item grade - store in custom overrides
-      const orig = (_gradesCache||[]).find(i=>String(i.id)===_grEditId);
-      if(orig) {
-        // Add to custom with same id to override
-        const existing = _grCustom.findIndex(c=>String(c.id)===_grEditId);
-        const updated = {...orig, name, courseName:course||orig.courseName, grade, gradeMax,
-          gradeFormatted: grade+' / '+gradeMax, _custom:true};
-        if(existing>=0) _grCustom[existing]=updated;
-        else _grCustom.push(updated);
-        // Hide original
-        _grHidden.add(_grEditId);
-      }
+      const idx = list.findIndex(c=>String(c.id)===itemId);
+      if(idx>=0) list[idx] = {...list[idx], name, courseName:course||courseName, grade, gradeMax:max,
+        gradeFormatted:grade+'/'+max};
     }
   } else {
-    // New custom item
-    const newId = 'custom_'+Date.now();
-    _grCustom.push({
-      id: newId, name, courseName: course||'Власні',
-      grade, gradeMax, gradeFormatted: grade+' / '+gradeMax,
-      feedback:'', itemtype:'manual', itemmodule:'',
-      dateGraded: Math.floor(Date.now()/1000), _custom:true
-    });
-    _grCourseNames = null;
+    list.push({id:'c_'+Date.now(), name, courseName:course||courseName, grade, gradeMax:max,
+      gradeFormatted:grade+'/'+max, feedback:'', itemmodule:'', dateGraded:Date.now()/1000});
   }
   _grSave();
   closeGrEdit();
   renderGrades();
 }
-function _gradeStatCard(ico, val, lbl) {
-  return '<div style="flex:1;min-width:80px;background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:12px;text-align:center;">'+
-    '<div style="font-size:18px;">'+ico+'</div>'+
-    '<div style="font-size:20px;font-weight:700;color:var(--text);margin:2px 0;">'+val+'</div>'+
-    '<div style="font-size:11px;color:var(--text2);">'+lbl+'</div>'+
-    '</div>';
+// Keep old openGrAdd for + button in toolbar
+function openGrAdd() {
+  const cn = _grExpandedCourse || '';
+  _grEditCtx = {mode:'pot', courseName:cn, itemId:null};
+  document.getElementById('gre-title').textContent = '➕ Нова оцінка';
+  document.getElementById('gre-name').value = '';
+  document.getElementById('gre-course').value = cn;
+  document.getElementById('gre-grade').value = '';
+  document.getElementById('gre-max').value = '100';
+  document.getElementById('modal-gr-edit').style.display = 'flex';
+  setTimeout(()=>document.getElementById('gre-name').focus(), 80);
 }
-
-function openGrCourseFilter() {
-  if(!_gradesCache || !_gradesCache.length) {
-    loadGrades();
-    return;
-  }
-  // Build course names if not yet built
-  if(!_grCourseNames) {
-    _grCourseNames = [...new Set(_gradesCache.map(i=>i.courseName))].sort();
-    _grSelectedCourses = null;
-  }
-  if(!_grCourseNames.length) return;
-  _grTempSelected = _grSelectedCourses ? new Set(_grSelectedCourses) : new Set(_grCourseNames);
-  const listEl = document.getElementById('gr-course-list');
-  listEl.innerHTML = _grCourseNames.map(name => {
-    const checked = _grTempSelected.has(name);
-    const shortName = name.length > 55 ? name.slice(0,55)+'…' : name;
-    const cnt = _gradesCache.filter(i=>i.courseName===name).length;
-    return '<label style="display:flex;align-items:center;gap:12px;padding:11px 12px;background:var(--bg3);border-radius:10px;cursor:pointer;min-height:44px;">' +
-      '<input type="checkbox" data-course="'+escHtml(name)+'" '+(checked?'checked':'')+' style="width:18px;height:18px;accent-color:var(--accent);flex-shrink:0;">' +
-      '<span style="flex:1;font-size:13px;color:var(--text);">'+escHtml(shortName)+'</span>' +
-      '<span style="font-size:11px;color:var(--text2);flex-shrink:0;">'+cnt+'</span>' +
-      '</label>';
-  }).join('');
-  document.getElementById('modal-gr-courses').style.display='flex';
+// Keep legacy functions to avoid errors
+function openGrEdit(){}
+function hideGrItem(id){ _grHidden.add(String(id)); _grSave(); renderGrades(); }
+function deleteGrCustom(id,mode){
+  _grCustomPot = _grCustomPot.filter(c=>String(c.id)!==String(id));
+  _grCustomMod = _grCustomMod.filter(c=>String(c.id)!==String(id));
+  _grSave(); renderGrades();
 }
-function closeGrCourseFilter() {
-  document.getElementById('modal-gr-courses').style.display='none';
-}
-function grSelectAll() {
-  document.querySelectorAll('#gr-course-list input[type=checkbox]').forEach(cb=>cb.checked=true);
-}
-function grSelectNone() {
-  document.querySelectorAll('#gr-course-list input[type=checkbox]').forEach(cb=>cb.checked=false);
-}
-function applyGrCourseFilter() {
-  const checked = new Set();
-  document.querySelectorAll('#gr-course-list input[type=checkbox]:checked').forEach(cb=>checked.add(cb.dataset.course));
-  _grSelectedCourses = checked.size === _grCourseNames.length ? null : checked;
-  // Update button label
-  const btn = document.getElementById('gr-course-btn');
-  if(btn) {
-    if(!_grSelectedCourses) btn.textContent='📚 Всі курси';
-    else if(_grSelectedCourses.size===1) btn.textContent='📚 '+[..._grSelectedCourses][0].slice(0,20)+'…';
-    else btn.textContent='📚 '+_grSelectedCourses.size+' курси';
-  }
-  closeGrCourseFilter();
-  renderGrades();
-}
-function _gradeColor(pct) {
-  if(pct >= 0.9) return 'var(--success)';
-  if(pct >= 0.75) return 'var(--accent)';
-  if(pct >= 0.6) return 'var(--warning)';
-  return 'var(--accent2)';
-}
+function openGrCourseFilter(){ /* no longer needed */ }
+function closeGrCourseFilter(){}
+function grSelectAll(){}
+function grSelectNone(){}
+function applyGrCourseFilter(){}
 
 // ── FILES ──
 function listenFiles() {

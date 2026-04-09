@@ -1447,7 +1447,7 @@ function renderGradesTable(){
     sumEl.innerHTML=
       _grStatCard('1️⃣','Модуль 1',_grFmt(tot1,max1),'var(--accent)')+
       _grStatCard('2️⃣','Модуль 2',_grFmt(tot2,max2),'var(--accent)')+
-      _grStatCard('🏆','Сума',_grFmt(total,totalMax),_grScoreColor(total,totalMax));
+      _grStatCard('🏆','Разом',_grFmt(total,totalMax),_grScoreColor(total,totalMax));
   }
 
   if(!list.length){
@@ -1456,17 +1456,9 @@ function renderGradesTable(){
   }
 
   // Module filter tabs
-  let html='<div style="display:flex;gap:6px;margin-bottom:12px;">'+
-    _grTabBtn(0,'Всі')+_grTabBtn(1,'Модуль 1')+_grTabBtn(2,'Модуль 2')+
+  let html='<div style="display:flex;gap:6px;margin-bottom:10px;overflow-x:auto;">'+
+    _grTabBtn(0,'Всі модулі')+_grTabBtn(1,'Модуль 1')+_grTabBtn(2,'Модуль 2')+
     '</div>';
-
-  html+='<div style="overflow-x:auto;"><table class="grades-table"><thead><tr>'+
-    '<th style="text-align:left;min-width:140px;">Предмет</th>'+
-    (_grModFilter===0?'<th>М1 бали</th><th>М2 бали</th>':
-     '<th>Бали</th>')+
-    '<th>Сума</th>'+
-    '<th style="width:44px;"></th>'+
-    '</tr></thead><tbody>';
 
   let grandSum=0, grandMax=0;
 
@@ -1474,47 +1466,58 @@ function renderGradesTable(){
     const allItems=subj.items||[];
     const m1=allItems.filter(i=>i.mod===1);
     const m2=allItems.filter(i=>i.mod===2);
-    const filtered=_grModFilter===0?allItems:(_grModFilter===1?m1:m2);
-
-    const s1=_grSum(m1), x1=_grMax(m1);
-    const s2=_grSum(m2), x2=_grMax(m2);
-    const sAll=s1+s2, xAll=x1+x2;
+    const s1=_grSum(m1),x1=_grMax(m1);
+    const s2=_grSum(m2),x2=_grMax(m2);
+    const sAll=s1+s2,xAll=x1+x2;
     grandSum+=sAll; grandMax+=xAll;
-
     const sid=escHtml(subj.id);
 
-    html+='<tr>';
-    html+='<td style="text-align:left;font-weight:600;font-size:13px;">'+
-      '<div style="display:flex;flex-direction:column;gap:4px;">'+
-      '<span title="'+escHtml(subj.name)+'" style="color:var(--text);">'+escHtml(subj.name.length>45?subj.name.slice(0,45)+'…':subj.name)+'</span>'+
-      '<div style="display:flex;flex-wrap:wrap;gap:3px;">';
+    html+='<div style="background:var(--card);border:1px solid var(--border);border-radius:var(--r);margin-bottom:8px;overflow:hidden;">';
 
-    // Grade chips
-    filtered.forEach((item,gi)=>{
-      html+=_grChip(sid,allItems.indexOf(item),item);
-    });
-    html+='<button onclick="grAddGrade(\''+sid+'\')" style="background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:2px 8px;color:var(--accent);font-size:14px;cursor:pointer;min-height:26px;">＋</button>';
-    html+='</div></div></td>';
+    // Header: name + total + delete
+    html+='<div style="display:flex;align-items:center;gap:8px;padding:9px 12px;border-bottom:1px solid var(--border);">'+
+      '<div style="flex:1;font-size:13px;font-weight:700;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="'+escHtml(subj.name)+'">'+escHtml(subj.name)+'</div>'+
+      '<div style="font-size:16px;font-weight:800;color:'+_grScoreColor(sAll,xAll)+';flex-shrink:0;">'+Math.round(sAll)+(xAll?'<span style="font-size:10px;font-weight:400;color:var(--text2);">/'+Math.round(xAll)+'</span>':'')+'</div>'+
+      '<button onclick="grDeleteSubj(''+sid+'')" title="Видалити предмет" style="flex-shrink:0;background:rgba(224,80,80,.15);border:1px solid rgba(224,80,80,.3);color:var(--accent2);border-radius:7px;width:32px;height:32px;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;">🗑</button>'+
+    '</div>';
 
     if(_grModFilter===0){
-      html+='<td style="text-align:center;white-space:nowrap;"><span style="font-weight:700;font-size:14px;color:'+_grScoreColor(s1,x1)+';">'+Math.round(s1)+(x1?'<span style="font-size:10px;color:var(--text2);">/'+Math.round(x1)+'</span>':'')+'</span></td>';
-      html+='<td style="text-align:center;white-space:nowrap;"><span style="font-weight:700;font-size:14px;color:'+_grScoreColor(s2,x2)+';">'+Math.round(s2)+(x2?'<span style="font-size:10px;color:var(--text2);">/'+Math.round(x2)+'</span>':'')+'</span></td>';
+      // Both modules in 2 columns
+      html+='<div style="display:grid;grid-template-columns:1fr 1fr;">';
+      [1,2].forEach(mn=>{
+        const mItems=mn===1?m1:m2;
+        const ms=mn===1?s1:s2, mx=mn===1?x1:x2;
+        html+='<div style="padding:8px 10px;'+(mn===1?'border-right:1px solid var(--border)':'')+'">';
+        html+='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">'+
+          '<span style="font-size:10px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.4px;">М'+mn+'</span>'+
+          (mx?'<span style="font-size:12px;font-weight:700;color:'+_grScoreColor(ms,mx)+';">'+Math.round(ms)+'/'+Math.round(mx)+'</span>':'')+
+        '</div>';
+        html+='<div style="display:flex;flex-wrap:wrap;gap:3px;">';
+        mItems.forEach(item=>{ html+=_grChip(sid,allItems.indexOf(item),item); });
+        html+='<button onclick="grAddGrade(''+sid+'','+mn+')" style="background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:3px 8px;color:var(--accent);font-size:13px;cursor:pointer;min-height:26px;">＋</button>';
+        html+='</div></div>';
+      });
+      html+='</div>';
     } else {
-      const sf=_grSum(filtered),xf=_grMax(filtered);
-      html+='<td style="text-align:center;white-space:nowrap;"><span style="font-weight:700;font-size:14px;color:'+_grScoreColor(sf,xf)+';">'+Math.round(sf)+(xf?'<span style="font-size:10px;color:var(--text2);">/'+Math.round(xf)+'</span>':'')+'</span></td>';
+      const mItems=_grModFilter===1?m1:m2;
+      const ms=_grModFilter===1?s1:s2, mx=_grModFilter===1?x1:x2;
+      html+='<div style="padding:8px 10px;">';
+      html+='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">'+
+        '<span style="font-size:10px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.4px;">Модуль '+_grModFilter+'</span>'+
+        (mx?'<span style="font-size:12px;font-weight:700;color:'+_grScoreColor(ms,mx)+';">'+Math.round(ms)+'/'+Math.round(mx)+'</span>':'')+
+      '</div>';
+      html+='<div style="display:flex;flex-wrap:wrap;gap:3px;">';
+      mItems.forEach(item=>{ html+=_grChip(sid,allItems.indexOf(item),item); });
+      html+='<button onclick="grAddGrade(''+sid+'','+_grModFilter+')" style="background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:3px 8px;color:var(--accent);font-size:13px;cursor:pointer;min-height:26px;">＋</button>';
+      html+='</div></div>';
     }
-
-    html+='<td style="text-align:center;white-space:nowrap;font-size:16px;font-weight:800;color:'+_grScoreColor(sAll,xAll)+';">'+Math.round(sAll)+(xAll?'<span style="font-size:10px;color:var(--text2);">/'+Math.round(xAll)+'</span>':'')+'</td>';
-    html+='<td><button onclick="grDeleteSubj(\''+sid+'\')" style="background:rgba(224,80,80,.15);border:1px solid rgba(224,80,80,.3);color:var(--accent2);border-radius:8px;padding:5px 8px;font-size:12px;cursor:pointer;min-height:32px;white-space:nowrap;">🗑 Видалити</button></td>';
-    html+='</tr>';
+    html+='</div>';
   });
 
-  html+='</tbody></table></div>';
-
   if(grandMax>0){
-    html+='<div style="margin-top:14px;background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:14px 18px;display:flex;align-items:center;justify-content:space-between;">'+
-      '<div style="font-size:14px;font-weight:700;color:var(--text);">🏆 Загальна сума</div>'+
-      '<div style="font-size:22px;font-weight:800;color:'+_grScoreColor(grandSum,grandMax)+';">'+Math.round(grandSum)+' <span style="font-size:13px;color:var(--text2);">/ '+Math.round(grandMax)+'</span></div>'+
+    html+='<div style="margin-top:10px;background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:12px 14px;display:flex;align-items:center;justify-content:space-between;">'+
+      '<div style="font-size:13px;font-weight:700;color:var(--text);">🏆 Загальна сума</div>'+
+      '<div style="font-size:20px;font-weight:800;color:'+_grScoreColor(grandSum,grandMax)+';">'+Math.round(grandSum)+' <span style="font-size:12px;color:var(--text2);">/ '+Math.round(grandMax)+'</span></div>'+
       '</div>';
   }
 
@@ -1558,14 +1561,14 @@ function grDelGrade(sid,gi){
   subj.items.splice(gi,1);
   _grFireSave(); renderGradesTable();
 }
-function grAddGrade(sid){
+function grAddGrade(sid, modNum){
   const subj=_grFindSubj(sid);
   _grGrCtx={sid, gi:null};
   document.getElementById('gre-title').textContent='➕ Додати оцінку';
   document.getElementById('gre-name').value='';
   document.getElementById('gre-grade').value='';
   document.getElementById('gre-max').value='100';
-  document.getElementById('gre-mod').value=String(_grModFilter||1);
+  document.getElementById('gre-mod').value=String(modNum||_grModFilter||1);
   document.getElementById('gre-type').value='cur';
   document.getElementById('gre-course').value=subj?subj.name:'';
   document.getElementById('gre-course').readOnly=true;

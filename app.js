@@ -1492,7 +1492,8 @@ function renderGradesTable(){
       var ri=all.indexOf(item);
       var isFirst=(ri===0), isLast=(ri===all.length-1);
       html+='<tr class="gr-tr" data-sid="'+escHtml(subj.id)+'" data-ri="'+ri+'">'+
-        '<td class="gr-td" style="color:var(--text2);font-size:11px;">'+(idx===0?'📋 Поточна':'')+'</td>'+
+        '<td class="gr-td gr-drag-handle" style="color:var(--text2);font-size:11px;cursor:ns-resize;touch-action:none;" onmousedown="_grPointerStart(event,\''+escHtml(subj.id)+'\','+ri+')" ontouchstart="_grPointerStart(event,\''+escHtml(subj.id)+'\','+ri+')">'+
+        '<span style="opacity:.3;font-size:10px;margin-right:3px;">⠿</span>'+(idx===0?'📋 Поточна':'')+'</td>'+
         '<td class="gr-td" style="color:var(--text);" title="'+escHtml(item.name)+'">'+
           escHtml(item.name.length>32?item.name.slice(0,32)+'…':item.name)+
           '<span style="font-size:9px;background:var(--bg3);border-radius:3px;padding:1px 4px;margin-left:4px;color:var(--text2);">М'+item.mod+'</span>'+
@@ -1526,7 +1527,8 @@ function renderGradesTable(){
       var ri=all.indexOf(item);
       var isFirst=(ri===0), isLast=(ri===all.length-1);
       html+='<tr class="gr-tr" data-sid="'+escHtml(subj.id)+'" data-ri="'+ri+'" style="background:rgba(240,192,64,.04);">'+
-        '<td class="gr-td" style="color:var(--accent);font-size:11px;font-weight:600;">'+(idx===0?'📝 Модульний':'')+'</td>'+
+        '<td class="gr-td gr-drag-handle" style="color:var(--accent);font-size:11px;font-weight:600;cursor:ns-resize;touch-action:none;" onmousedown="_grPointerStart(event,\''+escHtml(subj.id)+'\','+ri+')" ontouchstart="_grPointerStart(event,\''+escHtml(subj.id)+'\','+ri+')">'+
+        '<span style="opacity:.3;font-size:10px;margin-right:3px;">⠿</span>'+(idx===0?'📝 Модульний':'')+'</td>'+
         '<td class="gr-td" style="color:var(--text);" title="'+escHtml(item.name)+'">'+
           escHtml(item.name.length>32?item.name.slice(0,32)+'…':item.name)+
           '<span style="font-size:9px;background:var(--bg3);border-radius:3px;padding:1px 4px;margin-left:4px;color:var(--text2);">М'+item.mod+'</span>'+
@@ -1575,16 +1577,86 @@ function _grTab(n,lbl){
 }
 function grSetMF(n){ _grModFilter=n; renderGradesTable(); }
 
-// ── MOVE UP/DOWN ──
+// ── MOVE + DRAG ──
 function grMoveItem(sid,ri,dir){
   var subj=_grFind(sid); if(!subj) return;
   var items=subj.items;
   var newRi=ri+dir;
   if(newRi<0||newRi>=items.length) return;
-  var tmp=items[ri]; items[ri]=items[newRi]; items[newRi]=tmp;
-  // swap isMod so item adopts the section it moves into
-  var tmpMod=items[ri].isMod; items[ri].isMod=items[newRi].isMod; items[newRi].isMod=tmpMod;
+  // Move item, adopt isMod of destination
+  var item=items.splice(ri,1)[0];
+  item.isMod=items[newRi-(dir>0?1:0)]!==undefined ? (dir>0 ? (items[newRi-1]||items[newRi]||item).isMod : (items[newRi]||item).isMod) : item.isMod;
+  items.splice(newRi,0,item);
   _grFireSave(); renderGradesTable();
+}
+
+// ── POINTER DRAG ──
+var _grPD={active:false,sid:null,ri:null,ghost:null,rows:[],startY:0,curRi:null};
+
+function _grPointerStart(e,sid,ri){
+  if(e.button!==undefined&&e.button!==0) return;
+  e.preventDefault();
+  var clientY=e.touches?e.touches[0].clientY:e.clientY;
+  _grPD.active=true; _grPD.sid=sid; _grPD.ri=ri; _grPD.startY=clientY; _grPD.curRi=ri;
+
+  // Collect all gr-draggable rows for this subject
+  _grPD.rows=Array.from(document.querySelectorAll('.gr-tr[data-sid="'+sid+'"]'));
+
+  // Create ghost
+  var srcRow=_grPD.rows.find(function(r){return parseInt(r.dataset.ri)===ri;});
+  if(!srcRow) return;
+  var ghost=srcRow.cloneNode(true);
+  ghost.style.cssText='position:fixed;z-index:9999;opacity:.85;pointer-events:none;background:var(--bg3);border:1px solid var(--accent);border-radius:6px;box-shadow:0 8px 24px rgba(0,0,0,.5);width:'+srcRow.offsetWidth+'px;left:'+srcRow.getBoundingClientRect().left+'px;top:'+(clientY-20)+'px;';
+  document.body.appendChild(ghost);
+  _grPD.ghost=ghost;
+  srcRow.style.opacity='0.3';
+
+  document.addEventListener('mousemove',_grPointerMove,{passive:false});
+  document.addEventListener('touchmove',_grPointerMove,{passive:false});
+  document.addEventListener('mouseup',_grPointerEnd);
+  document.addEventListener('touchend',_grPointerEnd);
+}
+
+function _grPointerMove(e){
+  if(!_grPD.active) return;
+  e.preventDefault();
+  var clientY=e.touches?e.touches[0].clientY:e.clientY;
+  if(_grPD.ghost) _grPD.ghost.style.top=(clientY-20)+'px';
+
+  // Find row under cursor
+  _grPD.rows.forEach(function(r){r.style.borderTop='';});
+  var target=null;
+  _grPD.rows.forEach(function(r){
+    var rect=r.getBoundingClientRect();
+    if(clientY>=rect.top&&clientY<=rect.bottom) target=r;
+  });
+  if(target&&parseInt(target.dataset.ri)!==_grPD.ri){
+    _grPD.curRi=parseInt(target.dataset.ri);
+    target.style.borderTop='2px solid var(--accent)';
+  }
+}
+
+function _grPointerEnd(e){
+  document.removeEventListener('mousemove',_grPointerMove);
+  document.removeEventListener('touchmove',_grPointerMove);
+  document.removeEventListener('mouseup',_grPointerEnd);
+  document.removeEventListener('touchend',_grPointerEnd);
+
+  if(_grPD.ghost){ _grPD.ghost.remove(); _grPD.ghost=null; }
+  _grPD.rows.forEach(function(r){r.style.opacity='';r.style.borderTop='';});
+
+  if(_grPD.active&&_grPD.sid&&_grPD.curRi!==null&&_grPD.curRi!==_grPD.ri){
+    var subj=_grFind(_grPD.sid);
+    if(subj){
+      var items=subj.items;
+      var item=items.splice(_grPD.ri,1)[0];
+      var targetItem=items[_grPD.curRi<items.length?_grPD.curRi:items.length-1];
+      if(targetItem) item.isMod=targetItem.isMod;
+      items.splice(_grPD.curRi,0,item);
+      _grFireSave(); renderGradesTable();
+    }
+  }
+  _grPD.active=false; _grPD.sid=null; _grPD.ri=null; _grPD.curRi=null;
 }
 
 

@@ -958,7 +958,7 @@ a { text-decoration: none; color: inherit; }
   .admin-grid { grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); }
 }
 
-@media(min-width:768px){
+@media(min-width:900px){
   html { font-size:15.5px; }
   .sidebar { transform:none !important; }
   .close-sidebar { display:none !important; }
@@ -1015,7 +1015,7 @@ a { text-decoration: none; color: inherit; }
   .content { padding:32px 48px; }
 }
 
-@media(max-width:767px){
+@media(max-width:899px){
   :root { --sidebar:0px; }
   .sidebar { transform:translateX(-270px); width:270px; box-shadow:var(--sh-lg); }
   .sidebar.open { transform:translateX(0); }
@@ -1089,7 +1089,7 @@ a { text-decoration: none; color: inherit; }
 
 .cal-hidden{display:none;}
 
-@media(max-width:767px){
+@media(max-width:899px){
   .cal-cell{height:80px;padding:3px;}
   .cal-dot{width:6px;height:6px;}
   .cal-header-cell{font-size:9px;padding:5px 2px;}

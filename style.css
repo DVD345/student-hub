@@ -1207,3 +1207,8 @@ a { text-decoration: none; color: inherit; }
 .gr-td{padding:7px 8px;border-bottom:1px solid var(--border);vertical-align:middle;}
 .gr-tr:last-child .gr-td{border-bottom:none;}
 .gr-tr:hover .gr-td{background:var(--bg3);}
+
+/* drag-and-drop grades */
+.gr-draggable { cursor: default; }
+.gr-drag-handle { cursor: grab !important; }
+.gr-drag-over { background: rgba(240,192,64,.12) !important; outline: 2px solid rgba(240,192,64,.4); }

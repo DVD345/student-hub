@@ -1491,7 +1491,7 @@ function renderGradesTable(){
     cur.forEach(function(item,idx){
       var ri=all.indexOf(item);
       html+='<tr class="gr-tr gr-draggable" draggable="true" data-sid="'+escHtml(subj.id)+'" data-ri="'+ri+'" '+
-        'ondragstart="grDragStart(event)" ondragover="grDragOver(event)" ondrop="grDrop(event)" ondragend="grDragEnd(event)">'+
+        'ondragstart="grDragStart(event)" ondragover="grDragOver(event)" ondrop="grDrop(event)" ondragend="grDragEnd(event)" data-ismod="0">'+
         '<td class="gr-td gr-drag-handle" style="color:var(--text2);font-size:11px;cursor:grab;user-select:none;">'+
           '<span style="opacity:.4;margin-right:4px;">⠿</span>'+(idx===0?'📋 Поточна':'')+'</td>'+
         '<td class="gr-td" style="color:var(--text);" title="'+escHtml(item.name)+'">'+
@@ -1524,7 +1524,7 @@ function renderGradesTable(){
     mods.forEach(function(item,idx){
       var ri=all.indexOf(item);
       html+='<tr class="gr-tr gr-draggable" draggable="true" data-sid="'+escHtml(subj.id)+'" data-ri="'+ri+'" '+
-        'ondragstart="grDragStart(event)" ondragover="grDragOver(event)" ondrop="grDrop(event)" ondragend="grDragEnd(event)" style="background:rgba(240,192,64,.04);">'+
+        'ondragstart="grDragStart(event)" ondragover="grDragOver(event)" ondrop="grDrop(event)" ondragend="grDragEnd(event)" data-ismod="1" style="background:rgba(240,192,64,.04);">'+
         '<td class="gr-td gr-drag-handle" style="color:var(--accent);font-size:11px;font-weight:600;cursor:grab;user-select:none;">'+
           '<span style="opacity:.4;margin-right:4px;">⠿</span>'+(idx===0?'📝 Модульний':'')+'</td>'+
         '<td class="gr-td" style="color:var(--text);" title="'+escHtml(item.name)+'">'+
@@ -1601,23 +1601,28 @@ function grDrop(e){
   var targetTr=e.currentTarget;
   var targetSid=targetTr.dataset.sid;
   var targetRi=parseInt(targetTr.dataset.ri);
+  var targetIsMod=targetTr.dataset.ismod==='1';
   if(_grDragSid===null||_grDragRi===null) return;
-  // Allow drop across subjects only if same subject for now (could extend later)
-  var subj=_grFind(_grDragSid);
-  if(!subj) return;
-  // If dropping onto different subject — move item there
+  var srcSubj=_grFind(_grDragSid);
+  if(!srcSubj) return;
+
   if(_grDragSid!==targetSid){
+    // Move to different subject
     var targetSubj=_grFind(targetSid);
     if(!targetSubj) return;
-    var item=subj.items.splice(_grDragRi,1)[0];
-    var insertAt=targetRi>targetSubj.items.length?targetSubj.items.length:targetRi;
+    var item=srcSubj.items.splice(_grDragRi,1)[0];
+    // Adopt type of the target row
+    item.isMod=targetIsMod;
+    var insertAt=Math.min(targetRi,targetSubj.items.length);
     targetSubj.items.splice(insertAt,0,item);
   } else {
-    // Same subject - reorder
+    // Same subject reorder
     if(_grDragRi===targetRi) return;
-    var item=subj.items.splice(_grDragRi,1)[0];
+    var item=srcSubj.items.splice(_grDragRi,1)[0];
+    // Change type if dropped into different section
+    item.isMod=targetIsMod;
     var newRi=targetRi>_grDragRi?targetRi-1:targetRi;
-    subj.items.splice(newRi,0,item);
+    srcSubj.items.splice(newRi,0,item);
   }
   _grDragSid=null; _grDragRi=null;
   _grFireSave();

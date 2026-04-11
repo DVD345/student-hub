@@ -1323,23 +1323,28 @@ async function _grFireSave(){
     const {doc,setDoc}=window._fb;
     var deletedArr={};
     Object.keys(_grDeletedIds).forEach(function(k){deletedArr[k]=[..._grDeletedIds[k]];});
-    await setDoc(doc(window._db,'grades',String(userData.userid)),{subjects:_grSubjects,deletedIds:deletedArr,updatedAt:Date.now()});
-  }catch(e){}
+    // Save into users/{id} with merge so other fields are preserved
+    await setDoc(doc(window._db,'users',String(userData.userid)),{
+      grades:{subjects:_grSubjects,deletedIds:deletedArr,updatedAt:Date.now()}
+    },{merge:true});
+  }catch(e){ console.warn('grades save err:',e); }
 }
 async function _grFireLoad(){
-  _grLocalLoad();
+  _grLocalLoad(); // show cached instantly while Firebase loads
   if(!window._db||!userData.userid) return;
   try{
     const {doc,getDoc}=window._fb;
-    const snap=await getDoc(doc(window._db,'grades',String(userData.userid)));
-    if(snap.exists()&&Array.isArray(snap.data().subjects)){
-      _grSubjects=snap.data().subjects;
-      var di=snap.data().deletedIds||{};
+    const snap=await getDoc(doc(window._db,'users',String(userData.userid)));
+    if(snap.exists()&&snap.data().grades&&Array.isArray(snap.data().grades.subjects)){
+      var d=snap.data().grades;
+      _grSubjects=d.subjects;
+      var di=d.deletedIds||{};
+      _grDeletedIds={};
       Object.keys(di).forEach(function(k){_grDeletedIds[k]=new Set(di[k]);});
       _grLoaded=true;
       _grLocalSave();
     }
-  }catch(e){}
+  }catch(e){ console.warn('grades load err:',e); }
 }
 
 // ── helpers ──
@@ -1369,12 +1374,13 @@ async function loadGrades(force){
   if(_grLoading) return;
   var el=document.getElementById('grades-list');
   if(!el) return;
-  // Always load from Firebase/local first
+  // Load from Firebase/local first
   if(!_grLoaded) await _grFireLoad();
-  // If already loaded and not forced — just render
+  // If Firebase had data and not force-refresh → render, skip Moodle
   if(_grLoaded&&!force){ renderGradesTable(); return; }
+  // Force refresh OR first time (no Firebase data yet) → sync from Moodle
   _grLoading=true;
-  el.innerHTML='<div class="loading"><div class="spinner"></div>Завантаження оцінок...</div>';
+  el.innerHTML='<div class="loading"><div class="spinner"></div>Синхронізація з Moodle...</div>';
   try{
     if(!token||!userData.userid){
       el.innerHTML='<div class="empty"><div class="emo">🔒</div><p>Увійдіть через Moodle</p></div>';
@@ -1423,6 +1429,8 @@ async function loadGrades(force){
       }));
     }));
     _grLoaded=true;
+    // Save Moodle data to Firebase on first sync
+    // (won't overwrite user edits because we use merge + deletedIds guards)
     await _grFireSave();
     renderGradesTable();
   }catch(e){

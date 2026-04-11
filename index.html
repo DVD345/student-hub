@@ -37,7 +37,7 @@ document.getElementById('pwa-manifest').href = URL.createObjectURL(_mBlob);
 // Service Worker
 if('serviceWorker' in navigator) {
   const swCode = `
-const CACHE = 'sh-v62';
+const CACHE = 'sh-v63';
 const PRECACHE = ['./'];
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(PRECACHE)).then(() => self.skipWaiting()));
@@ -370,7 +370,7 @@ function _loadKaTeX() {
             <button class="btn a" onclick="loadGrades(true)">🔄</button>
           </div>
         </div>
-        <div id="grades-summary" style="display:none;gap:8px;margin-bottom:12px;flex-wrap:wrap;"></div>
+        
         <div id="grades-list"><div class="loading"><div class="spinner"></div>Завантаження...</div></div>
       </div>
       <!-- FILES -->

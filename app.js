@@ -1307,12 +1307,17 @@ function _grLocalLoad(){
     var raw=localStorage.getItem(_grKey());
     if(!raw) return;
     var d=JSON.parse(raw);
-    if(Array.isArray(d)){ _grSubjects=d; return; } // old format
+    if(Array.isArray(d)){
+      // Old format - migrate
+      _grSubjects=d;
+      _grLoaded=(_grSubjects.length>0);
+      return;
+    }
     if(Array.isArray(d.subjects)){
       _grSubjects=d.subjects;
       var di=d.deletedIds||{};
       Object.keys(di).forEach(function(k){_grDeletedIds[k]=new Set(di[k]);});
-      _grLoaded=true;
+      _grLoaded=(_grSubjects.length>0);
     }
   }catch(e){}
 }
@@ -1411,9 +1416,10 @@ async function loadGrades(force){
           }
           rawItems.forEach(function(item){
             var mid='m_'+item.id;
-            // Skip if user deleted this item
+            // Skip if user explicitly deleted this Moodle item
             if(_grDeletedIds[subj.id]&&_grDeletedIds[subj.id].has(mid)) return;
-            if(subj.items.find(function(g){return g.id===mid;})) return;
+            // Skip if already present (user may have edited it)
+            if(subj.items.find(function(g){return g.id===mid||g.id==='e_'+mid;})) return;
             var name=_grStrip(item.itemname||item.itemmodule||'Завдання');
             subj.items.push({
               id:mid,name:name,
@@ -1449,20 +1455,7 @@ function renderGradesTable(){
   });
 
   // Summary cards
-  if(sumEl){
-    var gS=0,gX=0;
-    _grSubjects.forEach(function(s){ s.items.forEach(function(i){gS+=i.grade;gX+=i.max;}); });
-    sumEl.style.display='flex';
-    sumEl.innerHTML=
-      '<div style="flex:1;background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:10px;text-align:center;">'+
-        '<div style="font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.4px;">Предметів</div>'+
-        '<div style="font-size:20px;font-weight:800;color:var(--text);">'+_grSubjects.length+'</div>'+
-      '</div>'+
-      '<div style="flex:1;background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:10px;text-align:center;">'+
-        '<div style="font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.4px;">Разом балів</div>'+
-        '<div style="font-size:20px;font-weight:800;color:'+_grColor(gS,gX)+';">'+Math.round(gS)+(gX?'<span style="font-size:11px;color:var(--text2);">/'+Math.round(gX)+'</span>':'')+'</div>'+
-      '</div>';
-  }
+  if(sumEl) sumEl.style.display='none';
 
   if(!list.length){
     el.innerHTML='<div class="empty"><div class="emo">🎓</div><p>'+(q?'Нічого не знайдено':'Немає оцінок — натисніть 🔄 або ＋')+'</p></div>';

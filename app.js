@@ -1291,16 +1291,29 @@ var _grLoading   = false;
 var _grLoaded    = false;
 var _grModFilter = 0;    // 0=all, 1=mod1, 2=mod2
 var _grGrCtx     = null;
+var _grDeletedIds= {};   // {subjId: Set of deleted moodle item ids}
 
 // ── storage ──
 function _grKey(){ return 'sh_gr5_'+(userData.userid||'x'); }
 function _grLocalSave(){
-  try{ localStorage.setItem(_grKey(), JSON.stringify(_grSubjects)); }catch(e){}
+  try{
+    var deletedArr={};
+    Object.keys(_grDeletedIds).forEach(function(k){deletedArr[k]=[..._grDeletedIds[k]];});
+    localStorage.setItem(_grKey(), JSON.stringify({subjects:_grSubjects,deletedIds:deletedArr}));
+  }catch(e){}
 }
 function _grLocalLoad(){
   try{
-    const d=JSON.parse(localStorage.getItem(_grKey())||'null');
-    if(Array.isArray(d)) _grSubjects=d;
+    var raw=localStorage.getItem(_grKey());
+    if(!raw) return;
+    var d=JSON.parse(raw);
+    if(Array.isArray(d)){ _grSubjects=d; return; } // old format
+    if(Array.isArray(d.subjects)){
+      _grSubjects=d.subjects;
+      var di=d.deletedIds||{};
+      Object.keys(di).forEach(function(k){_grDeletedIds[k]=new Set(di[k]);});
+      _grLoaded=true;
+    }
   }catch(e){}
 }
 async function _grFireSave(){
@@ -1308,7 +1321,9 @@ async function _grFireSave(){
   if(!window._db||!userData.userid) return;
   try{
     const {doc,setDoc}=window._fb;
-    await setDoc(doc(window._db,'grades',String(userData.userid)),{subjects:_grSubjects,updatedAt:Date.now()});
+    var deletedArr={};
+    Object.keys(_grDeletedIds).forEach(function(k){deletedArr[k]=[..._grDeletedIds[k]];});
+    await setDoc(doc(window._db,'grades',String(userData.userid)),{subjects:_grSubjects,deletedIds:deletedArr,updatedAt:Date.now()});
   }catch(e){}
 }
 async function _grFireLoad(){
@@ -1319,6 +1334,9 @@ async function _grFireLoad(){
     const snap=await getDoc(doc(window._db,'grades',String(userData.userid)));
     if(snap.exists()&&Array.isArray(snap.data().subjects)){
       _grSubjects=snap.data().subjects;
+      var di=snap.data().deletedIds||{};
+      Object.keys(di).forEach(function(k){_grDeletedIds[k]=new Set(di[k]);});
+      _grLoaded=true;
       _grLocalSave();
     }
   }catch(e){}
@@ -1351,7 +1369,9 @@ async function loadGrades(force){
   if(_grLoading) return;
   var el=document.getElementById('grades-list');
   if(!el) return;
-  if(!_grLoaded||force) await _grFireLoad();
+  // Always load from Firebase/local first
+  if(!_grLoaded) await _grFireLoad();
+  // If already loaded and not forced — just render
   if(_grLoaded&&!force){ renderGradesTable(); return; }
   _grLoading=true;
   el.innerHTML='<div class="loading"><div class="spinner"></div>Завантаження оцінок...</div>';
@@ -1385,6 +1405,8 @@ async function loadGrades(force){
           }
           rawItems.forEach(function(item){
             var mid='m_'+item.id;
+            // Skip if user deleted this item
+            if(_grDeletedIds[subj.id]&&_grDeletedIds[subj.id].has(mid)) return;
             if(subj.items.find(function(g){return g.id===mid;})) return;
             var name=_grStrip(item.itemname||item.itemmodule||'Завдання');
             subj.items.push({
@@ -1561,12 +1583,7 @@ function renderGradesTable(){
     html+='</div>'; // gr-card
   });
 
-  if(grandX>0){
-    html+='<div style="margin-top:10px;background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:12px 14px;display:flex;align-items:center;justify-content:space-between;">'+
-      '<div style="font-size:13px;font-weight:700;color:var(--text);">🏆 Загальна сума по всіх предметах</div>'+
-      '<div style="font-size:20px;font-weight:800;color:'+_grColor(grandS,grandX)+';">'+Math.round(grandS)+' <span style="font-size:12px;color:var(--text2);">/ '+Math.round(grandX)+'</span></div>'+
-    '</div>';
-  }
+
 
   el.innerHTML=html;
 }
@@ -1668,6 +1685,11 @@ function grDeleteSubj(id){
 }
 function grDelGrade(sid,ri){
   var subj=_grFind(sid); if(!subj) return;
+  var item=subj.items[ri];
+  if(item&&item._moodle&&item.id){
+    if(!_grDeletedIds[sid]) _grDeletedIds[sid]=new Set();
+    _grDeletedIds[sid].add(item.id);
+  }
   subj.items.splice(ri,1);
   _grFireSave(); renderGradesTable();
 }

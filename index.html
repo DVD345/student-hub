@@ -37,7 +37,7 @@ document.getElementById('pwa-manifest').href = URL.createObjectURL(_mBlob);
 // Service Worker
 if('serviceWorker' in navigator) {
   const swCode = `
-const CACHE = 'sh-v60';
+const CACHE = 'sh-v61';
 const PRECACHE = ['./'];
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(PRECACHE)).then(() => self.skipWaiting()));

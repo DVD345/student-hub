@@ -1484,11 +1484,31 @@ function renderGradesTable(){
 
     html+='<div class="gr-card">';
 
-    // Subject header
+    // Compute итоговая оценка: (M1_sum/M1_max + M2_sum/M2_max) / 2 * 100
+    var avg1 = x1>0 ? s1/x1*100 : null;
+    var avg2 = x2>0 ? s2/x2*100 : null;
+    var autoFinal = (avg1!=null&&avg2!=null) ? (avg1+avg2)/2 : (avg1!=null?avg1:(avg2!=null?avg2:null));
+    var finalGrade = subj._finalGrade!=null ? subj._finalGrade : (autoFinal!=null?Math.round(autoFinal):null);
+    var isManual = subj._finalGrade!=null;
+
+    // Header score: per-module view shows that module sum; "Всі" shows підсумкова
+    var headVal, headMax;
+    if(_grModFilter===1){ headVal=Math.round(s1); headMax=Math.round(x1); }
+    else if(_grModFilter===2){ headVal=Math.round(s2); headMax=Math.round(x2); }
+    else { headVal=finalGrade; headMax=null; } // % in "Всі"
+
+    var headStr = headVal!=null
+      ? (headMax ? headVal+'<span style="font-size:10px;font-weight:400;color:var(--text2);">/'+headMax+'</span>' : headVal+'<span style="font-size:11px;font-weight:400;color:var(--text2);">%</span>')
+      : '—';
+    var headColor = headMax ? _grColor(headVal,headMax) : _grColor(headVal,100);
+
     html+='<div class="gr-card-head">'+
       '<div class="gr-card-name" title="'+escHtml(subj.name)+'">'+escHtml(subj.name)+'</div>'+
-      '<div style="display:flex;align-items:center;gap:8px;">'+
-        '<div style="font-size:15px;font-weight:800;color:'+_grColor(sA,xA)+';">'+Math.round(sA)+(xA?'<span style="font-size:10px;font-weight:400;color:var(--text2);">/'+Math.round(xA)+'</span>':'')+'</div>'+
+      '<div style="display:flex;align-items:center;gap:6px;">'+
+        '<div style="font-size:15px;font-weight:800;color:'+headColor+';">'+headStr+'</div>'+
+        (_grModFilter===0
+          ? '<button data-sid="'+escHtml(subj.id)+'" onclick="grEditFinal(this.dataset.sid)" title="Редагувати підсумкову" style="background:none;border:none;color:var(--accent);font-size:13px;cursor:pointer;padding:2px 4px;opacity:.7;min-height:28px;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=.7">✏️</button>'
+          : '')+
         '<button class="gr-del-btn" data-sid="'+escHtml(subj.id)+'" onclick="grDeleteSubj(this.dataset.sid)">🗑</button>'+
       '</div>'+
     '</div>';
@@ -1572,13 +1592,43 @@ function renderGradesTable(){
       '</tr>';
     }
 
-    // Total row
-    html+='<tr style="background:var(--bg3);border-top:2px solid var(--border);">'+
-      '<td class="gr-td" colspan="2" style="font-size:12px;font-weight:800;color:var(--text);">🏆 Загальний бал</td>'+
-      '<td class="gr-td" style="text-align:center;font-size:15px;font-weight:800;color:'+_grColor(sA,xA)+';">'+Math.round(sA)+'</td>'+
-      '<td class="gr-td" style="text-align:center;color:var(--text2);">'+Math.round(xA)+'</td>'+
-      '<td class="gr-td"></td>'+
-    '</tr>';
+    // Total rows
+    if(_grModFilter===0){
+      // Всі: show M1 sum, M2 sum, then підсумкова = (M1%+M2%)/2
+      html+='<tr style="background:var(--bg3);border-top:1px solid var(--border);">'+
+        '<td class="gr-td" colspan="2" style="font-size:11px;color:var(--text2);">Σ Модуль 1</td>'+
+        '<td class="gr-td" style="text-align:center;font-weight:700;color:'+_grColor(s1,x1)+';">'+Math.round(s1)+'</td>'+
+        '<td class="gr-td" style="text-align:center;color:var(--text2);">'+Math.round(x1)+'</td>'+
+        '<td class="gr-td"></td></tr>';
+      html+='<tr style="background:var(--bg3);">'+
+        '<td class="gr-td" colspan="2" style="font-size:11px;color:var(--text2);">Σ Модуль 2</td>'+
+        '<td class="gr-td" style="text-align:center;font-weight:700;color:'+_grColor(s2,x2)+';">'+Math.round(s2)+'</td>'+
+        '<td class="gr-td" style="text-align:center;color:var(--text2);">'+Math.round(x2)+'</td>'+
+        '<td class="gr-td"></td></tr>';
+      html+='<tr style="background:var(--bg3);border-top:2px solid var(--border);">'+
+        '<td class="gr-td" colspan="2" style="font-size:12px;font-weight:800;color:var(--text);">'+
+          '🏆 Підсумкова '+
+          (isManual
+            ? '<span style="font-size:9px;background:rgba(240,192,64,.2);color:var(--accent);border-radius:3px;padding:1px 5px;">вручну</span>'
+            : '<span style="font-size:9px;color:var(--text2);">авто</span>')+
+        '</td>'+
+        '<td class="gr-td" colspan="2" style="text-align:center;font-size:16px;font-weight:800;color:'+(finalGrade!=null?_grColor(finalGrade,100):'var(--text2)')+';">'+
+          (finalGrade!=null?finalGrade+'<span style="font-size:10px;font-weight:400;">%</span>':'—')+
+        '</td>'+
+        '<td class="gr-td">'+
+          '<button data-sid="'+escHtml(subj.id)+'" onclick="grEditFinal(this.dataset.sid)" style="background:none;border:none;color:var(--accent);font-size:13px;cursor:pointer;padding:2px 4px;min-height:28px;opacity:.8;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=.8">✏️</button>'+
+          (isManual?'<button data-sid="'+escHtml(subj.id)+'" onclick="grClearFinal(this.dataset.sid)" style="background:none;border:none;color:var(--text2);font-size:10px;cursor:pointer;padding:2px 3px;min-height:28px;opacity:.5;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=.5" title="Скинути">↺</button>':'')+
+        '</td>'+
+      '</tr>';
+    } else {
+      var ms=_grModFilter===1?s1:s2, mx=_grModFilter===1?x1:x2;
+      html+='<tr style="background:var(--bg3);border-top:2px solid var(--border);">'+
+        '<td class="gr-td" colspan="2" style="font-size:12px;font-weight:800;color:var(--text);">Σ Модуль '+_grModFilter+'</td>'+
+        '<td class="gr-td" style="text-align:center;font-size:15px;font-weight:800;color:'+_grColor(ms,mx)+';">'+Math.round(ms)+'</td>'+
+        '<td class="gr-td" style="text-align:center;color:var(--text2);">'+Math.round(mx)+'</td>'+
+        '<td class="gr-td"></td>'+
+      '</tr>';
+    }
 
     html+='</tbody></table></div>';
     html+='</div>'; // gr-card
@@ -1594,6 +1644,26 @@ function _grTab(n,lbl){
   return '<button onclick="grSetMF('+n+')" style="padding:7px 14px;border-radius:8px;border:1px solid '+(a?'var(--accent)':'var(--border)')+';background:'+(a?'var(--accent)':'var(--bg3)')+';color:'+(a?'#000':'var(--text2)')+';font-size:12px;font-weight:700;cursor:pointer;min-height:34px;">'+lbl+'</button>';
 }
 function grSetMF(n){ _grModFilter=n; renderGradesTable(); }
+function grEditFinal(sid){
+  var subj=_grFind(sid); if(!subj) return;
+  var cur=subj._finalGrade!=null?String(subj._finalGrade):'';
+  var val=prompt('Підсумкова оцінка % (0-100). Пусто = авто', cur);
+  if(val===null) return;
+  val=val.trim();
+  if(val===''){
+    delete subj._finalGrade;
+  } else {
+    var n=parseFloat(val);
+    if(isNaN(n)||n<0||n>100){ alert('Введіть число від 0 до 100'); return; }
+    subj._finalGrade=Math.round(n);
+  }
+  _grFireSave(); renderGradesTable();
+}
+function grClearFinal(sid){
+  var subj=_grFind(sid); if(!subj) return;
+  delete subj._finalGrade;
+  _grFireSave(); renderGradesTable();
+}
 
 // ── MOVE + DRAG ──
 function grMoveItem(sid,ri,dir){

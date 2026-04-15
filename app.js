@@ -1484,23 +1484,22 @@ function renderGradesTable(){
 
     html+='<div class="gr-card">';
 
-    // Compute итоговая оценка: (M1_sum/M1_max + M2_sum/M2_max) / 2 * 100
-    var avg1 = x1>0 ? s1/x1*100 : null;
-    var avg2 = x2>0 ? s2/x2*100 : null;
-    var autoFinal = (avg1!=null&&avg2!=null) ? (avg1+avg2)/2 : (avg1!=null?avg1:(avg2!=null?avg2:null));
+    // Compute итоговая оценка как средний балл двух модулей без процентов
+    var autoFinal = (m1.length&&m2.length) ? (s1+s2)/2 : (m1.length?s1:(m2.length?s2:null));
     var finalGrade = subj._finalGrade!=null ? subj._finalGrade : (autoFinal!=null?Math.round(autoFinal):null);
     var isManual = subj._finalGrade!=null;
+    var finalMax = (x1>0&&x2>0) ? ((x1+x2)/2) : (x1>0?x1:(x2>0?x2:null));
 
-    // Header score: per-module view shows that module sum; "Всі" shows підсумкова
+    // Header score: per-module view shows that module sum; "Всі" shows підсумкова without percents
     var headVal, headMax;
     if(_grModFilter===1){ headVal=Math.round(s1); headMax=Math.round(x1); }
     else if(_grModFilter===2){ headVal=Math.round(s2); headMax=Math.round(x2); }
-    else { headVal=finalGrade; headMax=null; } // % in "Всі"
+    else { headVal=finalGrade; headMax=null; }
 
     var headStr = headVal!=null
-      ? (headMax ? headVal+'<span style="font-size:10px;font-weight:400;color:var(--text2);">/'+headMax+'</span>' : headVal+'<span style="font-size:11px;font-weight:400;color:var(--text2);">%</span>')
+      ? (headMax ? headVal+'<span style="font-size:10px;font-weight:400;color:var(--text2);">/'+headMax+'</span>' : String(headVal))
       : '—';
-    var headColor = headMax ? _grColor(headVal,headMax) : _grColor(headVal,100);
+    var headColor = headMax ? _grColor(headVal,headMax) : (finalMax ? _grColor(headVal,finalMax) : 'var(--text)');
 
     html+='<div class="gr-card-head">'+
       '<div class="gr-card-name" title="'+escHtml(subj.name)+'">'+escHtml(subj.name)+'</div>'+
@@ -1594,7 +1593,7 @@ function renderGradesTable(){
 
     // Total rows
     if(_grModFilter===0){
-      // Всі: show M1 sum, M2 sum, then підсумкова = (M1%+M2%)/2
+      // Всі: show M1 sum, M2 sum, then підсумкова = (M1 + M2) / 2
       html+='<tr style="background:var(--bg3);border-top:1px solid var(--border);">'+
         '<td class="gr-td" colspan="2" style="font-size:11px;color:var(--text2);">Σ Модуль 1</td>'+
         '<td class="gr-td" style="text-align:center;font-weight:700;color:'+_grColor(s1,x1)+';">'+Math.round(s1)+'</td>'+
@@ -1612,8 +1611,8 @@ function renderGradesTable(){
             ? '<span style="font-size:9px;background:rgba(240,192,64,.2);color:var(--accent);border-radius:3px;padding:1px 5px;">вручну</span>'
             : '<span style="font-size:9px;color:var(--text2);">авто</span>')+
         '</td>'+
-        '<td class="gr-td" colspan="2" style="text-align:center;font-size:16px;font-weight:800;color:'+(finalGrade!=null?_grColor(finalGrade,100):'var(--text2)')+';">'+
-          (finalGrade!=null?finalGrade+'<span style="font-size:10px;font-weight:400;">%</span>':'—')+
+        '<td class="gr-td" colspan="2" style="text-align:center;font-size:16px;font-weight:800;color:'+(finalGrade!=null&&finalMax?_grColor(finalGrade,finalMax):(finalGrade!=null?'var(--text)':'var(--text2)'))+';">'+
+          (finalGrade!=null?String(finalGrade):'—')+
         '</td>'+
         '<td class="gr-td">'+
           '<button data-sid="'+escHtml(subj.id)+'" onclick="grEditFinal(this.dataset.sid)" style="background:none;border:none;color:var(--accent);font-size:13px;cursor:pointer;padding:2px 4px;min-height:28px;opacity:.8;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=.8">✏️</button>'+
@@ -1647,14 +1646,14 @@ function grSetMF(n){ _grModFilter=n; renderGradesTable(); }
 function grEditFinal(sid){
   var subj=_grFind(sid); if(!subj) return;
   var cur=subj._finalGrade!=null?String(subj._finalGrade):'';
-  var val=prompt('Підсумкова оцінка % (0-100). Пусто = авто', cur);
+  var val=prompt('Підсумкова оцінка. Пусто = авто', cur);
   if(val===null) return;
   val=val.trim();
   if(val===''){
     delete subj._finalGrade;
   } else {
     var n=parseFloat(val);
-    if(isNaN(n)||n<0||n>100){ alert('Введіть число від 0 до 100'); return; }
+    if(isNaN(n)||n<0){ alert('Введіть коректну оцінку'); return; }
     subj._finalGrade=Math.round(n);
   }
   _grFireSave(); renderGradesTable();
@@ -4317,4 +4316,3 @@ function renderNoDlList() {
 document.getElementById('modal-no-dl').addEventListener('click', function(e) {
   if(e.target === this) closeNoDlModal();
 });
-

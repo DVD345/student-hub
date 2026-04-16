@@ -2086,6 +2086,42 @@ body.deadlines-resizing .dl-width-resizer::before {
 #page-grades .gr-table th:nth-child(5),
 #page-grades .gr-table td:nth-child(5) { min-width:calc(5.5rem * var(--ui-font-scale)); }
 
+/* Safe typography scaling without changing app layout geometry */
+.nav-item { font-size:calc(13px * var(--ui-font-scale)); }
+.group-pill { font-size:calc(10px * var(--ui-font-scale)); }
+.user-name { font-size:calc(11px * var(--ui-font-scale)); }
+.user-role-badge { font-size:calc(9px * var(--ui-font-scale)); }
+#topbar-title { font-size:calc(15px * var(--ui-font-scale)); }
+.page-header h2 { font-size:calc(22px * var(--ui-font-scale)); }
+.page-header p { font-size:calc(13px * var(--ui-font-scale)); }
+.tb-input,
+.tb-select,
+.btn,
+.btn-primary { font-size:calc(12px * var(--ui-font-scale)); }
+.widget-title { font-size:calc(11px * var(--ui-font-scale)); }
+.widget-link { font-size:calc(10px * var(--ui-font-scale)); }
+.widget-item-name { font-size:calc(12px * var(--ui-font-scale)); }
+.widget-item-meta { font-size:calc(10px * var(--ui-font-scale)); }
+.stat-val { font-size:calc(20px * var(--ui-font-scale)); }
+.stat-lbl { font-size:calc(10px * var(--ui-font-scale)); }
+.file-name { font-size:calc(13px * var(--ui-font-scale)); }
+.file-meta { font-size:calc(11px * var(--ui-font-scale)); }
+.c-name { font-size:calc(13px * var(--ui-font-scale)); }
+.c-meta { font-size:calc(10px * var(--ui-font-scale)); }
+.chat-room-name { font-size:calc(12px * var(--ui-font-scale)); }
+.chat-room-sub { font-size:calc(10px * var(--ui-font-scale)); }
+.msg-author { font-size:calc(10px * var(--ui-font-scale)); }
+.msg-bubble { font-size:calc(13px * var(--ui-font-scale)); }
+.pinned-bar-text { font-size:calc(12px * var(--ui-font-scale)); }
+.note-card-title { font-size:calc(13px * var(--ui-font-scale)); }
+.note-card-preview { font-size:calc(11px * var(--ui-font-scale)); }
+.note-card-meta { font-size:calc(9px * var(--ui-font-scale)); }
+.admin-card h3 { font-size:calc(14px * var(--ui-font-scale)); }
+.group-item { font-size:calc(12px * var(--ui-font-scale)); }
+.user-row .uname { font-size:calc(13px * var(--ui-font-scale)); }
+.cal-day-num { font-size:calc(11px * var(--ui-font-scale)); }
+.cal-event { font-size:calc(9px * var(--ui-font-scale)); }
+
 /* drag-and-drop grades */
 .gr-draggable { cursor: default; }
 .gr-drag-handle { cursor: grab !important; }

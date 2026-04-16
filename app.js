@@ -2111,6 +2111,8 @@ function startDirectChat(uid) {
 }
 function openChatRoom(roomId, label) {
   currentChatRoom=roomId;
+  window._lastMsgRoom = roomId;
+  window._lastMsgCount = undefined;
   _cancelReply(); // clear any leftover edit/reply state and input
   _listenRoomPresence(roomId);
   var titleEl = document.getElementById('chat-room-title');
@@ -2458,6 +2460,10 @@ function subscribePinned(roomId) {
 function renderMessages(msgs) {
   const el=document.getElementById('chat-msgs');
   if(!msgs.length){el.innerHTML='<div class="empty"><div class="emo">💬</div><p>Повідомлень ще немає</p></div>';return;}
+  if(window._lastMsgRoom !== currentChatRoom) {
+    window._lastMsgRoom = currentChatRoom;
+    window._lastMsgCount = msgs.length;
+  }
   el.innerHTML=msgs.map(m=>{
     const isMe=m.uid===String(userData.userid);
     const t=m.ts?new Date(m.ts).toLocaleTimeString('uk-UA',{hour:'2-digit',minute:'2-digit'}):'';
@@ -2493,7 +2499,7 @@ function renderMessages(msgs) {
     _attachMsgTouchEvents(el);
     el._touchEventsAttached = true;
   }
-  if(window._lastMsgCount!==undefined&&msgs.length>window._lastMsgCount){
+  if(window._lastMsgCount!==undefined&&window._lastMsgRoom===currentChatRoom&&msgs.length>window._lastMsgCount){
     msgs.slice(window._lastMsgCount).forEach(function(m){
       if(m.uid!==String(userData.userid)&&m.text&&userData.fullname&&
          m.text.toLowerCase().includes('@'+userData.fullname.split(' ')[0].toLowerCase())){

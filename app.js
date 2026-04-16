@@ -1199,6 +1199,24 @@ async function syncMoodle() {
 
 // ── COURSES ──
 var _hiddenCourses = [];
+var _courseGridCols = 4;
+
+function _courseColsStorageKey() {
+  return 'sh_course_cols_' + (userData.userid || 'local');
+}
+
+function _loadCourseGridCols() {
+  try {
+    var raw = parseInt(localStorage.getItem(_courseColsStorageKey()) || '4', 10);
+    _courseGridCols = [2,3,4,5].includes(raw) ? raw : 4;
+  } catch(e) { _courseGridCols = 4; }
+}
+
+function _saveCourseGridCols() {
+  try {
+    localStorage.setItem(_courseColsStorageKey(), String(_courseGridCols));
+  } catch(e) {}
+}
 
 function _loadHiddenCourses() {
   try {
@@ -1214,12 +1232,70 @@ function _saveHiddenCourses() {
   } catch(e) {}
 }
 
+function restoreCourse(id) {
+  var sid = String(id);
+  _loadHiddenCourses();
+  _hiddenCourses = _hiddenCourses.filter(function(cid){ return String(cid) !== sid; });
+  _saveHiddenCourses();
+  renderCoursesSettings();
+  filterCourses();
+}
+
+function openCoursesSettings() {
+  _loadHiddenCourses();
+  _loadCourseGridCols();
+  renderCoursesSettings();
+  var modal = document.getElementById('modal-course-settings');
+  if(modal) modal.classList.add('show');
+}
+
+function closeCoursesSettings() {
+  var modal = document.getElementById('modal-course-settings');
+  if(modal) modal.classList.remove('show');
+}
+
+function setCourseGridCols(cols) {
+  _courseGridCols = [2,3,4,5].includes(Number(cols)) ? Number(cols) : 4;
+  _saveCourseGridCols();
+  renderCoursesSettings();
+  filterCourses();
+}
+
+function renderCoursesSettings() {
+  var colsEl = document.getElementById('course-cols-options');
+  var hiddenEl = document.getElementById('hidden-courses-list');
+  if(colsEl) {
+    colsEl.innerHTML = [2,3,4,5].map(function(cols){
+      return '<button class="ftab'+(_courseGridCols===cols?' on':'')+'" type="button" onclick="setCourseGridCols('+cols+')">'+cols+'</button>';
+    }).join('');
+  }
+  if(hiddenEl) {
+    if(!_hiddenCourses.length) {
+      hiddenEl.innerHTML = '<div class="empty" style="padding:18px 8px;"><p>Немає прихованих курсів</p></div>';
+      return;
+    }
+    hiddenEl.innerHTML = _hiddenCourses.map(function(cid){
+      var course = (courses || []).find(function(c){ return String(c.id) === String(cid); });
+      var name = course ? (course.fullname || course.shortname || ('Курс #' + cid)) : ('Курс #' + cid);
+      var meta = course ? (course.shortname || ('ID ' + cid)) : ('ID ' + cid);
+      return '<div class="hidden-course-item">' +
+        '<div class="hidden-course-copy">' +
+          '<div class="hidden-course-name">' + escHtml(name) + '</div>' +
+          '<div class="hidden-course-meta">' + escHtml(meta) + '</div>' +
+        '</div>' +
+        '<button class="btn" type="button" onclick="restoreCourse(\'' + escHtml(String(cid)) + '\')">Повернути</button>' +
+      '</div>';
+    }).join('');
+  }
+}
+
 function hideCourse(id, e) {
   if(e) e.stopPropagation();
   const sid = String(id);
   if(!_hiddenCourses.includes(sid)) {
     _hiddenCourses.push(sid);
     _saveHiddenCourses();
+    renderCoursesSettings();
     filterCourses();
   }
 }
@@ -1227,6 +1303,7 @@ function hideCourse(id, e) {
 function restoreAllCourses() {
   _hiddenCourses = [];
   _saveHiddenCourses();
+  renderCoursesSettings();
   filterCourses();
 }
 
@@ -1252,6 +1329,7 @@ function setCS(s) { csMode=s; document.getElementById('cs-n').classList.toggle('
 
 function filterCourses() {
   _loadHiddenCourses();
+  _loadCourseGridCols();
   const q=(document.getElementById('c-q')||{value:''}).value.toLowerCase();
   let list = courses.filter(c => !_hiddenCourses.includes(String(c.id)));
   list = list.filter(c => !q || (c.fullname||c.shortname||'').toLowerCase().includes(q));
@@ -1263,7 +1341,8 @@ function filterCourses() {
     return;
   }
   const cls=cvMode==='list'?'course-grid lv':'course-grid';
-  el.innerHTML='<div class="'+cls+'">'+list.map((c,i)=>
+  const gridStyle = cvMode==='list' ? '' : ' style="--course-grid-cols:'+_courseGridCols+';"';
+  el.innerHTML='<div class="'+cls+'"'+gridStyle+'>'+list.map((c,i)=>
     '<div class="course-card" onclick="window.open(\'https://do.kart.edu.ua/course/view.php?id='+encodeURIComponent(c.id)+'\',\'_blank\',\'noopener,noreferrer\')">' +
     '<button class="hide-course-btn" data-cid="'+escHtml(String(c.id))+'" onclick="hideCourse(this.dataset.cid,event)" title="Сховати курс">✕ Сховати</button>'+
     '<div class="c-num">№'+(i+1)+'</div>'+
@@ -1274,6 +1353,7 @@ function filterCourses() {
   if(_hiddenCourses.length > 0) {
     el.innerHTML += '<div style="margin-top:10px;font-size:11px;color:var(--text2);display:flex;align-items:center;gap:8px;">🙈 Приховано '+_hiddenCourses.length+' курс(ів) <button class="btn" onclick="restoreAllCourses()" style="padding:4px 10px;font-size:10px;">↩ Відновити</button></div>';
   }
+  renderCoursesSettings();
 }
 
 // ── DEADLINES ──

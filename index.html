@@ -16,9 +16,31 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 
+<div id="modal-course-settings" class="modal-ov" onclick="if(event.target===this) closeCoursesSettings()">
+  <div class="modal course-settings-modal">
+    <h3>Налаштування курсів</h3>
+    <div class="course-settings-section">
+      <div class="course-settings-label">Карток в одному рядку</div>
+      <div class="course-cols-options" id="course-cols-options"></div>
+    </div>
+    <div class="course-settings-section">
+      <div class="course-settings-row">
+        <div>
+          <div class="course-settings-label">Приховані курси</div>
+          <div class="course-settings-sub">Оберіть курс зі списку, щоб повернути його назад.</div>
+        </div>
+        <button class="btn" type="button" onclick="restoreAllCourses()">Повернути всі</button>
+      </div>
+      <div id="hidden-courses-list" class="hidden-courses-list"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn" type="button" onclick="closeCoursesSettings()">Закрити</button>
+    </div>
+  </div>
+</div>
 <script>
 // PWA Manifest inline
-const APP_BUILD = '68';
+const APP_BUILD = '69';
 (function() {
   try {
     const prevBuild = localStorage.getItem('sh_build');
@@ -62,7 +84,7 @@ document.getElementById('pwa-manifest').href = URL.createObjectURL(_mBlob);
 // Service Worker
 if('serviceWorker' in navigator) {
   const swCode = `
-const CACHE = 'sh-v68';
+const CACHE = 'sh-v69';
 const PRECACHE = ['./'];
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(PRECACHE)).then(() => self.skipWaiting()));
@@ -100,7 +122,7 @@ self.addEventListener('fetch', e => {
 
 <!-- ✅ IMPROVEMENT 6: font-display=swap already present, preconnect added above -->
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=68">
+<link rel="stylesheet" href="style.css?v=69">
 <style>
 /* Prevent text selection during long-press on messages */
 .msg { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
@@ -475,6 +497,7 @@ function _loadKaTeX() {
           <button class="ftab on" id="cs-n" onclick="setCS('name')">А-Я</button>
           <button class="ftab" id="cs-num" onclick="setCS('num')">#</button>
           <div class="tb-right" style="display:flex;gap:4px;">
+            <button class="vbtn" id="vcfg" onclick="openCoursesSettings()" title="Налаштування курсів">⚙</button>
             <button class="vbtn on" id="vg" onclick="setCV('grid')" title="Картки">⊞</button>
             <button class="vbtn" id="vl" onclick="setCV('list')" title="Список">☰</button>
           </div>
@@ -785,7 +808,7 @@ async function loadGroupsForLogin() {
 window._loadGroupsForLogin = loadGroupsForLogin;
 </script>
 
-<script src="app.js?v=68"></script>
+<script src="app.js?v=69"></script>
 
 <div id="course-contents-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:1000;overflow-y:auto;padding:16px;backdrop-filter:blur(4px);">
   <div style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;max-width:640px;margin:0 auto;overflow:hidden;">

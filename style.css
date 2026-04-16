@@ -505,14 +505,11 @@ a { text-decoration: none; color: inherit; }
 }
 
 .dash-home {
-  display:grid;
-  grid-template-columns:minmax(0, 1.45fr) minmax(320px, .9fr);
+  display:flex;
+  flex-direction:column;
   gap:18px;
-  align-items:start;
 }
 .dash-hero {
-  grid-column:1;
-  grid-row:1;
   display:grid;
   grid-template-columns:minmax(0, 1fr);
   gap:16px;
@@ -582,9 +579,7 @@ a { text-decoration: none; color: inherit; }
 }
 .dash-theme-card-bottom {
   display:flex;
-  grid-column:2;
-  grid-row:2;
-  align-self:start;
+  width:100%;
 }
 .dash-theme-title {
   font-size:18px;
@@ -643,7 +638,10 @@ a { text-decoration: none; color: inherit; }
   font-weight:700;
 }
 .dash-layout {
-  display:contents;
+  display:grid;
+  grid-template-columns:minmax(0, 1.45fr) minmax(320px, .9fr);
+  gap:18px;
+  align-items:start;
 }
 .dash-column-main,
 .dash-column-side {
@@ -651,12 +649,6 @@ a { text-decoration: none; color: inherit; }
   flex-direction:column;
   gap:16px;
   min-width:0;
-}
-.dash-column-main { grid-column:1; }
-.dash-column-main { grid-row:2; }
-.dash-column-side { grid-column:2; grid-row:1; align-self:start; }
-.dash-column-side .dash-panel:last-child {
-  display:none;
 }
 .dash-panel {
   padding:18px;
@@ -873,13 +865,14 @@ a { text-decoration: none; color: inherit; }
 #page-deadlines {
   max-width: var(--deadlines-page-width, 1280px);
   margin: 0 auto;
-  --dl-name-size: 14px;
-  --dl-course-size: 12px;
-  --dl-date-size: 11px;
-  --dl-date-strong-size: 13px;
+  --dl-font-scale: 1;
+  --dl-name-size: calc(14px * var(--dl-font-scale));
+  --dl-course-size: calc(12px * var(--dl-font-scale));
+  --dl-date-size: calc(11px * var(--dl-font-scale));
+  --dl-date-strong-size: calc(13px * var(--dl-font-scale));
   --dl-item-pad-y: 11px;
   --dl-item-pad-x: 13px;
-  --dl-right-min-width: 92px;
+  --dl-right-min-width: calc(92px * var(--dl-font-scale));
 }
 #page-deadlines .dl-list {
   width: 100%;
@@ -1652,10 +1645,6 @@ a { text-decoration: none; color: inherit; }
   .content { padding-bottom: calc(88px + env(safe-area-inset-bottom, 0px)) !important; }
   .chat-input { font-size: 16px !important; }
   .admin-page-head { flex-direction:column; align-items:stretch; }
-  .dash-home {
-    display:flex;
-    flex-direction:column;
-  }
   .dash-hero,
   .dash-quick-grid {
     grid-template-columns:1fr;

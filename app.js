@@ -660,40 +660,36 @@ function _applyAdminDesktopLayout() {
 function _deadlinesWidthStorageKey() {
   return 'sh_deadlines_page_width';
 }
+function _deadlinesFontStorageKey() {
+  return 'sh_deadlines_font_scale';
+}
 function _defaultDeadlinesWidth() {
   return 1280;
+}
+function _defaultDeadlinesFontScale() {
+  return 1;
 }
 function _applyDeadlinesWidth() {
   var page = document.getElementById('page-deadlines');
   if(!page) return;
   if(window.innerWidth < 900) {
     page.style.removeProperty('--deadlines-page-width');
-    page.style.removeProperty('--dl-name-size');
-    page.style.removeProperty('--dl-course-size');
-    page.style.removeProperty('--dl-date-size');
-    page.style.removeProperty('--dl-date-strong-size');
+    page.style.removeProperty('--dl-font-scale');
     page.style.removeProperty('--dl-item-pad-y');
     page.style.removeProperty('--dl-item-pad-x');
     return;
   }
   var raw = parseInt(localStorage.getItem(_deadlinesWidthStorageKey()) || _defaultDeadlinesWidth(), 10);
   var width = Math.max(980, Math.min(1500, isNaN(raw) ? _defaultDeadlinesWidth() : raw));
+  var fontRaw = parseFloat(localStorage.getItem(_deadlinesFontStorageKey()) || _defaultDeadlinesFontScale());
+  var fontScale = Math.max(0.8, Math.min(1.6, isNaN(fontRaw) ? _defaultDeadlinesFontScale() : fontRaw));
   var ratio = (width - 980) / (1500 - 980);
-  var nameSize = 13 + ratio * 5;
-  var courseSize = 11 + ratio * 3;
-  var dateSize = 10 + ratio * 3;
-  var strongDateSize = 12 + ratio * 4;
   var padY = 10 + ratio * 6;
   var padX = 11 + ratio * 8;
-  var rightMinWidth = 84 + ratio * 48;
   page.style.setProperty('--deadlines-page-width', width + 'px');
-  page.style.setProperty('--dl-name-size', nameSize.toFixed(2) + 'px');
-  page.style.setProperty('--dl-course-size', courseSize.toFixed(2) + 'px');
-  page.style.setProperty('--dl-date-size', dateSize.toFixed(2) + 'px');
-  page.style.setProperty('--dl-date-strong-size', strongDateSize.toFixed(2) + 'px');
+  page.style.setProperty('--dl-font-scale', fontScale.toFixed(2));
   page.style.setProperty('--dl-item-pad-y', padY.toFixed(2) + 'px');
   page.style.setProperty('--dl-item-pad-x', padX.toFixed(2) + 'px');
-  page.style.setProperty('--dl-right-min-width', rightMinWidth.toFixed(2) + 'px');
 }
 function adjustDeadlinesWidth(delta) {
   var current = parseInt(localStorage.getItem(_deadlinesWidthStorageKey()) || _defaultDeadlinesWidth(), 10);
@@ -703,6 +699,16 @@ function adjustDeadlinesWidth(delta) {
 }
 function resetDeadlinesWidth() {
   localStorage.setItem(_deadlinesWidthStorageKey(), String(_defaultDeadlinesWidth()));
+  _applyDeadlinesWidth();
+}
+function adjustDeadlinesFontSize(delta) {
+  var current = parseFloat(localStorage.getItem(_deadlinesFontStorageKey()) || _defaultDeadlinesFontScale());
+  var next = Math.max(0.8, Math.min(1.6, (isNaN(current) ? _defaultDeadlinesFontScale() : current) + delta * 0.1));
+  localStorage.setItem(_deadlinesFontStorageKey(), String(next));
+  _applyDeadlinesWidth();
+}
+function resetDeadlinesFontSize() {
+  localStorage.setItem(_deadlinesFontStorageKey(), String(_defaultDeadlinesFontScale()));
   _applyDeadlinesWidth();
 }
 

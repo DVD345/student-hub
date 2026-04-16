@@ -50,6 +50,8 @@ var ROLES = { superadmin:'🔴 Супер-адмін', admin:'🟠 Адмін', 
 var ROLE_COLORS = { superadmin:'#e05050', admin:'#f0a030', moderator:'#f0c040', student:'#40d080' };
 function canAdmin() { return ['superadmin','admin'].includes(userRole); }
 function canMod() { return ['superadmin','admin','moderator'].includes(userRole); }
+var _adminGroups = [];
+var _allAdminUsers = [];
 
 // ── AUTH ──
 async function doLogin() {
@@ -1856,6 +1858,7 @@ function listenFiles() {
     renderFilesWithSearch(cachedFiles, filesSearchQuery);
     document.getElementById('s-files').textContent=cachedFiles.length;
     renderWidgetFiles();
+    renderAdminStats();
   },err=>{ document.getElementById('files-list').innerHTML='<div class="empty"><div class="emo">⚠️</div><p>Помилка завантаження файлів.</p></div>'; });
   unsubs.push(unsub);
 }
@@ -2633,15 +2636,37 @@ function listenAdminData() {
   const {collection,query,onSnapshot,orderBy}=window._fb;
   onSnapshot(query(collection(window._db,'groups'),orderBy('name')),snap=>{
     const groups=snap.docs.map(d=>({id:d.id,...d.data()}));
+    _adminGroups = groups;
     renderAdminGroups(groups);
+    renderAdminStats();
   },err=>{ document.getElementById('admin-groups-list').innerHTML='<div class="empty"><p>Помилка</p></div>'; });
   onSnapshot(collection(window._db,'users'),snap=>{
     const users=snap.docs.map(d=>({id:d.id,...d.data()}));
     _allAdminUsers=users;
     const q=(document.getElementById('users-search')||{value:''}).value;
     filterAdminUsers(q);
-    document.getElementById('admin-stats').innerHTML='<div style="font-size:13px;line-height:2;">👥 Користувачів: <b>'+users.length+'</b><br>🏫 Груп: <b>—</b><br>📁 Файлів: <b>—</b></div>';
+    renderAdminStats();
   });
+}
+function renderAdminStats() {
+  const el = document.getElementById('admin-stats');
+  if(!el) return;
+  const groupsCount = _adminGroups.length;
+  const usersCount = _allAdminUsers.length;
+  const filesCount = Array.isArray(cachedFiles) ? cachedFiles.length : 0;
+  el.innerHTML =
+    '<div class="admin-stat">'+
+      '<div class="admin-stat-label">👥 <span>Користувачів</span></div>'+
+      '<div class="admin-stat-value">'+usersCount+'</div>'+
+    '</div>'+
+    '<div class="admin-stat">'+
+      '<div class="admin-stat-label">🏫 <span>Груп</span></div>'+
+      '<div class="admin-stat-value">'+groupsCount+'</div>'+
+    '</div>'+
+    '<div class="admin-stat">'+
+      '<div class="admin-stat-label">📁 <span>Файлів</span></div>'+
+      '<div class="admin-stat-value">'+filesCount+'</div>'+
+    '</div>';
 }
 function renderAdminGroups(groups) {
   const el=document.getElementById('admin-groups-list');
@@ -2655,7 +2680,6 @@ function renderAdminGroups(groups) {
     '</div></div>'
   ).join('');
 }
-var _allAdminUsers=[];
 function filterAdminUsers(q){ const filtered=q?_allAdminUsers.filter(u=>(u.name||'').toLowerCase().includes((q||'').toLowerCase())):_allAdminUsers; renderAdminUsers(filtered); }
 function renderAdminUsers(users) {
   const el=document.getElementById('admin-users-list');

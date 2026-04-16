@@ -357,6 +357,7 @@ async function initApp() {
 
   _loadCachedData();
   _setupDebouncedInputs();
+  _enableAdminCardResize();
   // Clear any browser-restored input values
   var chatInp = document.getElementById('chat-inp');
   if(chatInp) chatInp.value = '';
@@ -376,6 +377,7 @@ async function initApp() {
   loadNotes();
   loadNotifications();
   renderCalendar();
+  _applyDynamicLayouts();
   scheduleDeadlineNotifs();
   updateBellCount();
   _startPresence();
@@ -420,6 +422,73 @@ function _setupDebouncedInputs() {
 
   const usersSearch = document.getElementById('users-search');
   if(usersSearch) usersSearch.oninput = debounce(function(){ filterAdminUsers(usersSearch.value); }, 200);
+}
+
+function _applyDynamicLayouts() {
+  var content = document.querySelector('.content');
+  var pageChat = document.getElementById('page-chat');
+  var chatWrap = pageChat ? pageChat.querySelector('.chat-wrap') : null;
+  var chatSidebar = document.getElementById('chat-rooms');
+  var chatSection = chatSidebar ? chatSidebar.firstElementChild : null;
+  var chatMain = pageChat ? pageChat.querySelector('.chat-main') : null;
+  var chatMsgs = document.getElementById('chat-msgs');
+  var chatHeader = pageChat ? pageChat.querySelector('.page-header') : null;
+  var isChat = _currentPage === 'chat' && pageChat;
+  var mobile = window.innerWidth <= 899;
+
+  if(content) content.style.overflow = isChat ? 'hidden' : '';
+  if(!isChat || !chatWrap || !chatSidebar || !chatMain) return;
+
+  if(mobile) {
+    if(chatHeader) chatHeader.style.display = 'none';
+    chatWrap.style.cssText = 'display:flex;flex-direction:column;flex:1;min-height:0;overflow:hidden;border:none;background:transparent;border-radius:0;';
+    chatSidebar.style.cssText = 'display:block;width:100%;overflow-x:auto;overflow-y:hidden;padding:8px 0 10px;background:transparent;border:none;flex:0 0 auto;';
+    if(chatSection) {
+      chatSection.style.cssText = 'display:flex;flex-direction:row;align-items:stretch;gap:8px;width:max-content;min-width:max-content;padding:0 10px;';
+    }
+    chatSidebar.querySelectorAll('.chat-sidebar-divider,.chat-sidebar-caption').forEach(function(el){
+      el.style.display = 'none';
+    });
+    chatSidebar.querySelectorAll('.chat-room,.chat-add-btn').forEach(function(el){
+      el.style.minWidth = '210px';
+      el.style.maxWidth = '210px';
+      el.style.width = '210px';
+      el.style.flexShrink = '0';
+    });
+    chatMain.style.cssText = 'display:flex;flex-direction:column;flex:1;min-height:0;overflow:hidden;background:var(--card);border-top:1px solid var(--border);border-radius:16px 16px 0 0;';
+    if(chatMsgs) chatMsgs.style.cssText += ';flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;';
+  } else {
+    if(chatHeader) chatHeader.style.display = '';
+    chatWrap.style.cssText = 'display:flex;flex-direction:row;align-items:stretch;gap:0;flex:1;min-height:0;overflow:hidden;background:var(--card);border:1px solid var(--border);border-radius:16px;';
+    chatSidebar.style.cssText = 'display:flex;flex-direction:column;width:280px;flex:0 0 280px;overflow-y:auto;overflow-x:hidden;padding:12px 10px;background:var(--card);border-right:1px solid var(--border);border-bottom:none;';
+    if(chatSection) {
+      chatSection.style.cssText = 'display:flex;flex-direction:column;gap:6px;width:100%;min-width:0;padding:0;';
+    }
+    chatSidebar.querySelectorAll('.chat-sidebar-divider').forEach(function(el){
+      el.style.display = '';
+    });
+    chatSidebar.querySelectorAll('.chat-sidebar-caption').forEach(function(el){
+      el.style.display = '';
+    });
+    chatSidebar.querySelectorAll('.chat-room,.chat-add-btn').forEach(function(el){
+      el.style.minWidth = '';
+      el.style.maxWidth = '';
+      el.style.width = '100%';
+      el.style.flexShrink = '';
+    });
+    chatMain.style.cssText = 'display:flex;flex-direction:column;flex:1;min-width:0;min-height:calc(100vh - 220px);overflow:hidden;background:var(--card);border:none;border-radius:0;';
+    if(chatMsgs) chatMsgs.style.cssText += ';flex:1;min-height:0;overflow-y:auto;';
+  }
+}
+
+function _enableAdminCardResize() {
+  document.querySelectorAll('#page-admin .admin-card').forEach(function(card){
+    card.style.resize = 'both';
+    card.style.overflow = 'auto';
+    card.style.minWidth = '260px';
+    card.style.minHeight = '180px';
+    card.style.maxWidth = '100%';
+  });
 }
 
 function _saveCache() {
@@ -2017,6 +2086,7 @@ function setupChatRooms() {
       r.classList.toggle('active', r.dataset.roomid === currentChatRoom);
     });
   }
+  _applyDynamicLayouts();
 }
 function _loadChatDmRooms() {
   try {
@@ -2707,6 +2777,10 @@ function _listenRoomPresence(roomId) {
   });
 }
 
+window.addEventListener('resize', function() {
+  _applyDynamicLayouts();
+});
+
 async function sendMsg() {
   if(!currentChatRoom)return;
   const inp=document.getElementById('chat-inp');
@@ -2879,6 +2953,7 @@ function go(name) {
   if(name==='notes') loadNotes();
   if(name==='grades') loadGrades();
   if(name==='notifications') markAllRead();
+  _applyDynamicLayouts();
   closeSidebar();
 }
 function setBnav(name){

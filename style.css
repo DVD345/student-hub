@@ -587,7 +587,7 @@ body.deadlines-resizing {
   pointer-events:none;
 }
 .dash-hero-kicker {
-  font-size:11px;
+  font-size:.75rem;
   font-weight:800;
   letter-spacing:.14em;
   text-transform:uppercase;
@@ -595,18 +595,20 @@ body.deadlines-resizing {
   margin-bottom:10px;
 }
 .dash-hero-main h2 {
-  font-size:28px;
+  font-size:1.85rem;
   line-height:1;
   margin-bottom:10px;
   letter-spacing:-.03em;
 }
 .dash-hero-main p {
-  font-size:15px;
+  font-size:1rem;
   color:var(--text2);
 }
 .dash-font-card {
-  width:min(100%, 350px);
-  flex:0 0 350px;
+  width:min(100%, 24rem);
+  min-width:min(100%, 18rem);
+  max-width:24rem;
+  flex:1 1 22rem;
   align-self:flex-start;
   padding:14px 14px 12px;
   border-radius:16px;
@@ -615,12 +617,12 @@ body.deadlines-resizing {
   box-shadow:inset 0 0 0 1px rgba(255,255,255,.02);
 }
 .dash-font-card-title {
-  font-size:15px;
+  font-size:1.05rem;
   font-weight:800;
 }
 .dash-font-card-sub {
   margin-top:5px;
-  font-size:12px;
+  font-size:.92rem;
   line-height:1.45;
   color:var(--text2);
 }
@@ -670,11 +672,11 @@ body.deadlines-resizing {
   padding:18px;
 }
 .dash-theme-title {
-  font-size:18px;
+  font-size:1.15rem;
   font-weight:800;
 }
 .dash-theme-text {
-  font-size:14px;
+  font-size:.96rem;
   line-height:1.6;
   color:var(--text2);
 }
@@ -758,12 +760,12 @@ body.deadlines-resizing {
   margin-bottom:14px;
 }
 .dash-panel-title {
-  font-size:18px;
+  font-size:1.15rem;
   font-weight:800;
 }
 .dash-panel-sub {
   margin-top:4px;
-  font-size:12px;
+  font-size:.9rem;
   color:var(--text2);
 }
 
@@ -799,7 +801,7 @@ body.deadlines-resizing {
   margin-bottom:10px;
 }
 .dash-mini-title {
-  font-size:13px;
+  font-size:.95rem;
   font-weight:800;
 }
 .dash-mini-grid {
@@ -808,7 +810,7 @@ body.deadlines-resizing {
   gap:6px;
 }
 .dash-mini-weekday {
-  font-size:10px;
+  font-size:.72rem;
   color:var(--text2);
   text-align:center;
   text-transform:uppercase;
@@ -835,7 +837,7 @@ body.deadlines-resizing {
   box-shadow:0 0 0 1px rgba(240,192,64,.15);
 }
 .dash-mini-num {
-  font-size:12px;
+  font-size:.92rem;
   font-weight:700;
 }
 .dash-mini-dots {
@@ -1080,7 +1082,7 @@ body.deadlines-resizing .dl-width-resizer::before {
 .btn {
   background:var(--bg3); border:1px solid var(--border);
   border-radius:var(--r-sm); padding:8px 13px;
-  font-size:12px; font-weight:600; color:var(--text2);
+  font-size:.92rem; font-weight:600; color:var(--text2);
   cursor:pointer; transition:all .18s;
   font-family:'Inter',sans-serif; white-space:nowrap;
   min-height:36px;
@@ -1626,7 +1628,7 @@ body.deadlines-resizing .dl-width-resizer::before {
 .tag.y { background:rgba(240,192,64,.12); color:var(--accent); border-color:rgba(240,192,64,.2); }
 .tag.r { background:rgba(224,80,80,.12); color:var(--accent2); border-color:rgba(224,80,80,.2); }
 
-.sync-badge { display:inline-flex; align-items:center; gap:5px; background:rgba(56,208,122,.1); border:1px solid rgba(56,208,122,.2); border-radius:20px; padding:3px 9px; font-size:10px; color:var(--success); font-weight:600; }
+.sync-badge { display:inline-flex; align-items:center; gap:5px; background:rgba(56,208,122,.1); border:1px solid rgba(56,208,122,.2); border-radius:20px; padding:3px 9px; font-size:.78rem; color:var(--success); font-weight:600; }
 .sync-dot { width:5px; height:5px; background:var(--success); border-radius:50%; animation:pulse 2s infinite; }
 @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
 
@@ -1817,7 +1819,7 @@ body.deadlines-resizing .dl-width-resizer::before {
     align-items:stretch;
   }
   .dash-hero-main h2 {
-    font-size:22px;
+    font-size:1.55rem;
   }
   .dash-font-card {
     width:100%;

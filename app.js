@@ -1614,7 +1614,7 @@ function renderGradesTable(){
           '<td class="gr-td gr-drag-handle" style="color:var(--text2);font-size:11px;cursor:ns-resize;touch-action:none;" onmousedown="_grPointerStart(event,\''+escHtml(subj.id)+'\','+ri+')" ontouchstart="_grPointerStart(event,\''+escHtml(subj.id)+'\','+ri+')">'+
           '<span style="opacity:.3;font-size:10px;margin-right:3px;">⠿</span>'+(idx===0?'📋 Поточна':'')+'</td>'+
           '<td class="gr-td" style="color:var(--text);" title="'+escHtml(item.name)+'">'+
-            escHtml(item.name.length>32?item.name.slice(0,32)+'…':item.name)+
+          escHtml(item.name)+
             '<span style="font-size:9px;background:var(--bg3);border-radius:3px;padding:1px 4px;margin-left:4px;color:var(--text2);">М'+item.mod+'</span>'+
           '</td>'+
           '<td class="gr-td" style="text-align:center;font-weight:700;color:'+_grColor(item.grade,item.max)+';">'+Math.round(item.grade)+'</td>'+
@@ -1648,7 +1648,7 @@ function renderGradesTable(){
           '<td class="gr-td gr-drag-handle" style="color:var(--accent);font-size:11px;font-weight:600;cursor:ns-resize;touch-action:none;" onmousedown="_grPointerStart(event,\''+escHtml(subj.id)+'\','+ri+')" ontouchstart="_grPointerStart(event,\''+escHtml(subj.id)+'\','+ri+')">'+
           '<span style="opacity:.3;font-size:10px;margin-right:3px;">⠿</span>'+(idx===0?'📝 Модульний':'')+'</td>'+
           '<td class="gr-td" style="color:var(--text);" title="'+escHtml(item.name)+'">'+
-            escHtml(item.name.length>32?item.name.slice(0,32)+'…':item.name)+
+          escHtml(item.name)+
             '<span style="font-size:9px;background:var(--bg3);border-radius:3px;padding:1px 4px;margin-left:4px;color:var(--text2);">М'+item.mod+'</span>'+
           '</td>'+
           '<td class="gr-td" style="text-align:center;font-weight:700;color:'+_grColor(item.grade,item.max)+';">'+Math.round(item.grade)+'</td>'+

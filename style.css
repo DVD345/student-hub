@@ -895,7 +895,7 @@ a { text-decoration: none; color: inherit; }
   padding:4px 14px;
 }
 .admin-users-list {
-  max-height:520px;
+  max-height:430px;
   overflow-y:auto;
   scrollbar-width:thin;
 }
@@ -932,11 +932,27 @@ a { text-decoration: none; color: inherit; }
 .group-item .gname { flex:1; font-weight:700; word-break:break-word; line-height:1.35; }
 .group-item .gcnt { font-size:10px; color:var(--text2); word-break:break-word; margin-top:4px; line-height:1.4; }
 .group-item > div:first-child { flex:1; min-width:0; }
-.user-row { display:flex; align-items:center; gap:10px; padding:10px 0; border-bottom:1px solid var(--border); font-size:12px; }
+.user-row { display:flex; align-items:center; gap:10px; padding:9px 0; border-bottom:1px solid var(--border); font-size:12px; }
 .user-row:last-child { border-bottom:none; }
-.user-row .uav { width:30px; height:30px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:800; color:#07070f; flex-shrink:0; }
-.user-row .uname { flex:1; font-weight:700; }
-.role-sel { background:var(--bg3); border:1px solid var(--border); border-radius:8px; padding:6px 10px; color:var(--text); font-family:'Inter',sans-serif; font-size:10px; outline:none; min-width:118px; }
+.user-row .uav { width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:10px; font-weight:800; color:#07070f; flex-shrink:0; }
+.user-row .uname { flex:1; font-weight:700; font-size:13px; line-height:1.25; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.role-sel { background:var(--bg3); border:1px solid var(--border); border-radius:8px; padding:5px 9px; color:var(--text); font-family:'Inter',sans-serif; font-size:10px; outline:none; min-width:108px; }
+.admin-card-users { min-width:0; }
+.admin-card-users .tb-input { min-height:42px; }
+
+@media(min-width:1100px){
+  .admin-grid {
+    grid-template-columns:minmax(250px,.9fr) minmax(420px,1.35fr) minmax(230px,.8fr);
+    gap:16px;
+  }
+}
+
+@media(min-width:1400px){
+  .admin-grid {
+    grid-template-columns:minmax(270px,.95fr) minmax(500px,1.5fr) minmax(250px,.85fr);
+    gap:18px;
+  }
+}
 
 .tag { display:inline-block; padding:2px 7px; border-radius:20px; font-size:9px; font-weight:700; background:var(--bg3); color:var(--text2); border:1px solid var(--border); }
 .tag.g { background:rgba(56,208,122,.12); color:var(--success); border-color:rgba(56,208,122,.2); }

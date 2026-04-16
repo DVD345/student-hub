@@ -358,6 +358,9 @@ async function initApp() {
   _loadCachedData();
   _setupDebouncedInputs();
   _enableAdminCardResize();
+  _applySidebarWidth();
+  _initSidebarResizer();
+  _initDeadlinesWidthResizer();
   _applyDeadlinesWidth();
   // Clear any browser-restored input values
   var chatInp = document.getElementById('chat-inp');
@@ -661,7 +664,13 @@ function _deadlinesWidthStorageKey() {
   return 'sh_deadlines_page_width';
 }
 function _deadlinesFontStorageKey() {
-  return 'sh_deadlines_font_scale';
+  return 'sh_deadlines_font_multiplier';
+}
+function _sidebarWidthStorageKey() {
+  return 'sh_sidebar_width';
+}
+function _defaultSidebarWidth() {
+  return 256;
 }
 function _defaultDeadlinesWidth() {
   return 1280;
@@ -669,12 +678,24 @@ function _defaultDeadlinesWidth() {
 function _defaultDeadlinesFontScale() {
   return 1;
 }
+function _applySidebarWidth() {
+  var root = document.documentElement;
+  if(!root) return;
+  if(window.innerWidth < 900) {
+    root.style.setProperty('--sidebar', '0px');
+    return;
+  }
+  var raw = parseInt(localStorage.getItem(_sidebarWidthStorageKey()) || _defaultSidebarWidth(), 10);
+  var width = Math.max(220, Math.min(360, isNaN(raw) ? _defaultSidebarWidth() : raw));
+  root.style.setProperty('--sidebar', width + 'px');
+}
 function _applyDeadlinesWidth() {
   var page = document.getElementById('page-deadlines');
   if(!page) return;
   if(window.innerWidth < 900) {
     page.style.removeProperty('--deadlines-page-width');
-    page.style.removeProperty('--dl-font-scale');
+    page.style.removeProperty('--dl-auto-scale');
+    page.style.removeProperty('--dl-user-scale');
     page.style.removeProperty('--dl-item-pad-y');
     page.style.removeProperty('--dl-item-pad-x');
     return;
@@ -682,12 +703,14 @@ function _applyDeadlinesWidth() {
   var raw = parseInt(localStorage.getItem(_deadlinesWidthStorageKey()) || _defaultDeadlinesWidth(), 10);
   var width = Math.max(980, Math.min(1500, isNaN(raw) ? _defaultDeadlinesWidth() : raw));
   var fontRaw = parseFloat(localStorage.getItem(_deadlinesFontStorageKey()) || _defaultDeadlinesFontScale());
-  var fontScale = Math.max(0.8, Math.min(1.6, isNaN(fontRaw) ? _defaultDeadlinesFontScale() : fontRaw));
+  var fontScale = Math.max(0.82, Math.min(1.35, isNaN(fontRaw) ? _defaultDeadlinesFontScale() : fontRaw));
   var ratio = (width - 980) / (1500 - 980);
+  var autoScale = 0.9 + ratio * 0.3;
   var padY = 10 + ratio * 6;
   var padX = 11 + ratio * 8;
   page.style.setProperty('--deadlines-page-width', width + 'px');
-  page.style.setProperty('--dl-font-scale', fontScale.toFixed(2));
+  page.style.setProperty('--dl-auto-scale', autoScale.toFixed(3));
+  page.style.setProperty('--dl-user-scale', fontScale.toFixed(3));
   page.style.setProperty('--dl-item-pad-y', padY.toFixed(2) + 'px');
   page.style.setProperty('--dl-item-pad-x', padX.toFixed(2) + 'px');
 }
@@ -703,13 +726,74 @@ function resetDeadlinesWidth() {
 }
 function adjustDeadlinesFontSize(delta) {
   var current = parseFloat(localStorage.getItem(_deadlinesFontStorageKey()) || _defaultDeadlinesFontScale());
-  var next = Math.max(0.8, Math.min(1.6, (isNaN(current) ? _defaultDeadlinesFontScale() : current) + delta * 0.1));
+  var next = Math.max(0.82, Math.min(1.35, (isNaN(current) ? _defaultDeadlinesFontScale() : current) + delta * 0.08));
   localStorage.setItem(_deadlinesFontStorageKey(), String(next));
   _applyDeadlinesWidth();
 }
 function resetDeadlinesFontSize() {
   localStorage.setItem(_deadlinesFontStorageKey(), String(_defaultDeadlinesFontScale()));
   _applyDeadlinesWidth();
+}
+var _sidebarResizeState = null;
+function _initSidebarResizer() {
+  var handle = document.getElementById('sidebar-resizer');
+  if(!handle || handle.dataset.bound === '1') return;
+  handle.dataset.bound = '1';
+  handle.addEventListener('mousedown', function(e){
+    if(window.innerWidth < 900) return;
+    e.preventDefault();
+    document.body.classList.add('sidebar-resizing');
+    var current = parseInt(localStorage.getItem(_sidebarWidthStorageKey()) || _defaultSidebarWidth(), 10);
+    _sidebarResizeState = {
+      startX: e.clientX,
+      startWidth: isNaN(current) ? _defaultSidebarWidth() : current
+    };
+    document.addEventListener('mousemove', _onSidebarResizeMove);
+    document.addEventListener('mouseup', _stopSidebarResize);
+  });
+}
+function _onSidebarResizeMove(e) {
+  if(!_sidebarResizeState) return;
+  var next = Math.max(220, Math.min(360, _sidebarResizeState.startWidth + (e.clientX - _sidebarResizeState.startX)));
+  localStorage.setItem(_sidebarWidthStorageKey(), String(next));
+  _applySidebarWidth();
+}
+function _stopSidebarResize() {
+  document.body.classList.remove('sidebar-resizing');
+  document.removeEventListener('mousemove', _onSidebarResizeMove);
+  document.removeEventListener('mouseup', _stopSidebarResize);
+  _sidebarResizeState = null;
+}
+var _deadlinesResizeState = null;
+function _initDeadlinesWidthResizer() {
+  var handle = document.getElementById('dl-width-resizer');
+  var page = document.getElementById('page-deadlines');
+  if(!handle || !page || handle.dataset.bound === '1') return;
+  handle.dataset.bound = '1';
+  handle.addEventListener('mousedown', function(e){
+    if(window.innerWidth < 900) return;
+    e.preventDefault();
+    document.body.classList.add('deadlines-resizing');
+    var current = parseInt(localStorage.getItem(_deadlinesWidthStorageKey()) || _defaultDeadlinesWidth(), 10);
+    _deadlinesResizeState = {
+      startX: e.clientX,
+      startWidth: isNaN(current) ? _defaultDeadlinesWidth() : current
+    };
+    document.addEventListener('mousemove', _onDeadlinesResizeMove);
+    document.addEventListener('mouseup', _stopDeadlinesResize);
+  });
+}
+function _onDeadlinesResizeMove(e) {
+  if(!_deadlinesResizeState) return;
+  var next = Math.max(980, Math.min(1500, _deadlinesResizeState.startWidth + (e.clientX - _deadlinesResizeState.startX)));
+  localStorage.setItem(_deadlinesWidthStorageKey(), String(next));
+  _applyDeadlinesWidth();
+}
+function _stopDeadlinesResize() {
+  document.body.classList.remove('deadlines-resizing');
+  document.removeEventListener('mousemove', _onDeadlinesResizeMove);
+  document.removeEventListener('mouseup', _stopDeadlinesResize);
+  _deadlinesResizeState = null;
 }
 
 var _adminResizeState = null;
@@ -3159,6 +3243,7 @@ function _listenRoomPresence(roomId) {
 }
 
 window.addEventListener('resize', function() {
+  _applySidebarWidth();
   _applyDynamicLayouts();
   _applyAdminDesktopLayout();
   _applyDeadlinesWidth();

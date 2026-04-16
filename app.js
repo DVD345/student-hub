@@ -367,6 +367,8 @@ async function initApp() {
 
   await loadUserInfo();
   await loadUserRole();
+  _initChatDmRoomsSync();
+  _initNotificationsSync();
   setupNav();
   await startUserSettingsSync();
 
@@ -2407,6 +2409,41 @@ function _loadChatDmRooms() {
 }
 function _saveChatDmRooms() {
   try { localStorage.setItem('sh_dm_rooms', JSON.stringify(_chatDmRooms)); } catch(e) {}
+  _saveChatDmRoomsToCloud();
+}
+async function _saveChatDmRoomsToCloud() {
+  if(!window._db || !window._fb || !userData.userid) return;
+  try {
+    const {doc, setDoc} = window._fb;
+    await setDoc(doc(window._db,'users',String(userData.userid)), {
+      chatMeta: { dmRooms: _chatDmRooms.slice(0,20), updatedAt: Date.now() }
+    }, {merge:true});
+  } catch(e) {}
+}
+function _mergeDmRooms(primary, incoming) {
+  var map = {};
+  (primary || []).concat(incoming || []).forEach(function(room){
+    if(!room || !room.id) return;
+    map[room.id] = Object.assign(map[room.id] || {}, room);
+  });
+  return Object.keys(map).map(function(k){ return map[k]; }).slice(0,20);
+}
+function _initChatDmRoomsSync() {
+  if(!window._db || !window._fb || !userData.userid) return;
+  const {doc, onSnapshot} = window._fb;
+  onSnapshot(doc(window._db,'users',String(userData.userid)), function(snap){
+    if(!snap.exists()) return;
+    var data = snap.data() || {};
+    var cloudRooms = (data.chatMeta && Array.isArray(data.chatMeta.dmRooms)) ? data.chatMeta.dmRooms : [];
+    var merged = _mergeDmRooms(_chatDmRooms, cloudRooms);
+    var changed = JSON.stringify(merged) !== JSON.stringify(_chatDmRooms);
+    _chatDmRooms = merged;
+    try { localStorage.setItem('sh_dm_rooms', JSON.stringify(_chatDmRooms)); } catch(e) {}
+    if(changed) {
+      setupChatRooms();
+      renderDashboardSummary();
+    }
+  });
 }
 function _dmRoomId(uidA, uidB) {
   return 'dm-' + [String(uidA), String(uidB)].sort().join('-');
@@ -2650,7 +2687,6 @@ var _lpTimer = null;
 function _lpStart(e, el) {
   _lpEnd();
   var msgId = el.dataset.lp; if(!msgId) return;
-  e.preventDefault();
   // Kill any text selection that started
   if(window.getSelection) window.getSelection().removeAllRanges();
   var t = e.touches[0];
@@ -3921,15 +3957,42 @@ function appendAIMsg(side,text,imgSrc){
 
 // ═══ NOTIFICATIONS ═══
 var notifList=[];
+function _notifStorageKey(){ return 'sh_notifs_'+String(userData.userid||'local'); }
+function _saveNotificationsLocal(){ localStorage.setItem(_notifStorageKey(),JSON.stringify(notifList)); }
+async function _saveNotificationsCloud(){
+  if(!window._db||!window._fb||!userData.userid) return;
+  try{
+    const {doc,setDoc}=window._fb;
+    await setDoc(doc(window._db,'users',String(userData.userid)),{
+      notifications:{items:notifList.slice(0,50),updatedAt:Date.now()}
+    },{merge:true});
+  }catch(e){}
+}
+function _initNotificationsSync(){
+  if(!window._db||!window._fb||!userData.userid) return;
+  const {doc,onSnapshot}=window._fb;
+  onSnapshot(doc(window._db,'users',String(userData.userid)),function(snap){
+    if(!snap.exists()) return;
+    var data=snap.data()||{};
+    var items=data.notifications&&Array.isArray(data.notifications.items)?data.notifications.items:null;
+    if(!items) return;
+    if(JSON.stringify(items)===JSON.stringify(notifList)) return;
+    notifList=items;
+    _saveNotificationsLocal();
+    updateBellCount();
+    renderNotifs();
+  });
+}
 function loadNotifications(){
-  const raw=localStorage.getItem('sh_notifs_'+String(userData.userid||'local'));
+  const raw=localStorage.getItem(_notifStorageKey());
   notifList=raw?JSON.parse(raw):[];
   renderNotifs();
 }
 function addNotif(type,title,body){
   const n={id:Date.now().toString(36),type,title,body,ts:Date.now(),read:false};
   notifList.unshift(n); notifList=notifList.slice(0,50);
-  localStorage.setItem('sh_notifs_'+String(userData.userid||'local'),JSON.stringify(notifList));
+  _saveNotificationsLocal();
+  _saveNotificationsCloud();
   updateBellCount(); renderNotifs();
   if(Notification.permission==='granted') new Notification('Student Hub — '+title,{body,icon:'🎓'});
 }
@@ -3941,7 +4004,8 @@ function updateBellCount(){
 }
 function markAllRead(){
   notifList.forEach(n=>n.read=true);
-  localStorage.setItem('sh_notifs_'+String(userData.userid||'local'),JSON.stringify(notifList));
+  _saveNotificationsLocal();
+  _saveNotificationsCloud();
   updateBellCount(); renderNotifs();
 }
 function renderNotifs(){
@@ -3959,7 +4023,7 @@ function renderNotifs(){
 }
 function markNotifRead(id){
   const n=notifList.find(x=>x.id===id);
-  if(n){n.read=true;localStorage.setItem('sh_notifs_'+String(userData.userid||'local'),JSON.stringify(notifList));updateBellCount();renderNotifs();}
+  if(n){n.read=true;_saveNotificationsLocal();_saveNotificationsCloud();updateBellCount();renderNotifs();}
 }
 async function requestNotifPerms(){
   if(!('Notification' in window)){alert('Браузер не підтримує сповіщення');return;}

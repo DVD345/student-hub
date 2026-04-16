@@ -75,7 +75,7 @@ self.addEventListener('fetch', e => {
 
 <!-- ✅ IMPROVEMENT 6: font-display=swap already present, preconnect added above -->
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=54">
+<link rel="stylesheet" href="style.css?v=55">
 <style>
 /* Prevent text selection during long-press on messages */
 .msg { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
@@ -321,6 +321,10 @@ function _loadKaTeX() {
                 <div id="dash-events"></div>
               </div>
             </div>
+          </div>
+          <div class="dash-theme-card dash-theme-card-bottom">
+            <div class="dash-theme-title">Теми та стиль</div>
+            <div class="dash-theme-text">Оберіть будь-який стиль інтерфейсу: тему, кольори й атмосферу можна налаштувати під себе.</div>
           </div>
         </div>
         <div class="page-header">
@@ -737,7 +741,7 @@ async function loadGroupsForLogin() {
 window._loadGroupsForLogin = loadGroupsForLogin;
 </script>
 
-<script src="app.js?v=55"></script>
+<script src="app.js?v=56"></script>
 
 <div id="course-contents-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:1000;overflow-y:auto;padding:16px;backdrop-filter:blur(4px);">
   <div style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;max-width:640px;margin:0 auto;overflow:hidden;">

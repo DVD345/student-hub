@@ -482,15 +482,20 @@ function _applyDynamicLayouts() {
 }
 
 function _enableAdminCardResize() {
+  var grid = document.querySelector('#page-admin .admin-grid');
+  if(!grid) return;
   document.querySelectorAll('#page-admin .admin-card').forEach(function(card){
     card.style.resize = 'none';
-    card.style.overflow = 'auto';
     card.style.minWidth = '260px';
     card.style.minHeight = '180px';
-    card.style.maxWidth = '100%';
-    _restoreAdminCardSize(card);
+    card.style.maxWidth = '';
+    _restoreAdminCardLayout(card);
     if(card.dataset.resizeReady === '1') return;
     card.dataset.resizeReady = '1';
+
+    var head = card.querySelector('h3');
+    if(head) head.addEventListener('mousedown', function(e){ _startAdminDrag(e, card); });
+
     ['n','e','s','w','ne','nw','se','sw'].forEach(function(dir){
       var h = document.createElement('div');
       h.className = 'admin-resize-handle';
@@ -499,35 +504,141 @@ function _enableAdminCardResize() {
       card.appendChild(h);
     });
   });
+  _applyAdminDesktopLayout();
 }
 function _adminResizeStorageKey(card) {
   var key = card && card.dataset ? card.dataset.resizeKey : '';
   return key ? 'sh_admin_card_' + key : '';
 }
-function _restoreAdminCardSize(card) {
+function _defaultAdminCardLayout(card) {
+  var key = card && card.dataset ? card.dataset.resizeKey : '';
+  if(key === 'groups') return { x: 20, y: 20, w: 360, h: 430 };
+  if(key === 'users') return { x: 410, y: 20, w: 920, h: 560 };
+  if(key === 'stats') return { x: 1360, y: 20, w: 240, h: 300 };
+  return { x: 20, y: 20, w: 320, h: 260 };
+}
+function _restoreAdminCardLayout(card) {
   var storageKey = _adminResizeStorageKey(card);
-  if(!storageKey) return;
+  var layout = _defaultAdminCardLayout(card);
+  if(!storageKey) {
+    _applyAdminCardLayout(card, layout);
+    return;
+  }
   try {
     var raw = localStorage.getItem(storageKey);
-    if(!raw) return;
-    var size = JSON.parse(raw);
-    if(size && size.w) card.style.width = Math.max(260, size.w) + 'px';
-    if(size && size.h) card.style.height = Math.max(180, size.h) + 'px';
+    if(raw) {
+      var saved = JSON.parse(raw);
+      if(saved && typeof saved === 'object') layout = Object.assign(layout, saved);
+    }
   } catch(e) {}
+  _applyAdminCardLayout(card, layout);
 }
 function _saveAdminCardSize(card) {
   var storageKey = _adminResizeStorageKey(card);
   if(!storageKey) return;
   try {
     localStorage.setItem(storageKey, JSON.stringify({
+      x: Math.round(parseFloat(card.style.left) || 0),
+      y: Math.round(parseFloat(card.style.top) || 0),
       w: Math.round(card.offsetWidth),
       h: Math.round(card.offsetHeight)
     }));
   } catch(e) {}
 }
+function _applyAdminCardLayout(card, layout) {
+  if(!card || !layout) return;
+  card.style.width = Math.max(260, layout.w || 320) + 'px';
+  card.style.height = Math.max(180, layout.h || 260) + 'px';
+  card.style.left = Math.max(0, layout.x || 0) + 'px';
+  card.style.top = Math.max(0, layout.y || 0) + 'px';
+}
+function _clampAdminCard(card, next) {
+  var grid = document.querySelector('#page-admin .admin-grid');
+  if(!grid) return next;
+  var minW = 260, minH = 180;
+  var maxW = Math.max(minW, grid.clientWidth - 20);
+  var w = Math.max(minW, Math.min(maxW, next.w || card.offsetWidth || minW));
+  var h = Math.max(minH, next.h || card.offsetHeight || minH);
+  var maxX = Math.max(0, grid.clientWidth - w);
+  var x = Math.max(0, Math.min(maxX, next.x || 0));
+  var y = Math.max(0, next.y || 0);
+  return { x:x, y:y, w:w, h:h };
+}
+function _updateAdminGridHeight() {
+  var grid = document.querySelector('#page-admin .admin-grid');
+  if(!grid || window.innerWidth < 900) return;
+  var maxBottom = 0;
+  grid.querySelectorAll('.admin-card').forEach(function(card){
+    maxBottom = Math.max(maxBottom, card.offsetTop + card.offsetHeight);
+  });
+  grid.style.height = Math.max(720, maxBottom + 28) + 'px';
+}
+function _applyAdminDesktopLayout() {
+  var grid = document.querySelector('#page-admin .admin-grid');
+  if(!grid) return;
+  if(window.innerWidth < 900) {
+    grid.style.height = '';
+    grid.querySelectorAll('.admin-card').forEach(function(card){
+      card.style.left = '';
+      card.style.top = '';
+      card.style.width = '';
+      card.style.height = '';
+    });
+    return;
+  }
+  grid.querySelectorAll('.admin-card').forEach(function(card){
+    var next = _clampAdminCard(card, {
+      x: parseFloat(card.style.left) || 0,
+      y: parseFloat(card.style.top) || 0,
+      w: parseFloat(card.style.width) || card.offsetWidth || _defaultAdminCardLayout(card).w,
+      h: parseFloat(card.style.height) || card.offsetHeight || _defaultAdminCardLayout(card).h
+    });
+    _applyAdminCardLayout(card, next);
+  });
+  _updateAdminGridHeight();
+}
 
 var _adminResizeState = null;
+var _adminDragState = null;
+function _startAdminDrag(e, card) {
+  if(window.innerWidth < 900) return;
+  if(e.target && e.target.closest('.admin-resize-handle')) return;
+  e.preventDefault();
+  e.stopPropagation();
+  card.classList.add('dragging');
+  _adminDragState = {
+    card: card,
+    startX: e.clientX,
+    startY: e.clientY,
+    startLeft: parseFloat(card.style.left) || card.offsetLeft,
+    startTop: parseFloat(card.style.top) || card.offsetTop
+  };
+  document.addEventListener('mousemove', _onAdminDragMove);
+  document.addEventListener('mouseup', _stopAdminDrag);
+}
+function _onAdminDragMove(e) {
+  if(!_adminDragState) return;
+  var s = _adminDragState;
+  var next = _clampAdminCard(s.card, {
+    x: s.startLeft + (e.clientX - s.startX),
+    y: s.startTop + (e.clientY - s.startY),
+    w: s.card.offsetWidth,
+    h: s.card.offsetHeight
+  });
+  _applyAdminCardLayout(s.card, next);
+  _updateAdminGridHeight();
+}
+function _stopAdminDrag() {
+  if(_adminDragState && _adminDragState.card) {
+    _adminDragState.card.classList.remove('dragging');
+    _saveAdminCardSize(_adminDragState.card);
+  }
+  document.removeEventListener('mousemove', _onAdminDragMove);
+  document.removeEventListener('mouseup', _stopAdminDrag);
+  _adminDragState = null;
+}
 function _startAdminResize(e, card, dir) {
+  if(window.innerWidth < 900) return;
   e.preventDefault();
   e.stopPropagation();
   _adminResizeState = {
@@ -536,7 +647,9 @@ function _startAdminResize(e, card, dir) {
     startX: e.clientX,
     startY: e.clientY,
     startW: card.offsetWidth,
-    startH: card.offsetHeight
+    startH: card.offsetHeight,
+    startLeft: parseFloat(card.style.left) || card.offsetLeft,
+    startTop: parseFloat(card.style.top) || card.offsetTop
   };
   document.addEventListener('mousemove', _onAdminResizeMove);
   document.addEventListener('mouseup', _stopAdminResize);
@@ -547,16 +660,22 @@ function _onAdminResizeMove(e) {
   var dx = e.clientX - s.startX;
   var dy = e.clientY - s.startY;
   var minW = 260, minH = 180;
-  var maxW = Math.max(minW, window.innerWidth - 120);
-  var maxH = Math.max(minH, window.innerHeight - 140);
+  var x = s.startLeft;
+  var y = s.startTop;
   var w = s.startW;
   var h = s.startH;
   if(s.dir.indexOf('e') !== -1) w = s.startW + dx;
-  if(s.dir.indexOf('w') !== -1) w = s.startW - dx;
+  if(s.dir.indexOf('w') !== -1) { w = s.startW - dx; x = s.startLeft + dx; }
   if(s.dir.indexOf('s') !== -1) h = s.startH + dy;
-  if(s.dir.indexOf('n') !== -1) h = s.startH - dy;
-  s.card.style.width = Math.max(minW, Math.min(maxW, w)) + 'px';
-  s.card.style.height = Math.max(minH, Math.min(maxH, h)) + 'px';
+  if(s.dir.indexOf('n') !== -1) { h = s.startH - dy; y = s.startTop + dy; }
+  var next = _clampAdminCard(s.card, {
+    x: x,
+    y: y,
+    w: Math.max(minW, w),
+    h: Math.max(minH, h)
+  });
+  _applyAdminCardLayout(s.card, next);
+  _updateAdminGridHeight();
 }
 function _stopAdminResize() {
   if(_adminResizeState && _adminResizeState.card) _saveAdminCardSize(_adminResizeState.card);
@@ -2853,6 +2972,7 @@ function _listenRoomPresence(roomId) {
 
 window.addEventListener('resize', function() {
   _applyDynamicLayouts();
+  _applyAdminDesktopLayout();
 });
 
 async function sendMsg() {

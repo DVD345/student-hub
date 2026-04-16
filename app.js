@@ -693,12 +693,9 @@ function _applyUiFontScale() {
   if(!root) return;
   var raw = parseFloat(localStorage.getItem(_uiFontStorageKey()) || _defaultUiFontScale());
   var scale = Math.max(0.82, Math.min(1.36, isNaN(raw) ? _defaultUiFontScale() : raw));
-  var scaleStr = scale.toFixed(3);
-  var canUseZoom = typeof CSS !== 'undefined' && CSS && typeof CSS.supports === 'function' && CSS.supports('zoom', '1');
-
-  root.dataset.uiScaleMode = canUseZoom ? 'zoom' : 'fallback';
-  root.style.setProperty('--ui-raw-scale', scaleStr);
-  root.style.setProperty('--ui-font-scale', canUseZoom ? '1' : scaleStr);
+  root.dataset.uiScaleMode = 'css';
+  root.style.setProperty('--ui-raw-scale', scale.toFixed(3));
+  root.style.setProperty('--ui-font-scale', scale.toFixed(3));
 
   [appScreen, loginScreen, body].forEach(function(el){
     if(!el) return;
@@ -708,10 +705,6 @@ function _applyUiFontScale() {
     el.style.width = '';
     el.style.height = '';
   });
-
-  if(canUseZoom && body) {
-    body.style.zoom = scaleStr;
-  }
 
   requestAnimationFrame(function(){
     _applyDynamicLayouts();

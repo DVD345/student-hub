@@ -2086,42 +2086,6 @@ body.deadlines-resizing .dl-width-resizer::before {
 #page-grades .gr-table th:nth-child(5),
 #page-grades .gr-table td:nth-child(5) { min-width:calc(5.5rem * var(--ui-font-scale)); }
 
-/* Safe typography scaling without changing app layout geometry */
-[data-ui-scale-mode="fallback"] .nav-item { font-size:calc(13px * var(--ui-font-scale)); }
-[data-ui-scale-mode="fallback"] .group-pill { font-size:calc(10px * var(--ui-font-scale)); }
-[data-ui-scale-mode="fallback"] .user-name { font-size:calc(11px * var(--ui-font-scale)); }
-[data-ui-scale-mode="fallback"] .user-role-badge { font-size:calc(9px * var(--ui-font-scale)); }
-[data-ui-scale-mode="fallback"] #topbar-title { font-size:calc(15px * var(--ui-font-scale)); }
-[data-ui-scale-mode="fallback"] .page-header h2 { font-size:calc(22px * var(--ui-font-scale)); }
-[data-ui-scale-mode="fallback"] .page-header p { font-size:calc(13px * var(--ui-font-scale)); }
-[data-ui-scale-mode="fallback"] .tb-input,
-[data-ui-scale-mode="fallback"] .tb-select,
-[data-ui-scale-mode="fallback"] .btn,
-[data-ui-scale-mode="fallback"] .btn-primary { font-size:calc(12px * var(--ui-font-scale)); }
-[data-ui-scale-mode="fallback"] .widget-title { font-size:calc(11px * var(--ui-font-scale)); }
-[data-ui-scale-mode="fallback"] .widget-link { font-size:calc(10px * var(--ui-font-scale)); }
-[data-ui-scale-mode="fallback"] .widget-item-name { font-size:calc(12px * var(--ui-font-scale)); }
-[data-ui-scale-mode="fallback"] .widget-item-meta { font-size:calc(10px * var(--ui-font-scale)); }
-[data-ui-scale-mode="fallback"] .stat-val { font-size:calc(20px * var(--ui-font-scale)); }
-[data-ui-scale-mode="fallback"] .stat-lbl { font-size:calc(10px * var(--ui-font-scale)); }
-[data-ui-scale-mode="fallback"] .file-name { font-size:calc(13px * var(--ui-font-scale)); }
-[data-ui-scale-mode="fallback"] .file-meta { font-size:calc(11px * var(--ui-font-scale)); }
-[data-ui-scale-mode="fallback"] .c-name { font-size:calc(13px * var(--ui-font-scale)); }
-[data-ui-scale-mode="fallback"] .c-meta { font-size:calc(10px * var(--ui-font-scale)); }
-[data-ui-scale-mode="fallback"] .chat-room-name { font-size:calc(12px * var(--ui-font-scale)); }
-[data-ui-scale-mode="fallback"] .chat-room-sub { font-size:calc(10px * var(--ui-font-scale)); }
-[data-ui-scale-mode="fallback"] .msg-author { font-size:calc(10px * var(--ui-font-scale)); }
-[data-ui-scale-mode="fallback"] .msg-bubble { font-size:calc(13px * var(--ui-font-scale)); }
-[data-ui-scale-mode="fallback"] .pinned-bar-text { font-size:calc(12px * var(--ui-font-scale)); }
-[data-ui-scale-mode="fallback"] .note-card-title { font-size:calc(13px * var(--ui-font-scale)); }
-[data-ui-scale-mode="fallback"] .note-card-preview { font-size:calc(11px * var(--ui-font-scale)); }
-[data-ui-scale-mode="fallback"] .note-card-meta { font-size:calc(9px * var(--ui-font-scale)); }
-[data-ui-scale-mode="fallback"] .admin-card h3 { font-size:calc(14px * var(--ui-font-scale)); }
-[data-ui-scale-mode="fallback"] .group-item { font-size:calc(12px * var(--ui-font-scale)); }
-[data-ui-scale-mode="fallback"] .user-row .uname { font-size:calc(13px * var(--ui-font-scale)); }
-[data-ui-scale-mode="fallback"] .cal-day-num { font-size:calc(11px * var(--ui-font-scale)); }
-[data-ui-scale-mode="fallback"] .cal-event { font-size:calc(9px * var(--ui-font-scale)); }
-
 /* drag-and-drop grades */
 .gr-draggable { cursor: default; }
 .gr-drag-handle { cursor: grab !important; }

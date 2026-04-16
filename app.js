@@ -794,6 +794,8 @@ function _loadCachedData() {
       document.getElementById('uav').textContent = name[0].toUpperCase();
       const today = new Date().toLocaleDateString('uk-UA',{weekday:'long',day:'numeric',month:'long'});
       document.getElementById('dash-sub').textContent = today + ' • ' + name;
+      var dashSubHome = document.getElementById('dash-sub-home');
+      if(dashSubHome) dashSubHome.textContent = today + ' • ' + name + ' • ' + (group.name || 'Група');
       // ── Передзавантажуємо overrides/settings з localStorage ──
       // щоб перший рендер (до відповіді Firebase) вже мав правильні дані
       // і завдання не "мигали" (з'являлись/пропадали)
@@ -845,6 +847,8 @@ async function loadUserInfo() {
     }
     const today = new Date().toLocaleDateString('uk-UA',{weekday:'long',day:'numeric',month:'long'});
     document.getElementById('dash-sub').textContent = today + ' • ' + name;
+    var dashSubHome = document.getElementById('dash-sub-home');
+    if(dashSubHome) dashSubHome.textContent = today + ' • ' + name + ' • ' + (group.name || 'Група');
     if (window._db && userData.userid) {
       const { doc, setDoc } = window._fb;
       await setDoc(doc(window._db,'users',String(userData.userid)), {
@@ -904,6 +908,23 @@ async function _refreshMoodleToken() {
   } catch(e) { doLogout(); }
 }
 
+var _moodleFailStreak = 0;
+var _moodleFailType = '';
+var _moodleLastFailAt = 0;
+
+function _markMoodleFailure(type) {
+  var now = Date.now();
+  if(_moodleFailType === type && now - _moodleLastFailAt < 30000) _moodleFailStreak++;
+  else _moodleFailStreak = 1;
+  _moodleFailType = type;
+  _moodleLastFailAt = now;
+}
+function _clearMoodleFailureState() {
+  _moodleFailStreak = 0;
+  _moodleFailType = '';
+  _moodleLastFailAt = 0;
+}
+
 function _showOfflineBanner(msg, mode) {
   let banner = document.getElementById('offline-banner');
   if(!banner) {
@@ -922,19 +943,24 @@ async function _parseMoodleResponse(r) {
   const text = await r.text();
   const t = text.trim();
   if(t.startsWith('<') || t.includes('<!DOCTYPE') || t.includes('<html') || t.includes('Увійдіть')) {
-    console.warn('Moodle session expired — got HTML instead of JSON');
-    _showOfflineBanner('Сесія Moodle закінчилась — натисніть Оновити', '_refresh');
+    console.warn('Moodle returned HTML instead of JSON');
+    _markMoodleFailure('html');
+    if(_moodleFailStreak >= 2) _showOfflineBanner('Moodle тимчасово не відповідає — натисніть Оновити', 'refresh');
     return null;
   }
   try {
     const data = JSON.parse(t);
-    if(data && (data.errorcode === 'invalidtoken' || data.errorcode === 'accessdenied')) {
+    if(data && data.errorcode === 'invalidtoken') {
+      _markMoodleFailure('invalidtoken');
       _showOfflineBanner('Сесія Moodle закінчилась — натисніть Оновити', '_refresh');
       return null;
     }
+    _clearMoodleFailureState();
     return data;
   } catch(e) {
     console.warn('Moodle JSON parse error:', t.slice(0,120));
+    _markMoodleFailure('parse');
+    if(_moodleFailStreak >= 2) _showOfflineBanner('Moodle тимчасово не відповідає — натисніть Оновити', 'refresh');
     return null;
   }
 }
@@ -1056,7 +1082,8 @@ async function loadCourses() {
     const d = await moodleCall('core_enrol_get_users_courses',{userid:info.userid});
     if(!d) return;
     courses = Array.isArray(d) ? d : [];
-    document.getElementById('s-courses').textContent = courses.length;
+    var sCourses = document.getElementById('s-courses');
+    if(sCourses) sCourses.textContent = courses.length;
     filterCourses();
   } catch(e) { courses=[]; }
 }
@@ -1215,7 +1242,8 @@ async function loadDeadlines() {
     const urgent = allDl.filter(d=>!d.past&&(d.due-now)<60*60*48).length;
     const past = allDl.filter(d=>d.past).length;
     document.getElementById('s-urgent').textContent = urgent;
-    document.getElementById('s-done').textContent = past;
+    var sDone = document.getElementById('s-done');
+    if(sDone) sDone.textContent = past;
 
     // ✅ Use scheduleRender instead of 4 separate calls
     scheduleRender();
@@ -1229,7 +1257,8 @@ async function loadDeadlines() {
     document.getElementById('dl-list').innerHTML='<div class="empty"><div class="emo">⚠️</div><p>Помилка дедлайнів: ' + escHtml(msg) + '</p></div>';
     document.getElementById('dash-dl').innerHTML='<div class="empty"><div class="emo">⚠️</div><p>Помилка завантаження</p></div>';
     document.getElementById('s-urgent').textContent='!';
-    document.getElementById('s-done').textContent='!';
+    var sDoneErr = document.getElementById('s-done');
+    if(sDoneErr) sDoneErr.textContent='!';
   }
 }
 
@@ -1617,6 +1646,7 @@ function renderDl(list, el) {
 
 function renderDashDl() {
   const el=document.getElementById('dash-dl');
+  const elHome=document.getElementById('dash-dl-home');
   const dlDel=typeof _dlDeleted!=='undefined'?_dlDeleted:[];
   const now = Date.now()/1000;
   const top=allDl.filter(d=>{
@@ -1633,7 +1663,8 @@ function renderDashDl() {
     return { ...d, due: eff, past: false };
   }).sort((a,b)=>a.due-b.due).slice(0,5);
   if(!top.length){el.innerHTML='<div class="empty"><div class="emo">🎉</div><p>Немає активних дедлайнів!</p></div>';return;}
-  renderDl(top,el);
+  if(el) renderDl(top,el);
+  if(elHome) renderDl(top,elHome);
 }
 
 // ── GRADES ──
@@ -2205,7 +2236,9 @@ function listenFiles() {
     cachedFiles=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
     checkFileNotifs(cachedFiles);
     renderFilesWithSearch(cachedFiles, filesSearchQuery);
-    document.getElementById('s-files').textContent=cachedFiles.length;
+    var sFiles = document.getElementById('s-files');
+    if(sFiles) sFiles.textContent=cachedFiles.length;
+    renderDashboardEvents();
     renderWidgetFiles();
     renderAdminStats();
   },err=>{ document.getElementById('files-list').innerHTML='<div class="empty"><div class="emo">⚠️</div><p>Помилка завантаження файлів.</p></div>'; });
@@ -2263,7 +2296,7 @@ function listenMats() {
   if(!window._db||!group.id) return;
   const {collection,query,where,onSnapshot}=window._fb;
   const q=query(collection(window._db,'materials'),where('groupId','==',group.id));
-  const unsub=onSnapshot(q,snap=>{ cachedMats=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(b.createdAt||0)-(a.createdAt||0)); renderMats(cachedMats); },
+  const unsub=onSnapshot(q,snap=>{ cachedMats=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(b.createdAt||0)-(a.createdAt||0)); renderMats(cachedMats); renderDashboardSummary(); renderDashboardEvents(); },
   err=>{ document.getElementById('mats-list').innerHTML='<div class="empty"><div class="emo">⚠️</div><p>Помилка завантаження матеріалів.</p></div>'; });
   unsubs.push(unsub);
 }
@@ -3647,6 +3680,7 @@ function loadNotes(force){
     _notesLoaded = true;
   }
   renderNotesList(notes);
+  renderDashboardEvents();
   renderWidgetNotes();
   const sel=document.getElementById('note-course-sel');
   sel.innerHTML='<option value="">Без курсу</option>';
@@ -4250,10 +4284,102 @@ function scrollToPinned() {
 
 // ═══ DASHBOARD WIDGETS ═══
 function renderDashWidgets() {
+  renderDashboardSummary();
+  renderDashboardMiniCalendar();
+  renderDashboardEvents();
   renderWidgetToday();
   renderWidgetWeek();
   renderWidgetNotes();
   renderWidgetFiles();
+}
+
+function renderDashboardSummary() {
+  if(!_grLoaded) _grLocalLoad();
+  var urgentHome = document.getElementById('s-urgent-home');
+  if(urgentHome) {
+    var urgentSrc = document.getElementById('s-urgent');
+    urgentHome.textContent = urgentSrc ? urgentSrc.textContent : '—';
+  }
+  var gradeCount = document.getElementById('dash-grade-count');
+  if(gradeCount) gradeCount.textContent = Array.isArray(_grSubjects) ? _grSubjects.length : '—';
+  var matsCount = document.getElementById('dash-mats-count');
+  if(matsCount) matsCount.textContent = Array.isArray(cachedMats) ? cachedMats.length : '—';
+  var chatCount = document.getElementById('dash-chat-count');
+  if(chatCount) {
+    var roomCount = 3 + (Array.isArray(_chatDmRooms) ? _chatDmRooms.length : 0);
+    chatCount.textContent = roomCount;
+  }
+}
+
+function renderDashboardMiniCalendar() {
+  var el = document.getElementById('dash-mini-cal');
+  if(!el) return;
+  var base = new Date();
+  var year = base.getFullYear(), month = base.getMonth();
+  var firstDay = new Date(year, month, 1);
+  var lastDay = new Date(year, month + 1, 0);
+  var startDow = (firstDay.getDay() + 6) % 7;
+  var today = new Date(); today.setHours(0,0,0,0);
+  var dlDeleted = typeof _dlDeleted !== 'undefined' ? _dlDeleted : [];
+  var weekdays = ['Пн','Вт','Ср','Чт','Пт','Сб','Нд'];
+  var html = '<div class="dash-mini-head"><div class="dash-mini-title">' + firstDay.toLocaleDateString('uk-UA',{month:'long',year:'numeric'}) + '</div></div><div class="dash-mini-grid">';
+  weekdays.forEach(function(d){ html += '<div class="dash-mini-weekday">' + d + '</div>'; });
+  function dotsForDate(dateObj) {
+    var d2 = new Date(dateObj); d2.setHours(0,0,0,0);
+    var dayStart = d2.getTime() / 1000, dayEnd = dayStart + 86400;
+    var dueCount = allDl.filter(function(dl){
+      if(dlDeleted.includes(String(dl.id)) || dl.submitted === 'submitted') return false;
+      var eff = (typeof getEffectiveDue === 'function') ? getEffectiveDue(dl) : dl.due;
+      return eff && eff >= dayStart && eff < dayEnd;
+    }).length;
+    var noteCount = getCalNotes(d2.getFullYear() + '-' + String(d2.getMonth()+1).padStart(2,'0') + '-' + String(d2.getDate()).padStart(2,'0')).length;
+    var dots = '';
+    if(dueCount) dots += '<span class="dash-mini-dot" style="background:var(--accent)"></span>';
+    if(noteCount) dots += '<span class="dash-mini-dot" style="background:var(--success)"></span>';
+    return dots;
+  }
+  for(var i=0;i<startDow;i++) {
+    var prevDate = new Date(year, month, i - startDow + 1);
+    html += '<div class="dash-mini-day other"><div class="dash-mini-num">' + prevDate.getDate() + '</div><div class="dash-mini-dots">' + dotsForDate(prevDate) + '</div></div>';
+  }
+  for(var d=1; d<=lastDay.getDate(); d++) {
+    var current = new Date(year, month, d); current.setHours(0,0,0,0);
+    var cls = current.getTime() === today.getTime() ? ' today' : '';
+    html += '<div class="dash-mini-day' + cls + '"><div class="dash-mini-num">' + d + '</div><div class="dash-mini-dots">' + dotsForDate(current) + '</div></div>';
+  }
+  var rem = (startDow + lastDay.getDate()) % 7;
+  if(rem > 0) {
+    for(var n=1; n<=7-rem; n++) {
+      var nextDate = new Date(year, month + 1, n);
+      html += '<div class="dash-mini-day other"><div class="dash-mini-num">' + nextDate.getDate() + '</div><div class="dash-mini-dots">' + dotsForDate(nextDate) + '</div></div>';
+    }
+  }
+  html += '</div>';
+  el.innerHTML = html;
+}
+
+function renderDashboardEvents() {
+  var el = document.getElementById('dash-events');
+  if(!el) return;
+  var items = [];
+  (cachedMats || []).slice().sort(function(a,b){ return (b.createdAt||0) - (a.createdAt||0); }).slice(0,2).forEach(function(m){
+    items.push({ icon:'📝', title:m.title || m.name || 'Матеріал', sub:'Матеріали', time:m.createdAt || 0 });
+  });
+  (notes || []).slice().sort(function(a,b){ return (b.updatedAt||b.createdAt||0) - (a.updatedAt||a.createdAt||0); }).slice(0,2).forEach(function(n){
+    items.push({ icon:'✏️', title:n.title || 'Нотатка', sub:'Нотатки', time:n.updatedAt || n.createdAt || 0 });
+  });
+  (cachedFiles || []).slice().sort(function(a,b){ return (b.createdAt||0) - (a.createdAt||0); }).slice(0,2).forEach(function(f){
+    items.push({ icon:'📁', title:f.name || 'Файл', sub:'Файли', time:f.createdAt || 0 });
+  });
+  items.sort(function(a,b){ return (b.time||0) - (a.time||0); });
+  if(!items.length) {
+    el.innerHTML = '<div class="empty"><div class="emo">✨</div><p>Поки що без нових подій</p></div>';
+    return;
+  }
+  el.innerHTML = '<div class="dash-events-list">' + items.slice(0,5).map(function(item){
+    var stamp = item.time ? new Date(item.time).toLocaleDateString('uk-UA',{day:'numeric',month:'short'}) : 'зараз';
+    return '<div class="dash-event-item"><div class="dash-event-icon">' + item.icon + '</div><div class="dash-event-copy"><div class="dash-event-title">' + escHtml(item.title) + '</div><div class="dash-event-sub"><span>' + escHtml(item.sub) + '</span><span>•</span><span>' + escHtml(stamp) + '</span></div></div></div>';
+  }).join('') + '</div>';
 }
 
 function renderWidgetToday() {

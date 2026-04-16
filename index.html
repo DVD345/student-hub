@@ -75,7 +75,7 @@ self.addEventListener('fetch', e => {
 
 <!-- ✅ IMPROVEMENT 6: font-display=swap already present, preconnect added above -->
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=53">
+<link rel="stylesheet" href="style.css?v=54">
 <style>
 /* Prevent text selection during long-press on messages */
 .msg { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
@@ -251,6 +251,78 @@ function _loadKaTeX() {
     <div class="content">
       <!-- DASHBOARD -->
       <div class="page active" id="page-dashboard">
+        <div class="dash-home">
+          <div class="dash-hero">
+            <div class="dash-hero-main">
+              <div class="dash-hero-kicker">StudentHub</div>
+              <h2>Добрий день! 👋</h2>
+              <p id="dash-sub-home">Завантаження...</p>
+              <div class="dash-hero-meta">
+                <div class="sync-badge"><div class="sync-dot"></div>Moodle</div>
+                <button class="btn" onclick="syncMoodle()">🔄 Оновити</button>
+              </div>
+            </div>
+            <div class="dash-hero-side">
+              <div class="dash-theme-card">
+                <div class="dash-theme-title">Теми та стиль</div>
+                <div class="dash-theme-text">Оберіть будь-який стиль інтерфейсу: тему, кольори й атмосферу можна налаштувати під себе.</div>
+              </div>
+            </div>
+          </div>
+          <div class="dash-quick-grid">
+            <button class="dash-quick-card" onclick="go('deadlines');setBnav('deadlines')">
+              <span class="dash-quick-icon">⏰</span>
+              <span class="dash-quick-copy"><strong id="s-urgent-home">—</strong><span>Дедлайни</span></span>
+            </button>
+            <button class="dash-quick-card" onclick="go('grades')">
+              <span class="dash-quick-icon">🎓</span>
+              <span class="dash-quick-copy"><strong id="dash-grade-count">—</strong><span>Оцінки</span></span>
+            </button>
+            <button class="dash-quick-card" onclick="go('materials')">
+              <span class="dash-quick-icon">📝</span>
+              <span class="dash-quick-copy"><strong id="dash-mats-count">—</strong><span>Матеріали</span></span>
+            </button>
+            <button class="dash-quick-card" onclick="go('chat');setBnav('chat')">
+              <span class="dash-quick-icon">💬</span>
+              <span class="dash-quick-copy"><strong id="dash-chat-count">—</strong><span>Чати</span></span>
+            </button>
+          </div>
+          <div class="dash-layout">
+            <div class="dash-column-main">
+              <div class="dash-panel">
+                <div class="dash-panel-head">
+                  <div>
+                    <div class="dash-panel-title">Найближчі дедлайни</div>
+                    <div class="dash-panel-sub">Те, що варто тримати під рукою прямо зараз</div>
+                  </div>
+                  <button class="widget-link" onclick="go('deadlines');setBnav('deadlines')">Всі →</button>
+                </div>
+                <div id="dash-dl-home"><div class="loading"><div class="spinner"></div>Завантаження...</div></div>
+              </div>
+            </div>
+            <div class="dash-column-side">
+              <div class="dash-panel">
+                <div class="dash-panel-head">
+                  <div>
+                    <div class="dash-panel-title">Міні-календар</div>
+                    <div class="dash-panel-sub">Поточний місяць і активні дати</div>
+                  </div>
+                  <button class="widget-link" onclick="go('calendar')">Відкрити →</button>
+                </div>
+                <div id="dash-mini-cal"></div>
+              </div>
+              <div class="dash-panel">
+                <div class="dash-panel-head">
+                  <div>
+                    <div class="dash-panel-title">Останні події</div>
+                    <div class="dash-panel-sub">Матеріали, нотатки та важливі оновлення</div>
+                  </div>
+                </div>
+                <div id="dash-events"></div>
+              </div>
+            </div>
+          </div>
+        </div>
         <div class="page-header">
           <h2>Добрий день! 👋</h2>
           <p id="dash-sub">Завантаження...</p>
@@ -665,7 +737,7 @@ async function loadGroupsForLogin() {
 window._loadGroupsForLogin = loadGroupsForLogin;
 </script>
 
-<script src="app.js?v=54"></script>
+<script src="app.js?v=55"></script>
 
 <div id="course-contents-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:1000;overflow-y:auto;padding:16px;backdrop-filter:blur(4px);">
   <div style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;max-width:640px;margin:0 auto;overflow:hidden;">

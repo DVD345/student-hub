@@ -2067,6 +2067,25 @@ body.deadlines-resizing .dl-width-resizer::before {
 .gr-tr:last-child .gr-td{border-bottom:none;}
 .gr-tr:hover .gr-td{background:var(--bg3);}
 
+#page-grades { overflow:visible; }
+#grades-list { overflow:visible; }
+#page-grades .tb-input { max-width:none; }
+#page-grades .tb-right { flex-wrap:wrap; }
+#page-grades .gr-card-name { font-size:calc(.9rem * var(--ui-font-scale)); }
+#page-grades .gr-head-score { font-size:calc(1rem * var(--ui-font-scale)); }
+#page-grades .gr-th { font-size:calc(.68rem * var(--ui-font-scale)); }
+#page-grades .gr-td { font-size:calc(.84rem * var(--ui-font-scale)); line-height:1.45; }
+#page-grades .gr-table { min-width:calc(36rem * var(--ui-font-scale)); }
+#page-grades .gr-del-btn { width:calc(2rem + .35rem * var(--ui-font-scale)); height:calc(2rem + .35rem * var(--ui-font-scale)); }
+#page-grades .gr-table th:nth-child(1),
+#page-grades .gr-table td:nth-child(1) { min-width:calc(7.5rem * var(--ui-font-scale)); }
+#page-grades .gr-table th:nth-child(3),
+#page-grades .gr-table td:nth-child(3),
+#page-grades .gr-table th:nth-child(4),
+#page-grades .gr-table td:nth-child(4) { min-width:calc(4.5rem * var(--ui-font-scale)); }
+#page-grades .gr-table th:nth-child(5),
+#page-grades .gr-table td:nth-child(5) { min-width:calc(5.5rem * var(--ui-font-scale)); }
+
 /* drag-and-drop grades */
 .gr-draggable { cursor: default; }
 .gr-drag-handle { cursor: grab !important; }

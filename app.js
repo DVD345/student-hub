@@ -358,6 +358,7 @@ async function initApp() {
   _loadCachedData();
   _setupDebouncedInputs();
   _enableAdminCardResize();
+  _applyDeadlinesWidth();
   // Clear any browser-restored input values
   var chatInp = document.getElementById('chat-inp');
   if(chatInp) chatInp.value = '';
@@ -506,15 +507,22 @@ function _enableAdminCardResize() {
   });
   _applyAdminDesktopLayout();
 }
+function _getAdminGrid() {
+  return document.querySelector('#page-admin .admin-grid');
+}
 function _adminResizeStorageKey(card) {
   var key = card && card.dataset ? card.dataset.resizeKey : '';
-  return key ? 'sh_admin_card_' + key : '';
+  return key ? 'sh_admin_card_v2_' + key : '';
 }
-function _defaultAdminCardLayout(card) {
+function _defaultAdminCardLayout(card, gridWidth) {
   var key = card && card.dataset ? card.dataset.resizeKey : '';
-  if(key === 'groups') return { x: 20, y: 20, w: 360, h: 430 };
-  if(key === 'users') return { x: 410, y: 20, w: 920, h: 560 };
-  if(key === 'stats') return { x: 1360, y: 20, w: 240, h: 300 };
+  var width = Math.max(960, gridWidth || (_getAdminGrid() ? _getAdminGrid().clientWidth : 1400) || 1400);
+  var groupsW = Math.max(320, Math.min(360, Math.round(width * 0.24)));
+  var statsW = Math.max(230, Math.min(270, Math.round(width * 0.18)));
+  var usersW = Math.max(520, width - groupsW - statsW - 80);
+  if(key === 'groups') return { x: 20, y: 20, w: groupsW, h: 430 };
+  if(key === 'users') return { x: groupsW + 40, y: 20, w: usersW, h: 560 };
+  if(key === 'stats') return { x: groupsW + usersW + 60, y: 20, w: statsW, h: 300 };
   return { x: 20, y: 20, w: 320, h: 260 };
 }
 function _restoreAdminCardLayout(card) {
@@ -552,8 +560,52 @@ function _applyAdminCardLayout(card, layout) {
   card.style.left = Math.max(0, layout.x || 0) + 'px';
   card.style.top = Math.max(0, layout.y || 0) + 'px';
 }
+function _rectOverlapArea(a, b) {
+  var x = Math.max(0, Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x));
+  var y = Math.max(0, Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y));
+  return x * y;
+}
+function _adminHasSavedLayout() {
+  var has = false;
+  document.querySelectorAll('#page-admin .admin-card').forEach(function(card){
+    if(localStorage.getItem(_adminResizeStorageKey(card))) has = true;
+  });
+  return has;
+}
+function _adminLayoutsLookBroken(gridWidth) {
+  var cards = Array.from(document.querySelectorAll('#page-admin .admin-card'));
+  var layouts = cards.map(function(card){
+    return {
+      key: card.dataset.resizeKey || '',
+      x: parseFloat(card.style.left) || 0,
+      y: parseFloat(card.style.top) || 0,
+      w: parseFloat(card.style.width) || card.offsetWidth || _defaultAdminCardLayout(card, gridWidth).w,
+      h: parseFloat(card.style.height) || card.offsetHeight || _defaultAdminCardLayout(card, gridWidth).h
+    };
+  });
+  for(var i=0;i<layouts.length;i++) {
+    var l = layouts[i];
+    if(l.x < 0 || l.y < 0 || l.w < 260 || l.h < 180 || l.x > gridWidth - 40) return true;
+    for(var j=i+1;j<layouts.length;j++) {
+      var overlap = _rectOverlapArea(l, layouts[j]);
+      if(overlap > Math.min(l.w * l.h, layouts[j].w * layouts[j].h) * 0.28) return true;
+    }
+  }
+  return false;
+}
+function resetAdminCardLayout() {
+  var grid = _getAdminGrid();
+  if(!grid) return;
+  var width = grid.clientWidth || 1400;
+  document.querySelectorAll('#page-admin .admin-card').forEach(function(card){
+    var next = _clampAdminCard(card, _defaultAdminCardLayout(card, width));
+    _applyAdminCardLayout(card, next);
+    _saveAdminCardSize(card);
+  });
+  _updateAdminGridHeight();
+}
 function _clampAdminCard(card, next) {
-  var grid = document.querySelector('#page-admin .admin-grid');
+  var grid = _getAdminGrid();
   if(!grid) return next;
   var minW = 260, minH = 180;
   var maxW = Math.max(minW, grid.clientWidth - 20);
@@ -565,7 +617,7 @@ function _clampAdminCard(card, next) {
   return { x:x, y:y, w:w, h:h };
 }
 function _updateAdminGridHeight() {
-  var grid = document.querySelector('#page-admin .admin-grid');
+  var grid = _getAdminGrid();
   if(!grid || window.innerWidth < 900) return;
   var maxBottom = 0;
   grid.querySelectorAll('.admin-card').forEach(function(card){
@@ -574,7 +626,7 @@ function _updateAdminGridHeight() {
   grid.style.height = Math.max(720, maxBottom + 28) + 'px';
 }
 function _applyAdminDesktopLayout() {
-  var grid = document.querySelector('#page-admin .admin-grid');
+  var grid = _getAdminGrid();
   if(!grid) return;
   if(window.innerWidth < 900) {
     grid.style.height = '';
@@ -586,16 +638,49 @@ function _applyAdminDesktopLayout() {
     });
     return;
   }
+  var width = grid.clientWidth || 1400;
+  if(!_adminHasSavedLayout() || _adminLayoutsLookBroken(width)) {
+    resetAdminCardLayout();
+    return;
+  }
   grid.querySelectorAll('.admin-card').forEach(function(card){
     var next = _clampAdminCard(card, {
       x: parseFloat(card.style.left) || 0,
       y: parseFloat(card.style.top) || 0,
-      w: parseFloat(card.style.width) || card.offsetWidth || _defaultAdminCardLayout(card).w,
-      h: parseFloat(card.style.height) || card.offsetHeight || _defaultAdminCardLayout(card).h
+      w: parseFloat(card.style.width) || card.offsetWidth || _defaultAdminCardLayout(card, width).w,
+      h: parseFloat(card.style.height) || card.offsetHeight || _defaultAdminCardLayout(card, width).h
     });
     _applyAdminCardLayout(card, next);
   });
   _updateAdminGridHeight();
+}
+
+function _deadlinesWidthStorageKey() {
+  return 'sh_deadlines_page_width';
+}
+function _defaultDeadlinesWidth() {
+  return 1280;
+}
+function _applyDeadlinesWidth() {
+  var page = document.getElementById('page-deadlines');
+  if(!page) return;
+  if(window.innerWidth < 900) {
+    page.style.removeProperty('--deadlines-page-width');
+    return;
+  }
+  var raw = parseInt(localStorage.getItem(_deadlinesWidthStorageKey()) || _defaultDeadlinesWidth(), 10);
+  var width = Math.max(980, Math.min(1500, isNaN(raw) ? _defaultDeadlinesWidth() : raw));
+  page.style.setProperty('--deadlines-page-width', width + 'px');
+}
+function adjustDeadlinesWidth(delta) {
+  var current = parseInt(localStorage.getItem(_deadlinesWidthStorageKey()) || _defaultDeadlinesWidth(), 10);
+  var next = Math.max(980, Math.min(1500, (isNaN(current) ? _defaultDeadlinesWidth() : current) + delta));
+  localStorage.setItem(_deadlinesWidthStorageKey(), String(next));
+  _applyDeadlinesWidth();
+}
+function resetDeadlinesWidth() {
+  localStorage.setItem(_deadlinesWidthStorageKey(), String(_defaultDeadlinesWidth()));
+  _applyDeadlinesWidth();
 }
 
 var _adminResizeState = null;
@@ -2973,6 +3058,7 @@ function _listenRoomPresence(roomId) {
 window.addEventListener('resize', function() {
   _applyDynamicLayouts();
   _applyAdminDesktopLayout();
+  _applyDeadlinesWidth();
 });
 
 async function sendMsg() {

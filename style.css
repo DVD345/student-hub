@@ -561,12 +561,19 @@ a { text-decoration: none; color: inherit; }
 
 .dl-list { display:flex; flex-direction:column; gap:6px; }
 #page-deadlines {
-  max-width: 1500px;
+  max-width: var(--deadlines-page-width, 1280px);
   margin: 0 auto;
 }
 #page-deadlines .dl-list {
   width: 100%;
 }
+.admin-page-head {
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:12px;
+}
+.admin-page-head .btn { flex-shrink:0; }
 .dl-item {
   background:var(--card); border:1px solid var(--border);
   border-radius:var(--r); padding:11px 13px;
@@ -1325,6 +1332,7 @@ a { text-decoration: none; color: inherit; }
   #lightbox-img { max-width:100vw !important; max-height:calc(100svh - 80px) !important; }
   .content { padding-bottom: calc(88px + env(safe-area-inset-bottom, 0px)) !important; }
   .chat-input { font-size: 16px !important; }
+  .admin-page-head { flex-direction:column; align-items:stretch; }
   .chat-wrap {
     border:none !important;
     border-radius:0 !important;

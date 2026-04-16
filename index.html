@@ -75,7 +75,7 @@ self.addEventListener('fetch', e => {
 
 <!-- ✅ IMPROVEMENT 6: font-display=swap already present, preconnect added above -->
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=51">
+<link rel="stylesheet" href="style.css?v=52">
 <style>
 /* Prevent text selection during long-press on messages */
 .msg { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
@@ -318,6 +318,9 @@ function _loadKaTeX() {
             <option value="past">Минулі</option>
           </select>
           <div class="tb-right">
+            <button class="btn" onclick="adjustDeadlinesWidth(-80)" title="Вужче">↔️−</button>
+            <button class="btn" onclick="resetDeadlinesWidth()" title="Стандартна ширина">Стандарт</button>
+            <button class="btn" onclick="adjustDeadlinesWidth(80)" title="Ширше">↔️+</button>
             <button class="btn" onclick="showNoDlModal()" title="Завдання без дедлайну" style="font-size:11px;">📋 Без дедлайну</button>
             <button class="btn" onclick="toggleDlSettings()" title="Налаштування кольорів">🎨</button>
             <button class="btn a" onclick="syncMoodle()">🔄</button>
@@ -529,7 +532,7 @@ function _loadKaTeX() {
 
       <!-- ADMIN -->
       <div class="page" id="page-admin">
-        <div class="page-header"><h2>⚙️ Адмін-панель</h2><p>Управління групами та користувачами</p></div>
+        <div class="page-header admin-page-head"><div><h2>⚙️ Адмін-панель</h2><p>Управління групами та користувачами</p></div><button class="btn" onclick="resetAdminCardLayout()">Скинути розкладку</button></div>
         <div class="admin-grid">
           <div class="admin-card admin-card-groups" data-resize-key="groups">
             <h3>🏫 Групи</h3>
@@ -662,7 +665,7 @@ async function loadGroupsForLogin() {
 window._loadGroupsForLogin = loadGroupsForLogin;
 </script>
 
-<script src="app.js?v=52"></script>
+<script src="app.js?v=53"></script>
 
 <div id="course-contents-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:1000;overflow-y:auto;padding:16px;backdrop-filter:blur(4px);">
   <div style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;max-width:640px;margin:0 auto;overflow:hidden;">

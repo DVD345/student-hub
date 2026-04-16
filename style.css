@@ -880,11 +880,11 @@ a { text-decoration: none; color: inherit; }
 .katex { color:var(--text); font-size:1.05em; }
 .katex-display { overflow-x:auto; overflow-y:hidden; padding:4px 0; }
 
-.admin-grid { display:grid; grid-template-columns:1fr; gap:12px; }
+.admin-grid { display:grid; grid-template-columns:1fr; gap:12px; align-items:start; }
 .admin-card {
   background:var(--card); background-image:var(--g-glass);
   border:1px solid var(--border); border-radius:var(--r);
-  padding:18px; box-shadow:var(--sh-sm);
+  padding:18px; box-shadow:var(--sh-sm); align-self:start;
 }
 .admin-card h3 { font-size:14px; font-weight:700; margin-bottom:14px; display:flex; align-items:center; gap:8px; }
 .group-item { display:flex; align-items:center; gap:8px; padding:9px 0; border-bottom:1px solid var(--border); font-size:12px; }

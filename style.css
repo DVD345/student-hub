@@ -685,6 +685,29 @@ a { text-decoration: none; color: inherit; }
 }
 
 #dash-dl-home .dl-list { gap:10px; }
+#dash-dl-home .dl-item {
+  padding:10px 14px;
+}
+#dash-dl-home .dl-name {
+  font-size:12px;
+  font-weight:700;
+  line-height:1.25;
+}
+#dash-dl-home .dl-course {
+  font-size:10px;
+  line-height:1.35;
+  margin-top:3px;
+}
+#dash-dl-home .dl-right {
+  min-width:108px;
+  gap:4px;
+}
+#dash-dl-home .dl-date {
+  font-size:9px;
+}
+#dash-dl-home .dl-date.time {
+  font-size:10px;
+}
 
 .dash-mini-head {
   display:flex;

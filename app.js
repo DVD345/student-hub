@@ -679,12 +679,13 @@ function _applyDeadlinesWidth() {
   var raw = parseInt(localStorage.getItem(_deadlinesWidthStorageKey()) || _defaultDeadlinesWidth(), 10);
   var width = Math.max(980, Math.min(1500, isNaN(raw) ? _defaultDeadlinesWidth() : raw));
   var ratio = (width - 980) / (1500 - 980);
-  var nameSize = 12 + ratio * 3;
-  var courseSize = 10 + ratio * 2;
-  var dateSize = 9 + ratio * 2;
-  var strongDateSize = 10 + ratio * 2;
-  var padY = 9 + ratio * 4;
-  var padX = 10 + ratio * 6;
+  var nameSize = 13 + ratio * 5;
+  var courseSize = 11 + ratio * 3;
+  var dateSize = 10 + ratio * 3;
+  var strongDateSize = 12 + ratio * 4;
+  var padY = 10 + ratio * 6;
+  var padX = 11 + ratio * 8;
+  var rightMinWidth = 84 + ratio * 48;
   page.style.setProperty('--deadlines-page-width', width + 'px');
   page.style.setProperty('--dl-name-size', nameSize.toFixed(2) + 'px');
   page.style.setProperty('--dl-course-size', courseSize.toFixed(2) + 'px');
@@ -692,6 +693,7 @@ function _applyDeadlinesWidth() {
   page.style.setProperty('--dl-date-strong-size', strongDateSize.toFixed(2) + 'px');
   page.style.setProperty('--dl-item-pad-y', padY.toFixed(2) + 'px');
   page.style.setProperty('--dl-item-pad-x', padX.toFixed(2) + 'px');
+  page.style.setProperty('--dl-right-min-width', rightMinWidth.toFixed(2) + 'px');
 }
 function adjustDeadlinesWidth(delta) {
   var current = parseInt(localStorage.getItem(_deadlinesWidthStorageKey()) || _defaultDeadlinesWidth(), 10);

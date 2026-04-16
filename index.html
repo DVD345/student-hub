@@ -75,7 +75,7 @@ self.addEventListener('fetch', e => {
 
 <!-- ✅ IMPROVEMENT 6: font-display=swap already present, preconnect added above -->
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=48">
+<link rel="stylesheet" href="style.css?v=49">
 <style>
 /* Prevent text selection during long-press on messages */
 .msg { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
@@ -531,17 +531,17 @@ function _loadKaTeX() {
       <div class="page" id="page-admin">
         <div class="page-header"><h2>⚙️ Адмін-панель</h2><p>Управління групами та користувачами</p></div>
         <div class="admin-grid">
-          <div class="admin-card admin-card-groups">
+          <div class="admin-card admin-card-groups" data-resize-key="groups">
             <h3>🏫 Групи</h3>
             <div id="admin-groups-list" class="admin-list"><div class="loading"><div class="spinner"></div></div></div>
             <button class="btn a" style="width:100%;margin-top:10px;" onclick="showModal('add-group')">+ Створити групу</button>
           </div>
-          <div class="admin-card admin-card-users">
+          <div class="admin-card admin-card-users" data-resize-key="users">
             <h3>👥 Користувачі</h3>
             <input class="tb-input" id="users-search" placeholder="🔍 Пошук по імені..." style="width:100%;margin-bottom:10px;max-width:100%;">
             <div id="admin-users-list" class="admin-list admin-users-list"><div class="loading"><div class="spinner"></div></div></div>
           </div>
-          <div class="admin-card admin-card-stats">
+          <div class="admin-card admin-card-stats" data-resize-key="stats">
             <h3>📊 Статистика</h3>
             <div id="admin-stats" class="admin-stats"><div class="loading"><div class="spinner"></div></div></div>
           </div>
@@ -662,7 +662,7 @@ async function loadGroupsForLogin() {
 window._loadGroupsForLogin = loadGroupsForLogin;
 </script>
 
-<script src="app.js?v=49"></script>
+<script src="app.js?v=51"></script>
 
 <div id="course-contents-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:1000;overflow-y:auto;padding:16px;backdrop-filter:blur(4px);">
   <div style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;max-width:640px;margin:0 auto;overflow:hidden;">

@@ -1053,6 +1053,7 @@ a { text-decoration: none; color: inherit; }
   border:1px solid var(--border); border-radius:var(--r);
   padding:18px; box-shadow:var(--sh-sm); align-self:start;
   display:flex; flex-direction:column; gap:12px;
+  position:relative;
 }
 .admin-card h3 { font-size:14px; font-weight:700; margin-bottom:0; display:flex; align-items:center; gap:8px; }
 .admin-list {
@@ -1065,6 +1066,8 @@ a { text-decoration: none; color: inherit; }
   max-height:430px;
   overflow-y:auto;
   scrollbar-width:thin;
+  flex:1 1 auto;
+  min-height:180px;
 }
 .admin-stats {
   display:grid;
@@ -1105,7 +1108,24 @@ a { text-decoration: none; color: inherit; }
 .user-row .uname { flex:1; font-weight:700; font-size:13px; line-height:1.25; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .role-sel { background:var(--bg3); border:1px solid var(--border); border-radius:8px; padding:5px 9px; color:var(--text); font-family:'Inter',sans-serif; font-size:10px; outline:none; min-width:106px; width:106px; }
 .admin-card-users { min-width:0; }
-.admin-card-users .tb-input { min-height:42px; }
+.admin-card-users .tb-input { min-height:42px; flex:none; width:100%; max-width:none; min-width:0; }
+.admin-resize-handle { position:absolute; z-index:5; }
+.admin-resize-handle[data-dir="e"],
+.admin-resize-handle[data-dir="w"] { top:10px; bottom:10px; width:10px; cursor:ew-resize; }
+.admin-resize-handle[data-dir="e"] { right:-5px; }
+.admin-resize-handle[data-dir="w"] { left:-5px; }
+.admin-resize-handle[data-dir="n"],
+.admin-resize-handle[data-dir="s"] { left:10px; right:10px; height:10px; cursor:ns-resize; }
+.admin-resize-handle[data-dir="n"] { top:-5px; }
+.admin-resize-handle[data-dir="s"] { bottom:-5px; }
+.admin-resize-handle[data-dir="ne"],
+.admin-resize-handle[data-dir="nw"],
+.admin-resize-handle[data-dir="se"],
+.admin-resize-handle[data-dir="sw"] { width:14px; height:14px; }
+.admin-resize-handle[data-dir="ne"] { top:-6px; right:-6px; cursor:nesw-resize; }
+.admin-resize-handle[data-dir="nw"] { top:-6px; left:-6px; cursor:nwse-resize; }
+.admin-resize-handle[data-dir="se"] { bottom:-6px; right:-6px; cursor:nwse-resize; }
+.admin-resize-handle[data-dir="sw"] { bottom:-6px; left:-6px; cursor:nesw-resize; }
 
 .tag { display:inline-block; padding:2px 7px; border-radius:20px; font-size:9px; font-weight:700; background:var(--bg3); color:var(--text2); border:1px solid var(--border); }
 .tag.g { background:rgba(56,208,122,.12); color:var(--success); border-color:rgba(56,208,122,.2); }

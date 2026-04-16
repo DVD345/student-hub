@@ -483,12 +483,86 @@ function _applyDynamicLayouts() {
 
 function _enableAdminCardResize() {
   document.querySelectorAll('#page-admin .admin-card').forEach(function(card){
-    card.style.resize = 'both';
+    card.style.resize = 'none';
     card.style.overflow = 'auto';
     card.style.minWidth = '260px';
     card.style.minHeight = '180px';
     card.style.maxWidth = '100%';
+    _restoreAdminCardSize(card);
+    if(card.dataset.resizeReady === '1') return;
+    card.dataset.resizeReady = '1';
+    ['n','e','s','w','ne','nw','se','sw'].forEach(function(dir){
+      var h = document.createElement('div');
+      h.className = 'admin-resize-handle';
+      h.dataset.dir = dir;
+      h.addEventListener('mousedown', function(e){ _startAdminResize(e, card, dir); });
+      card.appendChild(h);
+    });
   });
+}
+function _adminResizeStorageKey(card) {
+  var key = card && card.dataset ? card.dataset.resizeKey : '';
+  return key ? 'sh_admin_card_' + key : '';
+}
+function _restoreAdminCardSize(card) {
+  var storageKey = _adminResizeStorageKey(card);
+  if(!storageKey) return;
+  try {
+    var raw = localStorage.getItem(storageKey);
+    if(!raw) return;
+    var size = JSON.parse(raw);
+    if(size && size.w) card.style.width = Math.max(260, size.w) + 'px';
+    if(size && size.h) card.style.height = Math.max(180, size.h) + 'px';
+  } catch(e) {}
+}
+function _saveAdminCardSize(card) {
+  var storageKey = _adminResizeStorageKey(card);
+  if(!storageKey) return;
+  try {
+    localStorage.setItem(storageKey, JSON.stringify({
+      w: Math.round(card.offsetWidth),
+      h: Math.round(card.offsetHeight)
+    }));
+  } catch(e) {}
+}
+
+var _adminResizeState = null;
+function _startAdminResize(e, card, dir) {
+  e.preventDefault();
+  e.stopPropagation();
+  _adminResizeState = {
+    card: card,
+    dir: dir,
+    startX: e.clientX,
+    startY: e.clientY,
+    startW: card.offsetWidth,
+    startH: card.offsetHeight
+  };
+  document.addEventListener('mousemove', _onAdminResizeMove);
+  document.addEventListener('mouseup', _stopAdminResize);
+}
+function _onAdminResizeMove(e) {
+  if(!_adminResizeState) return;
+  var s = _adminResizeState;
+  var dx = e.clientX - s.startX;
+  var dy = e.clientY - s.startY;
+  var minW = 260, minH = 180;
+  var maxW = Math.max(minW, window.innerWidth - 120);
+  var maxH = Math.max(minH, window.innerHeight - 140);
+  var w = s.startW;
+  var h = s.startH;
+  if(s.dir.indexOf('e') !== -1) w = s.startW + dx;
+  if(s.dir.indexOf('w') !== -1) w = s.startW - dx;
+  if(s.dir.indexOf('s') !== -1) h = s.startH + dy;
+  if(s.dir.indexOf('n') !== -1) h = s.startH - dy;
+  s.card.style.width = Math.max(minW, Math.min(maxW, w)) + 'px';
+  s.card.style.height = Math.max(minH, Math.min(maxH, h)) + 'px';
+}
+function _stopAdminResize() {
+  if(_adminResizeState && _adminResizeState.card) _saveAdminCardSize(_adminResizeState.card);
+  document.removeEventListener('mousemove', _onAdminResizeMove);
+  document.removeEventListener('mouseup', _stopAdminResize);
+  _adminResizeState = null;
 }
 
 function _saveCache() {

@@ -2024,8 +2024,8 @@ function renderGradesTable(){
 
     html+='<div class="gr-card-head">'+
       '<div class="gr-card-name" title="'+escHtml(subj.name)+'">'+escHtml(subj.name)+'</div>'+
-      '<div style="display:flex;align-items:center;gap:6px;">'+
-        '<div style="font-size:15px;font-weight:800;color:'+headColor+';">'+headStr+'</div>'+
+      '<div class="gr-head-actions">'+
+        '<div class="gr-head-score" style="color:'+headColor+';">'+headStr+'</div>'+
         (_grModFilter===0
           ? '<button data-sid="'+escHtml(subj.id)+'" onclick="grEditFinal(this.dataset.sid)" title="Редагувати підсумкову" style="background:none;border:none;color:var(--accent);font-size:13px;cursor:pointer;padding:2px 4px;opacity:.7;min-height:28px;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=.7">✏️</button>'
           : '')+
@@ -2034,7 +2034,7 @@ function renderGradesTable(){
     '</div>';
 
     // Table: in "Всі" show only module totals and final result
-    html+='<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:12px;">';
+    html+='<div class="gr-table-wrap"><table class="gr-table" style="width:100%;border-collapse:collapse;">';
     if(_grModFilter!==0){
       html+='<thead><tr style="background:var(--bg3);">'+
         '<th class="gr-th" style="text-align:left;width:80px;">Тип</th>'+

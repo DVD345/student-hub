@@ -358,6 +358,7 @@ async function initApp() {
   _loadCachedData();
   _setupDebouncedInputs();
   _enableAdminCardResize();
+  _applyUiFontScale();
   _applySidebarWidth();
   _initSidebarResizer();
   _initDeadlinesWidthResizer();
@@ -666,6 +667,9 @@ function _deadlinesWidthStorageKey() {
 function _deadlinesFontStorageKey() {
   return 'sh_deadlines_font_multiplier';
 }
+function _uiFontStorageKey() {
+  return 'sh_ui_font_scale';
+}
 function _sidebarWidthStorageKey() {
   return 'sh_sidebar_width';
 }
@@ -677,6 +681,26 @@ function _defaultDeadlinesWidth() {
 }
 function _defaultDeadlinesFontScale() {
   return 1;
+}
+function _defaultUiFontScale() {
+  return 1;
+}
+function _applyUiFontScale() {
+  var root = document.documentElement;
+  if(!root) return;
+  var raw = parseFloat(localStorage.getItem(_uiFontStorageKey()) || _defaultUiFontScale());
+  var scale = Math.max(0.9, Math.min(1.18, isNaN(raw) ? _defaultUiFontScale() : raw));
+  root.style.setProperty('--ui-font-scale', scale.toFixed(3));
+}
+function adjustUiFontScale(delta) {
+  var current = parseFloat(localStorage.getItem(_uiFontStorageKey()) || _defaultUiFontScale());
+  var next = Math.max(0.9, Math.min(1.18, (isNaN(current) ? _defaultUiFontScale() : current) + delta * 0.04));
+  localStorage.setItem(_uiFontStorageKey(), String(next));
+  _applyUiFontScale();
+}
+function resetUiFontScale() {
+  localStorage.setItem(_uiFontStorageKey(), String(_defaultUiFontScale()));
+  _applyUiFontScale();
 }
 function _applySidebarWidth() {
   var root = document.documentElement;
@@ -3617,6 +3641,7 @@ function _applyCustomThemeVars(bg,ac) {
 
 const st = localStorage.getItem('sh_theme');
 if(st) { document.documentElement.setAttribute('data-theme', st); updateThemeIcon(st); }
+_applyUiFontScale();
 document.addEventListener('DOMContentLoaded', () => {
   const cur = localStorage.getItem('sh_theme') || 'dark';
   document.querySelectorAll('.theme-swatch').forEach(el => el.classList.toggle('active', el.dataset.theme === cur));

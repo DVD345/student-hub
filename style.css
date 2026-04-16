@@ -40,6 +40,7 @@
   --r-sm:  8px;
   --sidebar: 256px;
   --sidebar-resizer: 8px;
+  --ui-font-scale: 1;
   --touch: 44px;
 }
 
@@ -135,7 +136,7 @@
 *, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
 
 html {
-  font-size: 15px;
+  font-size: calc(15px * var(--ui-font-scale));
   -webkit-text-size-adjust: 100%;
   scroll-behavior: smooth;
 }
@@ -565,6 +566,15 @@ body.deadlines-resizing {
   padding:22px 22px 20px;
   position:relative;
   overflow:hidden;
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:18px;
+}
+.dash-hero-copy {
+  min-width:0;
+  flex:1;
+  max-width:640px;
 }
 .dash-hero-main::before {
   content:'';
@@ -593,7 +603,32 @@ body.deadlines-resizing {
 .dash-hero-main p {
   font-size:15px;
   color:var(--text2);
-  max-width:640px;
+}
+.dash-font-card {
+  width:min(100%, 350px);
+  flex:0 0 350px;
+  align-self:flex-start;
+  padding:14px 14px 12px;
+  border-radius:16px;
+  background:rgba(255,255,255,.03);
+  border:1px solid rgba(255,255,255,.06);
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.02);
+}
+.dash-font-card-title {
+  font-size:15px;
+  font-weight:800;
+}
+.dash-font-card-sub {
+  margin-top:5px;
+  font-size:12px;
+  line-height:1.45;
+  color:var(--text2);
+}
+.dash-font-actions {
+  margin-top:12px;
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
 }
 .dash-hero-meta {
   margin-top:16px;
@@ -607,17 +642,32 @@ body.deadlines-resizing {
   padding:20px;
   display:flex;
   flex-direction:column;
-  justify-content:center;
+  justify-content:flex-start;
   gap:10px;
 }
 .dash-hero-side {
   display:none;
 }
 .dash-theme-card-bottom {
-  display:flex;
+  display:none;
   width:100%;
   grid-column:1 / -1;
   grid-row:3;
+}
+.dash-theme-card-side {
+  min-height:224px;
+}
+.dash-column-side .dash-panel:last-child {
+  padding:0;
+}
+.dash-column-side .dash-panel:last-child .dash-panel-head {
+  display:none;
+}
+.dash-column-side .dash-panel:last-child > .dash-theme-card {
+  border:none;
+  background:transparent;
+  box-shadow:none;
+  padding:18px;
 }
 .dash-theme-title {
   font-size:18px;
@@ -694,7 +744,7 @@ body.deadlines-resizing {
   grid-row:1 / span 2;
 }
 .dash-column-side .dash-panel:last-child {
-  display:none;
+  display:block;
 }
 .dash-panel {
   padding:18px;
@@ -722,12 +772,12 @@ body.deadlines-resizing {
   padding:10px 14px;
 }
 #dash-dl-home .dl-name {
-  font-size:12px;
+  font-size:13px;
   font-weight:700;
   line-height:1.25;
 }
 #dash-dl-home .dl-course {
-  font-size:10px;
+  font-size:11px;
   line-height:1.35;
   margin-top:3px;
 }
@@ -736,10 +786,10 @@ body.deadlines-resizing {
   gap:4px;
 }
 #dash-dl-home .dl-date {
-  font-size:9px;
+  font-size:11px;
 }
 #dash-dl-home .dl-date.time {
-  font-size:10px;
+  font-size:12px;
 }
 
 .dash-mini-head {
@@ -1632,7 +1682,7 @@ body.deadlines-resizing .dl-width-resizer::before {
 }
 
 @media(min-width:900px){
-  html { font-size:15.5px; }
+  html { font-size:calc(15.5px * var(--ui-font-scale)); }
   .sidebar { transform:none !important; }
   .sidebar-resizer { display:block; }
   .close-sidebar { display:none !important; }
@@ -1673,7 +1723,7 @@ body.deadlines-resizing .dl-width-resizer::before {
 }
 
 @media(min-width:1100px){
-  html { font-size:16px; }
+  html { font-size:calc(16px * var(--ui-font-scale)); }
   .content { padding:28px 40px; }
   .page-header h2 { font-size:28px; }
   .stat-val { font-size:24px; }
@@ -1763,9 +1813,15 @@ body.deadlines-resizing .dl-width-resizer::before {
   }
   .dash-hero-main {
     padding:18px;
+    flex-direction:column;
+    align-items:stretch;
   }
   .dash-hero-main h2 {
     font-size:22px;
+  }
+  .dash-font-card {
+    width:100%;
+    flex:0 0 auto;
   }
   .dash-theme-card-bottom {
     padding:16px;

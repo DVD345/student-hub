@@ -75,7 +75,7 @@ self.addEventListener('fetch', e => {
 
 <!-- ✅ IMPROVEMENT 6: font-display=swap already present, preconnect added above -->
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=63">
+<link rel="stylesheet" href="style.css?v=64">
 <style>
 /* Prevent text selection during long-press on messages */
 .msg { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
@@ -255,12 +255,23 @@ function _loadKaTeX() {
         <div class="dash-home">
           <div class="dash-hero">
             <div class="dash-hero-main">
+              <div class="dash-hero-copy">
               <div class="dash-hero-kicker">StudentHub</div>
               <h2>Добрий день! 👋</h2>
               <p id="dash-sub-home">Завантаження...</p>
               <div class="dash-hero-meta">
                 <div class="sync-badge"><div class="sync-dot"></div>Moodle</div>
                 <button class="btn" onclick="syncMoodle()">🔄 Оновити</button>
+              </div>
+              </div>
+              <div class="dash-font-card">
+                <div class="dash-font-card-title">РЁСЂРёС„С‚ СЃР°Р№С‚Сѓ</div>
+                <div class="dash-font-card-sub">Р—РјС–РЅС–С‚СЊ СЂРѕР·РјС–СЂ С‚РµРєСЃС‚Сѓ РЅР° РІСЃСЊРѕРјСѓ СЃР°Р№С‚С–</div>
+                <div class="dash-font-actions">
+                  <button class="btn" onclick="adjustUiFontScale(-1)" title="РњРµРЅС€РёР№ С€СЂРёС„С‚">Aв€’</button>
+                  <button class="btn" onclick="resetUiFontScale()" title="РЎС‚Р°РЅРґР°СЂС‚РЅРёР№ С€СЂРёС„С‚">A</button>
+                  <button class="btn" onclick="adjustUiFontScale(1)" title="Р‘С–Р»СЊС€РёР№ С€СЂРёС„С‚">A+</button>
+                </div>
               </div>
             </div>
             <div class="dash-hero-side">
@@ -319,7 +330,10 @@ function _loadKaTeX() {
                     <div class="dash-panel-sub">Матеріали, нотатки та важливі оновлення</div>
                   </div>
                 </div>
-                <div id="dash-events"></div>
+                <div class="dash-theme-card dash-theme-card-side">
+                  <div class="dash-theme-title">РўРµРјРё С‚Р° СЃС‚РёР»СЊ</div>
+                  <div class="dash-theme-text">РћР±РµСЂС–С‚СЊ Р±СѓРґСЊ-СЏРєРёР№ СЃС‚РёР»СЊ С–РЅС‚РµСЂС„РµР№СЃСѓ: С‚РµРјСѓ, РєРѕР»СЊРѕСЂРё Р№ Р°С‚РјРѕСЃС„РµСЂСѓ РјРѕР¶РЅР° РЅР°Р»Р°С€С‚СѓРІР°С‚Рё РїС–Рґ СЃРµР±Рµ.</div>
+                </div>
               </div>
             </div>
           </div>
@@ -746,7 +760,7 @@ async function loadGroupsForLogin() {
 window._loadGroupsForLogin = loadGroupsForLogin;
 </script>
 
-<script src="app.js?v=62"></script>
+<script src="app.js?v=63"></script>
 
 <div id="course-contents-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:1000;overflow-y:auto;padding:16px;backdrop-filter:blur(4px);">
   <div style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;max-width:640px;margin:0 auto;overflow:hidden;">

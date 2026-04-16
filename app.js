@@ -692,9 +692,32 @@ function _applyUiFontScale() {
   if(!root) return;
   var raw = parseFloat(localStorage.getItem(_uiFontStorageKey()) || _defaultUiFontScale());
   var scale = Math.max(0.82, Math.min(1.36, isNaN(raw) ? _defaultUiFontScale() : raw));
+  var scaleStr = scale.toFixed(3);
+  var canUseZoom = typeof CSS !== 'undefined' && CSS && typeof CSS.supports === 'function' && CSS.supports('zoom', '1');
+
+  function applyScale(el) {
+    if(!el) return;
+    el.style.zoom = '';
+    el.style.transform = '';
+    el.style.transformOrigin = '';
+    el.style.width = '';
+    el.style.height = '';
+
+    if(canUseZoom) {
+      el.style.zoom = scaleStr;
+      return;
+    }
+
+    if(scale === 1) return;
+    el.style.transformOrigin = 'top left';
+    el.style.transform = 'scale(' + scaleStr + ')';
+    el.style.width = 'calc(100% / ' + scaleStr + ')';
+    el.style.height = 'calc(100% / ' + scaleStr + ')';
+  }
+
   root.style.setProperty('--ui-font-scale', scale.toFixed(3));
-  if(appScreen) appScreen.style.zoom = scale.toFixed(3);
-  if(loginScreen) loginScreen.style.zoom = scale.toFixed(3);
+  applyScale(appScreen);
+  applyScale(loginScreen);
   if(document.body) document.body.style.zoom = '';
 }
 function adjustUiFontScale(delta) {

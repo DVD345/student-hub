@@ -668,11 +668,30 @@ function _applyDeadlinesWidth() {
   if(!page) return;
   if(window.innerWidth < 900) {
     page.style.removeProperty('--deadlines-page-width');
+    page.style.removeProperty('--dl-name-size');
+    page.style.removeProperty('--dl-course-size');
+    page.style.removeProperty('--dl-date-size');
+    page.style.removeProperty('--dl-date-strong-size');
+    page.style.removeProperty('--dl-item-pad-y');
+    page.style.removeProperty('--dl-item-pad-x');
     return;
   }
   var raw = parseInt(localStorage.getItem(_deadlinesWidthStorageKey()) || _defaultDeadlinesWidth(), 10);
   var width = Math.max(980, Math.min(1500, isNaN(raw) ? _defaultDeadlinesWidth() : raw));
+  var ratio = (width - 980) / (1500 - 980);
+  var nameSize = 12 + ratio * 3;
+  var courseSize = 10 + ratio * 2;
+  var dateSize = 9 + ratio * 2;
+  var strongDateSize = 10 + ratio * 2;
+  var padY = 9 + ratio * 4;
+  var padX = 10 + ratio * 6;
   page.style.setProperty('--deadlines-page-width', width + 'px');
+  page.style.setProperty('--dl-name-size', nameSize.toFixed(2) + 'px');
+  page.style.setProperty('--dl-course-size', courseSize.toFixed(2) + 'px');
+  page.style.setProperty('--dl-date-size', dateSize.toFixed(2) + 'px');
+  page.style.setProperty('--dl-date-strong-size', strongDateSize.toFixed(2) + 'px');
+  page.style.setProperty('--dl-item-pad-y', padY.toFixed(2) + 'px');
+  page.style.setProperty('--dl-item-pad-x', padX.toFixed(2) + 'px');
 }
 function adjustDeadlinesWidth(delta) {
   var current = parseInt(localStorage.getItem(_deadlinesWidthStorageKey()) || _defaultDeadlinesWidth(), 10);
@@ -2682,6 +2701,12 @@ function _ctxReact(e, el) {
   var mid = el.dataset.lp; if(!mid) return;
   _openMsgMenu(e.clientX, e.clientY, mid, el);
 }
+function _openMsgMenuFromButton(btn, msgId) {
+  var msgEl = btn && btn.closest ? btn.closest('[data-lp]') : null;
+  if(!msgEl || !msgId) return;
+  var rect = btn.getBoundingClientRect();
+  _openMsgMenu(rect.left + rect.width / 2, rect.bottom + 8, msgId, msgEl);
+}
 
 var _lpTimer = null;
 function _lpStart(e, el) {
@@ -2905,6 +2930,7 @@ function renderMessages(msgs) {
       (!isMe?'<div class="msg-author">'+escHtml(m.author)+'</div>':'')+
       '<div style="display:flex;align-items:flex-end;gap:4px;'+(isMe?'flex-direction:row-reverse':'')+'">' +
         '<div class="msg-bubble">'+replyHtml+msgText+editedMark+fileHtml+'</div>'+
+        '<button class="msg-touch-menu" onclick="_openMsgMenuFromButton(this,\''+_mid+'\');event.stopPropagation();" title="Дії">⋯</button>'+
         pinBtn+delBtn+
       '</div>'+
       _renderReactions(m)+

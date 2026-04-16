@@ -512,7 +512,7 @@ function _getAdminGrid() {
 }
 function _adminResizeStorageKey(card) {
   var key = card && card.dataset ? card.dataset.resizeKey : '';
-  return key ? 'sh_admin_card_v2_' + key : '';
+  return key ? 'sh_admin_card_v3_' + key : '';
 }
 function _defaultAdminCardLayout(card, gridWidth) {
   var key = card && card.dataset ? card.dataset.resizeKey : '';

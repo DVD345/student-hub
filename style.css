@@ -1078,11 +1078,12 @@ a { text-decoration: none; color: inherit; }
   padding:4px 14px;
 }
 .admin-users-list {
-  max-height:430px;
+  max-height:none;
+  height:100%;
   overflow-y:auto;
   scrollbar-width:thin;
   flex:1 1 auto;
-  min-height:180px;
+  min-height:0;
 }
 .admin-stats {
   display:grid;
@@ -1123,6 +1124,7 @@ a { text-decoration: none; color: inherit; }
 .user-row .uname { flex:1; font-weight:700; font-size:13px; line-height:1.25; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .role-sel { background:var(--bg3); border:1px solid var(--border); border-radius:8px; padding:5px 9px; color:var(--text); font-family:'Inter',sans-serif; font-size:10px; outline:none; min-width:106px; width:106px; }
 .admin-card-users { min-width:0; }
+.admin-card-users .admin-users-list { flex:1 1 auto; min-height:0; }
 .admin-card-users .tb-input { min-height:42px; flex:none; width:100%; max-width:none; min-width:0; }
 .admin-resize-handle { position:absolute; z-index:5; }
 .admin-resize-handle[data-dir="e"],

@@ -75,7 +75,7 @@ self.addEventListener('fetch', e => {
 
 <!-- ✅ IMPROVEMENT 6: font-display=swap already present, preconnect added above -->
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=45">
+<link rel="stylesheet" href="style.css?v=46">
 <style>
 /* Prevent text selection during long-press on messages */
 .msg { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
@@ -435,6 +435,20 @@ function _loadKaTeX() {
         </div>
       </div>
 
+      <div id="chat-user-modal" class="chat-user-modal" onclick="if(event.target===this)closeChatUserModal()">
+        <div class="chat-user-sheet" onclick="event.stopPropagation()">
+          <div class="chat-user-sheet-head">
+            <div>
+              <div class="chat-user-sheet-title">Додати чат</div>
+              <div class="chat-user-sheet-sub">Оберіть користувача для особистого листування</div>
+            </div>
+            <button class="chat-user-close" onclick="closeChatUserModal()">✕</button>
+          </div>
+          <input id="chat-user-search" class="tb-input chat-user-search" placeholder="🔍 Пошук користувача..." oninput="filterChatUserList(this.value)">
+          <div id="chat-user-list" class="chat-user-list"><div class="loading"><div class="spinner"></div>Завантаження...</div></div>
+        </div>
+      </div>
+
       <!-- CALENDAR -->
       <div class="page" id="page-calendar">
         <div class="page-header"><h2>📅 Календар</h2><p>Дедлайни та власні нотатки по днях</p></div>
@@ -648,7 +662,7 @@ async function loadGroupsForLogin() {
 window._loadGroupsForLogin = loadGroupsForLogin;
 </script>
 
-<script src="app.js?v=42"></script>
+<script src="app.js?v=46"></script>
 
 <div id="course-contents-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:1000;overflow-y:auto;padding:16px;backdrop-filter:blur(4px);">
   <div style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;max-width:640px;margin:0 auto;overflow:hidden;">

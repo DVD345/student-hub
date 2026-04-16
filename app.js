@@ -3,6 +3,8 @@ var MOODLE = 'https://moodle-proxy.dvdkunec.workers.dev';
 let token='', userData={}, allDl=[], courses=[], group={}, userRole='student';
 let unsubs=[], cachedFiles=[], cachedMats=[], currentChatRoom=null, chatUnsub=null;
 let cvMode='grid', csMode='name';
+var _chatUsers = [];
+var _chatDmRooms = [];
 
 // ── XSS PROTECTION ──
 function escHtml(t) { return (t==null?'':String(t)).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;'); }
@@ -1991,16 +1993,128 @@ function setupChatRooms() {
     {id:'university', label:'🎓 Університет', sub:'Всі студенти'},
   ];
   const el=document.getElementById('chat-rooms');
-  el.innerHTML=rooms.map(r=>
-    '<div class="chat-room" onclick="openChatRoom(this.dataset.roomid,this.dataset.label)" data-roomid="'+escHtml(r.id)+'" data-label="'+escHtml(r.label)+'">'+
-    escHtml(r.label)+'<div class="chat-room-sub">'+escHtml(r.sub)+'</div></div>'
-  ).join('');
+  _loadChatDmRooms();
+  const baseRooms = rooms.map(function(r){
+    return '<div class="chat-room" onclick="openChatRoom(this.dataset.roomid,this.dataset.label)" data-roomid="'+escHtml(r.id)+'" data-label="'+escHtml(r.label)+'">'+
+      escHtml(r.label)+'<div class="chat-room-sub">'+escHtml(r.sub)+'</div></div>';
+  }).join('');
+  const dmRooms = _chatDmRooms.length
+    ? '<div class="chat-sidebar-divider"></div><div class="chat-sidebar-caption">Особисті</div>' +
+      _chatDmRooms.map(function(r){
+        return '<div class="chat-room chat-dm-room" onclick="openChatRoom(this.dataset.roomid,this.dataset.label)" data-roomid="'+escHtml(r.id)+'" data-label="'+escHtml(r.label)+'">'+
+          '👤 '+escHtml(r.label)+'<div class="chat-room-sub">'+escHtml(r.sub||'Особисті повідомлення')+'</div></div>';
+      }).join('')
+    : '';
+  el.innerHTML =
+    '<div class="chat-sidebar-section">'+
+      baseRooms+
+      '<div class="chat-sidebar-divider"></div>'+
+      '<button class="chat-add-btn" onclick="openChatUserModal()">＋ Додати чат</button>'+
+      dmRooms+
+    '</div>';
+  if(currentChatRoom) {
+    document.querySelectorAll('.chat-room').forEach(function(r){
+      r.classList.toggle('active', r.dataset.roomid === currentChatRoom);
+    });
+  }
+}
+function _loadChatDmRooms() {
+  try {
+    var raw = localStorage.getItem('sh_dm_rooms');
+    _chatDmRooms = raw ? JSON.parse(raw) : [];
+  } catch(e) { _chatDmRooms = []; }
+}
+function _saveChatDmRooms() {
+  try { localStorage.setItem('sh_dm_rooms', JSON.stringify(_chatDmRooms)); } catch(e) {}
+}
+function _dmRoomId(uidA, uidB) {
+  return 'dm-' + [String(uidA), String(uidB)].sort().join('-');
+}
+function _rememberDmRoom(user) {
+  if(!user || !user.id) return;
+  var roomId = _dmRoomId(userData.userid, user.id);
+  var existing = _chatDmRooms.find(function(r){ return r.id === roomId; });
+  if(existing) {
+    existing.label = user.name || existing.label;
+    existing.sub = user.groupName || existing.sub || 'Особисті повідомлення';
+  } else {
+    _chatDmRooms.unshift({
+      id: roomId,
+      label: user.name || 'Користувач',
+      sub: user.groupName || 'Особисті повідомлення',
+      uid: String(user.id)
+    });
+  }
+  _chatDmRooms = _chatDmRooms.slice(0, 20);
+  _saveChatDmRooms();
+}
+async function openChatUserModal() {
+  const modal = document.getElementById('chat-user-modal');
+  const list = document.getElementById('chat-user-list');
+  if(!modal || !list || !window._db || !window._fb) return;
+  modal.style.display = 'flex';
+  document.getElementById('chat-user-search').value = '';
+  list.innerHTML = '<div class="loading"><div class="spinner"></div>Завантаження...</div>';
+  try {
+    const {collection, getDocs} = window._fb;
+    const snap = await getDocs(collection(window._db, 'users'));
+    _chatUsers = snap.docs
+      .map(function(d){ return {id:d.id, ...d.data()}; })
+      .filter(function(u){ return String(u.id) !== String(userData.userid); })
+      .sort(function(a,b){ return (a.name||'').localeCompare(b.name||'', 'uk'); });
+    renderChatUserList(_chatUsers);
+    setTimeout(function(){
+      var inp = document.getElementById('chat-user-search');
+      if(inp) inp.focus();
+    }, 40);
+  } catch(e) {
+    list.innerHTML = '<div class="empty"><div class="emo">⚠️</div><p>Не вдалося завантажити користувачів</p></div>';
+  }
+}
+function closeChatUserModal() {
+  var modal = document.getElementById('chat-user-modal');
+  if(modal) modal.style.display = 'none';
+}
+function filterChatUserList(q) {
+  q = (q || '').toLowerCase().trim();
+  renderChatUserList(_chatUsers.filter(function(u){
+    return !q || (u.name||'').toLowerCase().includes(q) || (u.groupName||'').toLowerCase().includes(q);
+  }));
+}
+function renderChatUserList(users) {
+  const list = document.getElementById('chat-user-list');
+  if(!list) return;
+  if(!users.length) {
+    list.innerHTML = '<div class="empty"><div class="emo">🔎</div><p>Користувачів не знайдено</p></div>';
+    return;
+  }
+  list.innerHTML = users.map(function(u){
+    var initial = ((u.name||'?')[0] || '?').toUpperCase();
+    var color = ROLE_COLORS[u.role] || '#8888aa';
+    return '<div class="chat-user-item" data-uid="'+escHtml(String(u.id))+'" onclick="startDirectChat(this.dataset.uid)">'+
+      '<div class="chat-user-avatar" style="background:'+escHtml(color)+'">'+escHtml(initial)+'</div>'+
+      '<div class="chat-user-meta">'+
+        '<div class="chat-user-name">'+escHtml(u.name||'Користувач')+'</div>'+
+        '<div class="chat-user-sub">'+escHtml(u.groupName||'Без групи')+'</div>'+
+      '</div>'+
+      '<div class="chat-user-action">Написати</div>'+
+    '</div>';
+  }).join('');
+}
+function startDirectChat(uid) {
+  var user = _chatUsers.find(function(u){ return String(u.id) === String(uid); });
+  if(!user) return;
+  _rememberDmRoom(user);
+  setupChatRooms();
+  closeChatUserModal();
+  openChatRoom(_dmRoomId(userData.userid, user.id), user.name || 'Особистий чат');
 }
 function openChatRoom(roomId, label) {
   currentChatRoom=roomId;
   _cancelReply(); // clear any leftover edit/reply state and input
   _listenRoomPresence(roomId);
-  document.getElementById('chat-room-title').textContent=label;
+  var titleEl = document.getElementById('chat-room-title');
+  if(titleEl) titleEl.childNodes[0].nodeValue = label;
   document.querySelectorAll('.chat-room').forEach(r=>r.classList.remove('active'));
   const activeRoom=document.querySelector('[data-roomid="'+roomId+'"]');
   if(activeRoom) activeRoom.classList.add('active');

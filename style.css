@@ -2086,6 +2086,83 @@ body.deadlines-resizing .dl-width-resizer::before {
 #page-grades .gr-table th:nth-child(5),
 #page-grades .gr-table td:nth-child(5) { min-width:calc(5.5rem * var(--ui-font-scale)); }
 
+/* Global UI text scaling */
+.login-badge { font-size:calc(10px * var(--ui-font-scale)); }
+.field label,
+.nav-section,
+.theme-picker-label,
+.stat-lbl,
+.gr-th { font-size:calc(10px * var(--ui-font-scale)); }
+.login-security-title,
+.widget-item-meta,
+.file-meta,
+.chat-room-sub,
+.msg-author,
+.chat-online-bar,
+.msg-reply,
+.msg-reply-text,
+.cal-popup-row { font-size:calc(11px * var(--ui-font-scale)); }
+.sidebar-header h1,
+.nav-item,
+.user-name,
+#topbar-title,
+.widget-item-name,
+.file-name,
+.c-name,
+.chat-room-name,
+.msg-bubble,
+.note-card-title,
+.group-item,
+.user-row .uname,
+.gr-card-name,
+.gr-td { font-size:calc(13px * var(--ui-font-scale)); }
+.group-pill,
+.user-role-badge,
+.widget-link,
+.c-meta,
+.note-card-meta,
+.cal-event,
+.gs-tag { font-size:calc(10px * var(--ui-font-scale)); }
+.page-header p,
+.dash-event-sub,
+.dash-font-card-sub,
+.dash-theme-text,
+.tb-input,
+.tb-select,
+.btn,
+.btn-primary,
+.note-card-preview,
+.cal-popup-title,
+.mention-item,
+.gs-sub,
+.pinned-bar-text { font-size:calc(12px * var(--ui-font-scale)); }
+.page-header h2 { font-size:calc(22px * var(--ui-font-scale)); }
+.dash-hero-kicker { font-size:calc(11px * var(--ui-font-scale)); }
+.dash-hero-main h2 { font-size:calc(28px * var(--ui-font-scale)); }
+.dash-hero-main p,
+.dash-panel-sub,
+.dash-theme-text { font-size:calc(15px * var(--ui-font-scale)); }
+.dash-font-card-title,
+.dash-panel-title,
+.dash-theme-title { font-size:calc(18px * var(--ui-font-scale)); }
+.dash-mini-title,
+.dash-mini-num,
+.dash-event-title,
+.widget-title { font-size:calc(13px * var(--ui-font-scale)); }
+.dash-mini-weekday { font-size:calc(10px * var(--ui-font-scale)); }
+.stat-val { font-size:calc(20px * var(--ui-font-scale)); }
+.dl-course,
+.dl-date { font-size:calc(11px * var(--ui-font-scale)); }
+.cal-day-num,
+.gr-head-score { font-size:calc(15px * var(--ui-font-scale)); }
+.gs-name { font-size:calc(14px * var(--ui-font-scale)); }
+
+/* Components with explicit px sizing need direct scaling */
+.nav-item .ni { font-size:calc(15px * var(--ui-font-scale)); }
+.widget-icon { font-size:calc(14px * var(--ui-font-scale)); }
+.stat-ico { font-size:calc(16px * var(--ui-font-scale)); }
+.c-ico { font-size:calc(22px * var(--ui-font-scale)); }
+
 /* drag-and-drop grades */
 .gr-draggable { cursor: default; }
 .gr-drag-handle { cursor: grab !important; }

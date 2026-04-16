@@ -944,22 +944,6 @@ a { text-decoration: none; color: inherit; }
 .admin-card-users { min-width:0; }
 .admin-card-users .tb-input { min-height:42px; }
 
-@media(min-width:1100px){
-  .admin-grid {
-    grid-template-columns:280px 620px 250px;
-    gap:20px;
-    justify-content:center;
-  }
-}
-
-@media(min-width:1400px){
-  .admin-grid {
-    grid-template-columns:300px 700px 270px;
-    gap:24px;
-    justify-content:center;
-  }
-}
-
 .tag { display:inline-block; padding:2px 7px; border-radius:20px; font-size:9px; font-weight:700; background:var(--bg3); color:var(--text2); border:1px solid var(--border); }
 .tag.g { background:rgba(56,208,122,.12); color:var(--success); border-color:rgba(56,208,122,.2); }
 .tag.y { background:rgba(240,192,64,.12); color:var(--accent); border-color:rgba(240,192,64,.2); }
@@ -1075,6 +1059,26 @@ a { text-decoration: none; color: inherit; }
   .stats-grid { gap:14px; }
   .dl-list { gap:8px; }
   .content { padding:32px 48px; }
+}
+
+@media(min-width:900px){
+  #page-admin {
+    max-width: 1700px;
+    margin: 0 auto;
+  }
+  #page-admin .admin-grid {
+    grid-template-columns: 320px 760px 230px;
+    gap: 22px;
+    justify-content: center;
+  }
+}
+
+@media(min-width:1440px){
+  #page-admin .admin-grid {
+    grid-template-columns: 360px 920px 240px;
+    gap: 26px;
+    justify-content: center;
+  }
 }
 
 @media(max-width:899px){

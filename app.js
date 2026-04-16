@@ -687,10 +687,15 @@ function _defaultUiFontScale() {
 }
 function _applyUiFontScale() {
   var root = document.documentElement;
+  var appScreen = document.getElementById('screen-app');
+  var loginScreen = document.getElementById('screen-login');
   if(!root) return;
   var raw = parseFloat(localStorage.getItem(_uiFontStorageKey()) || _defaultUiFontScale());
   var scale = Math.max(0.82, Math.min(1.36, isNaN(raw) ? _defaultUiFontScale() : raw));
   root.style.setProperty('--ui-font-scale', scale.toFixed(3));
+  if(appScreen) appScreen.style.zoom = scale.toFixed(3);
+  if(loginScreen) loginScreen.style.zoom = scale.toFixed(3);
+  if(document.body) document.body.style.zoom = '';
 }
 function adjustUiFontScale(delta) {
   var current = parseFloat(localStorage.getItem(_uiFontStorageKey()) || _defaultUiFontScale());

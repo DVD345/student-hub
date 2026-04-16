@@ -640,7 +640,7 @@ body.deadlines-resizing {
   flex-wrap:wrap;
 }
 .dash-theme-card {
-  height:100%;
+  height:auto;
   padding:20px;
   display:flex;
   flex-direction:column;
@@ -657,7 +657,7 @@ body.deadlines-resizing {
   grid-row:3;
 }
 .dash-theme-card-side {
-  min-height:224px;
+  min-height:0;
 }
 .dash-column-side .dash-panel:last-child {
   padding:0;
@@ -670,6 +670,7 @@ body.deadlines-resizing {
   background:transparent;
   box-shadow:none;
   padding:18px;
+  height:auto;
 }
 .dash-theme-title {
   font-size:1.15rem;
@@ -744,9 +745,12 @@ body.deadlines-resizing {
 .dash-column-side {
   grid-column:2;
   grid-row:1 / span 2;
+  align-self:start;
 }
 .dash-column-side .dash-panel:last-child {
   display:block;
+  min-height:0;
+  height:auto;
 }
 .dash-panel {
   padding:18px;

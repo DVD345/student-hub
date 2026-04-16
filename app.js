@@ -687,10 +687,12 @@ function _defaultUiFontScale() {
 }
 function _applyUiFontScale() {
   var root = document.documentElement;
+  var body = document.body;
   if(!root) return;
   var raw = parseFloat(localStorage.getItem(_uiFontStorageKey()) || _defaultUiFontScale());
   var scale = Math.max(0.82, Math.min(1.36, isNaN(raw) ? _defaultUiFontScale() : raw));
   root.style.setProperty('--ui-font-scale', scale.toFixed(3));
+  if(body) body.style.zoom = scale.toFixed(3);
 }
 function adjustUiFontScale(delta) {
   var current = parseFloat(localStorage.getItem(_uiFontStorageKey()) || _defaultUiFontScale());

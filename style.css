@@ -505,11 +505,14 @@ a { text-decoration: none; color: inherit; }
 }
 
 .dash-home {
-  display:flex;
-  flex-direction:column;
+  display:grid;
+  grid-template-columns:minmax(0, 1.45fr) minmax(320px, .9fr);
   gap:18px;
+  align-items:start;
 }
 .dash-hero {
+  grid-column:1;
+  grid-row:1;
   display:grid;
   grid-template-columns:minmax(0, 1fr);
   gap:16px;
@@ -580,6 +583,8 @@ a { text-decoration: none; color: inherit; }
 .dash-theme-card-bottom {
   display:flex;
   width:100%;
+  grid-column:1 / -1;
+  grid-row:3;
 }
 .dash-theme-title {
   font-size:18px;
@@ -638,10 +643,7 @@ a { text-decoration: none; color: inherit; }
   font-weight:700;
 }
 .dash-layout {
-  display:grid;
-  grid-template-columns:minmax(0, 1.45fr) minmax(320px, .9fr);
-  gap:18px;
-  align-items:start;
+  display:contents;
 }
 .dash-column-main,
 .dash-column-side {
@@ -649,6 +651,17 @@ a { text-decoration: none; color: inherit; }
   flex-direction:column;
   gap:16px;
   min-width:0;
+}
+.dash-column-main {
+  grid-column:1;
+  grid-row:2;
+}
+.dash-column-side {
+  grid-column:2;
+  grid-row:1 / span 2;
+}
+.dash-column-side .dash-panel:last-child {
+  display:none;
 }
 .dash-panel {
   padding:18px;
@@ -1573,7 +1586,7 @@ a { text-decoration: none; color: inherit; }
   .page-header h2 { font-size:28px; }
   .stat-val { font-size:24px; }
   .course-grid { grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); }
-  .dl-name { font-size:14px; }
+  .dl-name { font-size:var(--dl-name-size); }
   .note-editor-body { grid-template-columns:1fr 1fr; grid-template-rows:unset; }
   .note-md-inp { border-right:1px solid var(--border); border-bottom:none; }
 }

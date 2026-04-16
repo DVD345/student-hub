@@ -456,7 +456,7 @@ a { text-decoration: none; color: inherit; }
 .icon-btn { background:none; border:none; color:var(--text2); cursor:pointer; font-size:13px; padding:5px; border-radius:6px; transition:color .2s, background .2s; flex-shrink:0; }
 .icon-btn:hover { color:var(--text); background:var(--bg3); }
 
-.main { margin-left:var(--sidebar); height:100vh; height:100dvh; flex:1; display:flex; flex-direction:column; overflow:hidden; }
+.main { margin-left:var(--sidebar); height:100vh; height:100dvh; flex:1; display:flex; flex-direction:column; overflow:hidden; min-height:0; }
 
 .sidebar-resizer {
   position: fixed;
@@ -507,7 +507,7 @@ body.deadlines-resizing {
 
 .content {
   padding: 14px 14px calc(72px + env(safe-area-inset-bottom,0px));
-  flex:1; overflow-y:auto; overflow-x:hidden;
+  flex:1; overflow-y:auto; overflow-x:hidden; min-height:0;
   -webkit-overflow-scrolling: touch;
 }
 
@@ -2067,8 +2067,8 @@ body.deadlines-resizing .dl-width-resizer::before {
 .gr-tr:last-child .gr-td{border-bottom:none;}
 .gr-tr:hover .gr-td{background:var(--bg3);}
 
-#page-grades { overflow:visible; }
-#grades-list { overflow:visible; }
+#page-grades { overflow:visible; min-height:max-content; padding-bottom:clamp(140px, 24vh, 260px); }
+#grades-list { overflow:visible; padding-bottom:clamp(120px, 20vh, 220px); }
 #page-grades .tb-input { max-width:none; }
 #page-grades .tb-right { flex-wrap:wrap; }
 #page-grades .gr-card-name { font-size:calc(.9rem * var(--ui-font-scale)); }

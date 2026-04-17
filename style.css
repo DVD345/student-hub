@@ -1025,12 +1025,18 @@ body.deadlines-resizing {
   border-radius: 999px;
   background: rgba(255,255,255,.05);
 }
-#page-deadlines:hover .dl-width-resizer,
+.dl-width-resizer {
+  background: transparent;
+}
+.dl-width-resizer::before {
+  opacity: 0;
+  transition: opacity .15s ease, background .15s ease, box-shadow .15s ease;
+}
 body.deadlines-resizing .dl-width-resizer {
   background: rgba(240,192,64,.06);
 }
-#page-deadlines:hover .dl-width-resizer::before,
 body.deadlines-resizing .dl-width-resizer::before {
+  opacity: 1;
   background: rgba(240,192,64,.42);
   box-shadow: 0 0 16px rgba(240,192,64,.22);
 }

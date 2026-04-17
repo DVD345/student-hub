@@ -1820,6 +1820,35 @@ body.deadlines-resizing .dl-width-resizer::before {
   .content { padding-bottom: calc(88px + env(safe-area-inset-bottom, 0px)) !important; }
   .chat-input { font-size: 16px !important; }
   .admin-page-head { flex-direction:column; align-items:stretch; }
+  #page-dashboard,
+  #page-dashboard .dash-home {
+    overflow-x:hidden;
+  }
+  .dash-home {
+    grid-template-columns:minmax(0, 1fr);
+    gap:16px;
+  }
+  .dash-layout {
+    display:grid;
+    grid-template-columns:minmax(0, 1fr);
+  }
+  .dash-column-main,
+  .dash-column-side,
+  .dash-theme-card-bottom {
+    grid-column:auto;
+    grid-row:auto;
+    width:100%;
+  }
+  .dash-home > *,
+  .dash-column-main > *,
+  .dash-column-side > *,
+  .dash-hero-main,
+  .dash-panel,
+  .dash-font-card,
+  .dash-theme-card {
+    min-width:0;
+    max-width:100%;
+  }
   .dash-hero,
   .dash-quick-grid {
     grid-template-columns:1fr;
@@ -1851,6 +1880,35 @@ body.deadlines-resizing .dl-width-resizer::before {
   .dash-panel-head {
     flex-direction:column;
     align-items:stretch;
+  }
+  #page-deadlines .toolbar {
+    align-items:stretch;
+    gap:10px;
+  }
+  #page-deadlines .tb-input,
+  #page-deadlines .tb-select {
+    width:100%;
+    max-width:none;
+  }
+  #page-deadlines .tb-right {
+    margin-left:0;
+    width:100%;
+    overflow-x:auto;
+    overflow-y:hidden;
+    flex-wrap:nowrap;
+    justify-content:flex-start;
+    -webkit-overflow-scrolling:touch;
+    scrollbar-width:none;
+    padding-bottom:4px;
+  }
+  #page-deadlines .tb-right::-webkit-scrollbar {
+    display:none;
+  }
+  #page-deadlines .tb-right .btn,
+  #page-deadlines .tb-right .btn-primary,
+  #page-deadlines .tb-right .tb-select {
+    flex:0 0 auto;
+    white-space:nowrap;
   }
   .msg-touch-menu {
     display:inline-flex;

@@ -1066,7 +1066,19 @@ body.deadlines-resizing .dl-width-resizer::before {
 .dl-info { flex:1; min-width:0; }
 .dl-name { font-size:var(--dl-name-size); font-weight:600; overflow:hidden; text-overflow:ellipsis; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; line-height:1.35; }
 .dl-course { font-size:var(--dl-course-size); color:var(--text2); margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.dl-right { display:flex; flex-direction:column; align-items:flex-end; gap:3px; flex-shrink:0; min-width:var(--dl-right-min-width); }
+.dl-right {
+  display:flex;
+  flex-direction:column;
+  align-items:flex-end;
+  justify-content:center;
+  gap:3px;
+  flex-shrink:0;
+  min-width:var(--dl-right-min-width);
+  min-height:calc(52px * var(--dl-font-scale));
+}
+.dl-right .tag {
+  margin-top:1px;
+}
 .dl-date { font-family:'JetBrains Mono',monospace; font-size:var(--dl-date-size); color:var(--text2); text-align:right; }
 .dl-date.time { color:var(--accent); font-weight:700; font-size:var(--dl-date-strong-size); }
 .dl-date.u { color:var(--accent2); font-weight:700; }

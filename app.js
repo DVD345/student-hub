@@ -1068,6 +1068,7 @@ async function _refreshMoodleToken() {
 var _moodleFailStreak = 0;
 var _moodleFailType = '';
 var _moodleLastFailAt = 0;
+var _moodleBannerShownAt = 0;
 
 function _markMoodleFailure(type) {
   var now = Date.now();
@@ -1080,9 +1081,24 @@ function _clearMoodleFailureState() {
   _moodleFailStreak = 0;
   _moodleFailType = '';
   _moodleLastFailAt = 0;
+  _moodleBannerShownAt = 0;
+}
+
+function _maybeShowMoodleBanner(msg, mode) {
+  var now = Date.now();
+  if(_moodleFailStreak < 4) return;
+  if(now - _moodleBannerShownAt < 90000) return;
+  _moodleBannerShownAt = now;
+  _showOfflineBanner(msg, mode);
 }
 
 function _showOfflineBanner(msg, mode) {
+  if(mode === 'refresh') {
+    var now = Date.now();
+    if(_moodleFailStreak < 4) return;
+    if(now - _moodleBannerShownAt < 90000) return;
+    _moodleBannerShownAt = now;
+  }
   let banner = document.getElementById('offline-banner');
   if(!banner) {
     banner = document.createElement('div');
@@ -1191,10 +1207,34 @@ async function openCourseContents(courseId, btn) {
 
 // ✅ IMPROVEMENT 2: syncMoodle runs loadCourses + loadDeadlines in PARALLEL
 async function syncMoodle() {
-  await Promise.all([loadCourses(), loadDeadlines()]);
-  renderCalendar();
-  // Load submission statuses in background, re-render calendar when done
-  loadSubmissionStatuses().then(function() { renderCalendar(); });
+  if(syncMoodle._busy) return;
+  syncMoodle._busy = true;
+
+  var buttons = Array.from(document.querySelectorAll('button[onclick="syncMoodle()"]'));
+  var prev = buttons.map(function(btn){
+    return { btn: btn, html: btn.innerHTML, disabled: btn.disabled };
+  });
+
+  buttons.forEach(function(btn){
+    btn.disabled = true;
+    btn.innerHTML = '⏳ Оновлення...';
+  });
+
+  try {
+    _clearMoodleFailureState();
+    var banner = document.getElementById('offline-banner');
+    if(banner) banner.remove();
+
+    await Promise.all([loadCourses(), loadDeadlines()]);
+    renderCalendar();
+    loadSubmissionStatuses().then(function() { renderCalendar(); });
+  } finally {
+    prev.forEach(function(state){
+      state.btn.disabled = state.disabled;
+      state.btn.innerHTML = state.html;
+    });
+    syncMoodle._busy = false;
+  }
 }
 
 // ── COURSES ──

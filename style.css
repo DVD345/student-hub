@@ -990,7 +990,7 @@ body.deadlines-resizing {
 #page-deadlines {
   width: min(100%, var(--deadlines-page-width, 1280px));
   max-width: none;
-  margin: 0 auto 0 0;
+  margin: 0 auto;
   position: relative;
   --dl-auto-scale: 1;
   --dl-user-scale: 1;

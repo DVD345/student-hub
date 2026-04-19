@@ -362,6 +362,7 @@ async function initApp() {
   _applySidebarWidth();
   _initSidebarResizer();
   _initDeadlinesWidthResizer();
+  _setupDeadlinesToolbar();
   _applyDeadlinesWidth();
   // Clear any browser-restored input values
   var chatInp = document.getElementById('chat-inp');
@@ -757,6 +758,52 @@ function _applyDeadlinesWidth() {
   page.style.setProperty('--dl-user-scale', fontScale.toFixed(3));
   page.style.setProperty('--dl-item-pad-y', padY.toFixed(2) + 'px');
   page.style.setProperty('--dl-item-pad-x', padX.toFixed(2) + 'px');
+}
+function _setupDeadlinesToolbar() {
+  var page = document.getElementById('page-deadlines');
+  if(!page) return;
+
+  var toolbar = page.querySelector('.tb-right');
+  if(toolbar) {
+    var settingsBtn = toolbar.querySelector('button[onclick="toggleDlSettings()"]');
+    if(settingsBtn) {
+      settingsBtn.innerHTML = '⚙️ Налаштування';
+      settingsBtn.title = 'Налаштування';
+    }
+  }
+
+  var settings = document.getElementById('dl-settings');
+  if(!settings) return;
+
+  var title = settings.firstElementChild;
+  if(title) title.textContent = '⚙️ Налаштування дедлайнів';
+
+  if(settings.querySelector('.dl-settings-tools')) return;
+
+  var colorsBlock = settings.children[1] || null;
+  var wrap = document.createElement('div');
+  wrap.className = 'dl-settings-tools';
+  wrap.innerHTML =
+    '<div class="dl-settings-block">' +
+      '<div class="dl-settings-subtitle">Розмір тексту</div>' +
+      '<div class="dl-settings-actions">' +
+        '<button class="btn" type="button" onclick="adjustDeadlinesFontSize(-1)" title="Менший шрифт">A-</button>' +
+        '<button class="btn" type="button" onclick="resetDeadlinesFontSize()" title="Стандартний шрифт">A</button>' +
+        '<button class="btn" type="button" onclick="adjustDeadlinesFontSize(1)" title="Більший шрифт">A+</button>' +
+      '</div>' +
+    '</div>' +
+    '<div class="dl-settings-block">' +
+      '<div class="dl-settings-subtitle">Ширина списку</div>' +
+      '<div class="dl-settings-actions">' +
+        '<button class="btn" type="button" onclick="adjustDeadlinesWidth(-80)" title="Вужче">↔−</button>' +
+        '<button class="btn" type="button" onclick="resetDeadlinesWidth()" title="Стандартна ширина">Стандарт</button>' +
+        '<button class="btn" type="button" onclick="adjustDeadlinesWidth(80)" title="Ширше">↔+</button>' +
+      '</div>' +
+    '</div>' +
+    '<div class="dl-settings-subtitle">Кольорові пороги</div>';
+
+  if(colorsBlock) settings.insertBefore(wrap, colorsBlock);
+  else settings.appendChild(wrap);
 }
 function adjustDeadlinesWidth(delta) {
   var current = parseInt(localStorage.getItem(_deadlinesWidthStorageKey()) || _defaultDeadlinesWidth(), 10);

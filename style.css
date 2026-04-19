@@ -1099,6 +1099,22 @@ body.deadlines-resizing .dl-width-resizer::before {
   min-height: 38px;
 }
 .tb-right { margin-left:auto; display:flex; gap:5px; align-items:center; }
+#page-deadlines .tb-right > button[onclick="adjustDeadlinesFontSize(-1)"],
+#page-deadlines .tb-right > button[onclick="resetDeadlinesFontSize()"],
+#page-deadlines .tb-right > button[onclick="adjustDeadlinesFontSize(1)"],
+#page-deadlines .tb-right > button[onclick="adjustDeadlinesWidth(-80)"],
+#page-deadlines .tb-right > button[onclick="resetDeadlinesWidth()"],
+#page-deadlines .tb-right > button[onclick="adjustDeadlinesWidth(80)"] { display:none; }
+.dl-settings-tools { display:grid; gap:14px; margin-bottom:14px; }
+.dl-settings-block { display:grid; gap:8px; }
+.dl-settings-subtitle {
+  font-size:11px;
+  font-weight:700;
+  color:var(--text2);
+  letter-spacing:.03em;
+  text-transform:uppercase;
+}
+.dl-settings-actions { display:flex; flex-wrap:wrap; gap:8px; }
 .section-title { font-size:9px; font-weight:700; color:var(--text2); letter-spacing:1px; text-transform:uppercase; margin:18px 0 8px; }
 
 .btn {

@@ -20,6 +20,7 @@ function scheduleRender() {
     applyDlFilter();
     renderDashDl();
     renderDashWidgets();
+    _renderDeadlineSmartPanels();
     renderCalendar();
     _renderCalNotesInDeadlines();
   }, 50);
@@ -800,10 +801,22 @@ function _setupDeadlinesToolbar() {
         '<button class="btn" type="button" onclick="adjustDeadlinesWidth(80)" title="Ширше">↔+</button>' +
       '</div>' +
     '</div>' +
+    '<div class="dl-settings-block">' +
+      '<div class="dl-settings-subtitle">Модульний тиждень</div>' +
+      '<div class="dl-settings-actions">' +
+        '<button class="btn" type="button" id="module-week-toggle" onclick="toggleModuleWeekMode()">Увімкнути режим</button>' +
+        '<span id="module-week-state" class="tag">Неактивний</span>' +
+      '</div>' +
+      '<div class="dl-settings-dates">' +
+        '<label class="dl-settings-date"><span>Початок</span><input type="date" id="module-week-start" onchange="saveModuleWeekSettings()"></label>' +
+        '<label class="dl-settings-date"><span>Кінець</span><input type="date" id="module-week-end" onchange="saveModuleWeekSettings()"></label>' +
+      '</div>' +
+    '</div>' +
     '<div class="dl-settings-subtitle">Кольорові пороги</div>';
 
   if(colorsBlock) settings.insertBefore(wrap, colorsBlock);
   else settings.appendChild(wrap);
+  _refreshDeadlineSettingsUi();
 }
 function adjustDeadlinesWidth(delta) {
   var current = parseInt(localStorage.getItem(_deadlinesWidthStorageKey()) || _defaultDeadlinesWidth(), 10);
@@ -1012,6 +1025,11 @@ function _loadCachedData() {
           if(ls.dlUrgentH) _dlUrgentH = ls.dlUrgentH;
           if(ls.dlWarnD)   _dlWarnD   = ls.dlWarnD;
           if(ls.calNotes && typeof ls.calNotes==='object') _calNotes = ls.calNotes;
+          if(ls.dlPriorityMap && typeof ls.dlPriorityMap==='object') _dlPriorityMap = ls.dlPriorityMap;
+          if(Array.isArray(ls.dlFocusToday)) _dlFocusToday = ls.dlFocusToday;
+          _moduleWeekManual = !!ls.moduleWeekManual;
+          _moduleWeekStart = ls.moduleWeekStart || '';
+          _moduleWeekEnd = ls.moduleWeekEnd || '';
         }
       } catch(e2) {}
     }
@@ -1591,6 +1609,11 @@ var _dlUrgentH = 48;
 var _dlWarnD   = 7;
 var _dlDeleted = [];
 var _calNotes  = {};
+var _dlPriorityMap = {};
+var _dlFocusToday = [];
+var _moduleWeekManual = false;
+var _moduleWeekStart = '';
+var _moduleWeekEnd = '';
 var _userSettingsUnsub = null;
 var _settingsLoaded = false;
 
@@ -1611,6 +1634,11 @@ function startUserSettingsSync() {
       _dlWarnD   = data.dlWarnD   ?? 7;
       _dlDeleted = Array.isArray(data.dlDeleted) ? data.dlDeleted : [];
       _calNotes  = (data.calNotes && typeof data.calNotes==='object') ? data.calNotes : {};
+      _dlPriorityMap = (data.dlPriorityMap && typeof data.dlPriorityMap === 'object') ? data.dlPriorityMap : {};
+      _dlFocusToday = Array.isArray(data.dlFocusToday) ? data.dlFocusToday : [];
+      _moduleWeekManual = !!data.moduleWeekManual;
+      _moduleWeekStart = data.moduleWeekStart || '';
+      _moduleWeekEnd = data.moduleWeekEnd || '';
       _settingsLoaded = true;
       const uh = document.getElementById('dl-urgent-hours');
       const wd = document.getElementById('dl-warn-days');
@@ -1651,6 +1679,7 @@ function loadDlSettings() {
   const wd = document.getElementById('dl-warn-days');
   if(uh) uh.value = _dlUrgentH;
   if(wd) wd.value = _dlWarnD;
+  _refreshDeadlineSettingsUi();
 }
 
 function saveDlSettings() {
@@ -1665,6 +1694,203 @@ function toggleDlSettings() {
   const el = document.getElementById('dl-settings');
   el.style.display = el.style.display==='none' ? 'block' : 'none';
   if(el.style.display!=='none') loadDlSettings();
+}
+
+function _todayYmd() {
+  return new Date().toISOString().slice(0,10);
+}
+
+function _isModuleWeekActive() {
+  if(_moduleWeekManual) return true;
+  if(_moduleWeekStart && _moduleWeekEnd) {
+    var today = _todayYmd();
+    return today >= _moduleWeekStart && today <= _moduleWeekEnd;
+  }
+  return false;
+}
+
+function _isModuleDeadline(d) {
+  var hay = ((d && d.name) || '') + ' ' + ((d && d.course) || '');
+  return /(модул|module|контрольн|колокв|рубіж|тест|quiz|exam|захист|залік|іспит)/i.test(hay);
+}
+
+function _getDeadlinePriority(id) {
+  return _dlPriorityMap[String(id)] || 'normal';
+}
+
+function _isDeadlineFocused(id) {
+  return _dlFocusToday.includes(String(id));
+}
+
+function _refreshDeadlineSettingsUi() {
+  var startEl = document.getElementById('module-week-start');
+  var endEl = document.getElementById('module-week-end');
+  var toggleEl = document.getElementById('module-week-toggle');
+  var stateEl = document.getElementById('module-week-state');
+  if(startEl) startEl.value = _moduleWeekStart || '';
+  if(endEl) endEl.value = _moduleWeekEnd || '';
+  if(toggleEl) toggleEl.textContent = _moduleWeekManual ? 'Вимкнути режим' : 'Увімкнути режим';
+  if(stateEl) {
+    stateEl.textContent = _isModuleWeekActive() ? 'Активний' : 'Неактивний';
+    stateEl.className = 'tag ' + (_isModuleWeekActive() ? 'y' : '');
+  }
+}
+
+function saveModuleWeekSettings() {
+  var startEl = document.getElementById('module-week-start');
+  var endEl = document.getElementById('module-week-end');
+  _moduleWeekStart = startEl ? (startEl.value || '') : _moduleWeekStart;
+  _moduleWeekEnd = endEl ? (endEl.value || '') : _moduleWeekEnd;
+  _refreshDeadlineSettingsUi();
+  scheduleRender();
+  _saveUserSettings();
+}
+
+function toggleModuleWeekMode() {
+  _moduleWeekManual = !_moduleWeekManual;
+  _refreshDeadlineSettingsUi();
+  scheduleRender();
+  _saveUserSettings();
+}
+
+function cycleDlPriority(dlId, e) {
+  if(e) { e.stopPropagation(); e.preventDefault(); }
+  var sid = String(dlId);
+  var cur = _getDeadlinePriority(sid);
+  var next = cur === 'normal' ? 'high' : (cur === 'high' ? 'low' : 'normal');
+  if(next === 'normal') delete _dlPriorityMap[sid];
+  else _dlPriorityMap[sid] = next;
+  scheduleRender();
+  _saveUserSettings();
+}
+
+function toggleDlFocusToday(dlId, e) {
+  if(e) { e.stopPropagation(); e.preventDefault(); }
+  var sid = String(dlId);
+  if(_dlFocusToday.includes(sid)) _dlFocusToday = _dlFocusToday.filter(function(id){ return id !== sid; });
+  else _dlFocusToday.push(sid);
+  scheduleRender();
+  _saveUserSettings();
+}
+
+function _getPlannerSource() {
+  var now = Date.now()/1000;
+  return allDl.filter(function(d){
+    if(_dlDeleted.includes(String(d.id))) return false;
+    if(d.submitted === 'submitted') return false;
+    var eff = getEffectiveDue(d);
+    return eff && eff > now;
+  }).map(function(d){
+    var due = getEffectiveDue(d);
+    var sid = String(d.id);
+    var diff = due - now;
+    var priority = _getDeadlinePriority(sid);
+    var focus = _isDeadlineFocused(sid);
+    var module = _isModuleDeadline(d);
+    var score = 0;
+    if(diff <= 86400) score += 4;
+    else if(diff <= 3*86400) score += 3;
+    else if(diff <= 7*86400) score += 2;
+    else score += 1;
+    if(priority === 'high') score += 3;
+    if(priority === 'low') score -= 1.5;
+    if(focus) score += 3.5;
+    if(module) score += _isModuleWeekActive() ? 3 : 1.25;
+    return Object.assign({}, d, { due: due, diff: diff, _priority: priority, _focus: focus, _module: module, _score: score });
+  }).sort(function(a,b){
+    if(b._score !== a._score) return b._score - a._score;
+    return a.due - b.due;
+  });
+}
+
+function _formatShortDue(ts) {
+  return new Date(ts*1000).toLocaleDateString('uk-UA',{day:'numeric',month:'short'});
+}
+
+function _getDeadlineSortScore(d) {
+  var due = getEffectiveDue(d) || d.due || 0;
+  var now = Date.now()/1000;
+  var diff = due ? (due - now) : Infinity;
+  var score = 0;
+  if(_isDeadlineFocused(d.id)) score += 6;
+  var priority = _getDeadlinePriority(d.id);
+  if(priority === 'high') score += 4;
+  if(priority === 'low') score -= 2;
+  if(_isModuleDeadline(d)) score += _isModuleWeekActive() ? 3 : 1;
+  if(diff <= 86400) score += 4;
+  else if(diff <= 3*86400) score += 2;
+  return score;
+}
+
+function _renderDeadlineSmartPanels() {
+  _ensureDeadlineInsightsUi();
+  var plannerEl = document.getElementById('dash-planner-body');
+  var moduleEl = document.getElementById('dash-module-body');
+  var overloadEl = document.getElementById('dash-overload-body');
+  if(!plannerEl && !moduleEl && !overloadEl) return;
+
+  var items = _getPlannerSource();
+  var focusItems = items.filter(function(d){ return d._focus; }).slice(0,4);
+  var topItems = (focusItems.length ? focusItems : items.slice(0,4));
+  if(plannerEl) {
+    plannerEl.innerHTML = topItems.length
+      ? '<div class="smart-list">' + topItems.map(function(d){
+          var badge = d._focus ? 'Фокус' : (d._priority === 'high' ? 'Пріоритет' : (d._module && _isModuleWeekActive() ? 'Модуль' : 'Дедлайн'));
+          return '<button class="smart-item" onclick="' + (d.url && d.url !== '#' ? "window.open('" + escHtml(d.url) + "','_blank')" : "go('deadlines')") + '">' +
+            '<span class="smart-item-main"><strong>' + escHtml(d.name) + '</strong><span>' + escHtml(d.course) + '</span></span>' +
+            '<span class="smart-item-meta"><span class="smart-pill">' + escHtml(badge) + '</span><span>' + escHtml(_formatShortDue(d.due)) + '</span></span>' +
+          '</button>';
+        }).join('') + '</div>'
+      : '<div class="widget-empty">Немає задач для фокусу.</div>';
+  }
+
+  if(moduleEl) {
+    var moduleItems = items.filter(function(d){ return d._module; }).slice(0,4);
+    var state = _isModuleWeekActive();
+    moduleEl.innerHTML =
+      '<div class="smart-mode-row"><span class="smart-pill ' + (state ? 'warn' : '') + '">' + (state ? 'Активний' : 'Неактивний') + '</span>' +
+      '<button class="btn" type="button" onclick="toggleModuleWeekMode()">' + (state ? 'Вимкнути' : 'Увімкнути') + '</button></div>' +
+      '<div class="smart-mode-sub">' + (_moduleWeekStart && _moduleWeekEnd ? ('Проміжок: ' + escHtml(_moduleWeekStart) + ' — ' + escHtml(_moduleWeekEnd)) : 'Задайте дати у налаштуваннях дедлайнів або вмикайте вручну.') + '</div>' +
+      (moduleItems.length ? '<div class="smart-list compact">' + moduleItems.map(function(d){
+        return '<button class="smart-item compact" onclick="' + (d.url && d.url !== '#' ? "window.open('" + escHtml(d.url) + "','_blank')" : "go('deadlines')") + '">' +
+          '<span class="smart-item-main"><strong>' + escHtml(d.name) + '</strong><span>' + escHtml(_formatShortDue(d.due)) + '</span></span>' +
+        '</button>';
+      }).join('') + '</div>' : '<div class="widget-empty">Модульних задач зараз небагато.</div>');
+  }
+
+  if(overloadEl) {
+    var days = {};
+    items.forEach(function(d){
+      var key = new Date(d.due*1000).toISOString().slice(0,10);
+      var weight = 1 + (d._priority === 'high' ? 1 : 0) + (d._focus ? 1 : 0) + (d._module ? .8 : 0) + (d.diff <= 86400 ? 1.2 : (d.diff <= 3*86400 ? .6 : 0));
+      days[key] = (days[key] || 0) + weight;
+    });
+    var dayEntries = Object.keys(days).sort().slice(0,7).map(function(key){ return { key:key, score:days[key] }; });
+    var peak = dayEntries.reduce(function(best, day){ return !best || day.score > best.score ? day : best; }, null);
+    var level = !peak ? 'Низьке' : (peak.score >= 5 ? 'Високе' : (peak.score >= 3 ? 'Середнє' : 'Низьке'));
+    overloadEl.innerHTML = peak
+      ? '<div class="smart-overload-head"><span class="smart-pill ' + (level === 'Високе' ? 'danger' : (level === 'Середнє' ? 'warn' : '')) + '">' + level + '</span><span>Пік: ' + escHtml(peak.key) + '</span></div>' +
+        '<div class="smart-bars">' + dayEntries.map(function(day){
+          var pct = Math.min(100, Math.round((day.score / Math.max(peak.score, 1)) * 100));
+          return '<div class="smart-bar-row"><span>' + escHtml(day.key.slice(5)) + '</span><div class="smart-bar"><i style="width:' + pct + '%"></i></div></div>';
+        }).join('') + '</div>'
+      : '<div class="widget-empty">Найближчий тиждень поки спокійний.</div>';
+  }
+}
+
+function _ensureDeadlineInsightsUi() {
+  var mainCol = document.querySelector('#page-dashboard .dash-column-main');
+  if(mainCol && !document.getElementById('dash-planner-panel')) {
+    mainCol.insertAdjacentHTML('afterbegin',
+      '<div class="dash-panel" id="dash-planner-panel">' +
+        '<div class="dash-panel-head"><div><div class="dash-panel-title">Планувальник навантаження</div><div class="dash-panel-sub">Те, за що варто братися просто зараз</div></div></div>' +
+        '<div id="dash-planner-body"></div>' +
+      '</div>' +
+      '<div class="dash-panel dash-smart-split">' +
+        '<div class="smart-split-card"><div class="dash-panel-head"><div><div class="dash-panel-title">Модульний тиждень</div><div class="dash-panel-sub">Окремий режим для пікових навчальних тижнів</div></div></div><div id="dash-module-body"></div></div>' +
+        '<div class="smart-split-card"><div class="dash-panel-head"><div><div class="dash-panel-title">Анти-завал</div><div class="dash-panel-sub">Попередження про перегруз у найближчі дні</div></div></div><div id="dash-overload-body"></div></div>' +
+      '</div>');
+  }
 }
 
 function deleteDl(id, e) {
@@ -1959,7 +2185,7 @@ function renderDl(list, el) {
       (hasUrl?' onclick="window.open(this.dataset.url)" data-url="'+escHtml(d.url)+'"':'')+(d.past||d.due<=now?' style="opacity:.6"':'')+'>'+
       '<div class="dl-dot '+dc+'"></div>'+
       '<div class="dl-info"><div class="dl-name">'+escHtml(d.name)+(hasUrl?' <span style="opacity:.35;font-size:9px">↗</span>':'')+'</div>'+
-      '<div class="dl-course">'+escHtml(d.course)+'</div></div>'+
+      '<div class="dl-course">'+escHtml(d.course)+(smartTags ? ' <span class="dl-smart-tags">'+smartTags+'</span>' : '')+'</div></div>'+
       '<div class="dl-right">'+
         '<div class="dl-date '+dtc+'">'+fmtDate(d.due)+'</div>'+
         tag+
@@ -4436,6 +4662,8 @@ function doLogout(){
   unsubs=[];token='';userData={};allDl=[];courses=[];group={};userRole='student';cachedFiles=[];cachedMats=[];
   _notesLoaded = false;
   _dlOverrides = {}; _dlDeleted = []; _calNotes = {};
+  _dlPriorityMap = {}; _dlFocusToday = [];
+  _moduleWeekManual = false; _moduleWeekStart = ''; _moduleWeekEnd = '';
   // Прибираємо банер при виході
   const banner = document.getElementById('offline-banner');
   if(banner) banner.remove();
@@ -4682,6 +4910,7 @@ function renderDashWidgets() {
   renderDashboardSummary();
   renderDashboardMiniCalendar();
   renderDashboardEvents();
+  _renderDeadlineSmartPanels();
   renderWidgetToday();
   renderWidgetWeek();
   renderWidgetNotes();
@@ -4938,11 +5167,17 @@ startUserSettingsSync = function() {
       _dlDeleted = Array.isArray(data.dlDeleted) ? data.dlDeleted : [];
       _calNotes  = (data.calNotes && typeof data.calNotes==='object') ? data.calNotes : {};
       _dlOverrides = (data.dlOverrides && typeof data.dlOverrides==='object') ? data.dlOverrides : {};
+      _dlPriorityMap = (data.dlPriorityMap && typeof data.dlPriorityMap === 'object') ? data.dlPriorityMap : {};
+      _dlFocusToday = Array.isArray(data.dlFocusToday) ? data.dlFocusToday : [];
+      _moduleWeekManual = !!data.moduleWeekManual;
+      _moduleWeekStart = data.moduleWeekStart || '';
+      _moduleWeekEnd = data.moduleWeekEnd || '';
       _settingsLoaded = true;
       const uh = document.getElementById('dl-urgent-hours');
       const wd = document.getElementById('dl-warn-days');
       if(uh) uh.value = _dlUrgentH;
       if(wd) wd.value = _dlWarnD;
+      _refreshDeadlineSettingsUi();
       if(allDl.length > 0) {
         scheduleRender();
         _renderCalNotesInDeadlines();
@@ -4961,6 +5196,8 @@ _saveUserSettings = async function() {
     const payload = {
       dlUrgentH: _dlUrgentH, dlWarnD: _dlWarnD,
       dlDeleted: _dlDeleted, calNotes: _calNotes,
+      dlPriorityMap: _dlPriorityMap, dlFocusToday: _dlFocusToday,
+      moduleWeekManual: _moduleWeekManual, moduleWeekStart: _moduleWeekStart, moduleWeekEnd: _moduleWeekEnd,
       dlOverrides: _dlOverrides
     };
     // Завжди зберігаємо в localStorage — щоб при наступному завантаженні
@@ -5013,6 +5250,9 @@ renderDl = function(list, el) {
     else if(!isNoDl && diff < _dlWarnD*86400) dateCls = 's';
 
     const hasUrl = d.url && d.url !== '#';
+    const priority = _getDeadlinePriority(sid);
+    const isFocused = _isDeadlineFocused(sid);
+    const isModule = _isModuleDeadline(d);
     let tag = '';
     if(d.submitted==='submitted') tag='<span class="tag g">✅ Здано</span>';
     else if(d.submitted==='draft') tag='<span class="tag y">📝 Чернетка</span>';
@@ -5024,6 +5264,13 @@ renderDl = function(list, el) {
       const isTomorrow=dueD.getDate()===todD.getDate()+1&&dueD.getMonth()===todD.getMonth()&&dueD.getFullYear()===todD.getFullYear();
       if(isTomorrow) tag='<span class="tag y">Завтра</span>';
     }
+
+    const smartTags = [
+      isFocused ? '<span class="tag y">Фокус</span>' : '',
+      priority === 'high' ? '<span class="tag r">Важливо</span>' : '',
+      priority === 'low' ? '<span class="tag">Пізніше</span>' : '',
+      isModule && _isModuleWeekActive() ? '<span class="tag y">Модуль</span>' : ''
+    ].filter(Boolean).join('');
 
     // Override-badge
     const ovBadge = ov && ov.due
@@ -5038,11 +5285,13 @@ renderDl = function(list, el) {
       (hasUrl?' onclick="window.open(this.dataset.url)" data-url="'+escHtml(d.url)+'"':'')+(isPast?' style="opacity:.6"':'')+'>'+
       '<div class="dl-dot '+dotClass+'"></div>'+
       '<div class="dl-info"><div class="dl-name">'+escHtml(d.name)+ovBadge+(hasUrl?' <span style="opacity:.35;font-size:9px">↗</span>':'')+'</div>'+
-      '<div class="dl-course">'+escHtml(d.course)+'</div></div>'+
+      '<div class="dl-course">'+escHtml(d.course)+(smartTags ? ' <span class="dl-smart-tags">'+smartTags+'</span>' : '')+'</div></div>'+
       '<div class="dl-right">'+
         '<div class="dl-date '+dateCls+'">'+dateDisplay+'</div>'+
         tag+
         '<div style="display:flex;gap:3px;margin-top:3px;justify-content:flex-end;">'+
+          '<button onclick="toggleDlFocusToday(this.dataset.dlid,event)" data-dlid="'+escHtml(sid)+'" title="Фокус на сьогодні" style="background:none;border:none;color:'+(isFocused?'var(--accent)':'var(--text2)')+';font-size:13px;cursor:pointer;opacity:'+(isFocused?'1':'.55')+';padding:2px 4px;border-radius:4px;transition:opacity .15s;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity='+(isFocused?'1':'.55')+'">★</button>'+
+          '<button onclick="cycleDlPriority(this.dataset.dlid,event)" data-dlid="'+escHtml(sid)+'" title="Змінити пріоритет" style="background:none;border:none;color:'+(priority==='high'?'var(--accent2)':(priority==='low'?'var(--text2)':'var(--warning)'))+';font-size:13px;cursor:pointer;opacity:.8;padding:2px 4px;border-radius:4px;transition:opacity .15s;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=.8">'+(priority==='high'?'!':(priority==='low'?'↓':'•'))+'</button>'+
           '<button onclick="event.stopPropagation();openDlEditModal(this.dataset.dlid)" data-dlid="'+escHtml(sid)+'" title="Встановити/змінити дедлайн" style="background:none;border:none;color:var(--accent);font-size:13px;cursor:pointer;opacity:.55;padding:2px 4px;border-radius:4px;transition:opacity .15s;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=.55">✏️</button>'+
           '<button onclick="event.stopPropagation();deleteDl(this.dataset.dlid,event)" data-dlid="'+escHtml(sid)+'" title="Приховати" style="background:none;border:none;color:var(--text2);font-size:12px;cursor:pointer;opacity:.4;padding:2px 4px;border-radius:4px;transition:opacity .15s;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=.4">✕</button>'+
         '</div>'+
@@ -5090,6 +5339,13 @@ applyDlFilter = function() {
     const ov = _dlOverrides[String(d.id)];
     const eff = (ov && ov.due) ? ov.due : d.due;
     return { ...d, due: eff || d.due, past: eff ? eff <= now : false, _origDue: d.due };
+  });
+
+  list.sort(function(a,b){
+    if(a.past !== b.past) return a.past ? 1 : -1;
+    var scoreDiff = _getDeadlineSortScore(b) - _getDeadlineSortScore(a);
+    if(scoreDiff) return scoreDiff;
+    return (a.due || 0) - (b.due || 0);
   });
 
   renderDl(list, document.getElementById('dl-list'));

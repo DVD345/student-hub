@@ -5135,9 +5135,11 @@ document.addEventListener('keydown', e => {
 
 // ── Бессрочні завдання з Moodle ──
 // Зберігаємо завдання без дедлайну (due=0) в allDl окремим масивом
+// No-deadline items loaded from Moodle.
 var _noDlItems = [];
 
 // Патч loadDeadlines щоб включати завдання без дедлайну
+// Extend loadDeadlines to include items without deadlines.
 var _origLoadDeadlines = loadDeadlines;
 loadDeadlines = async function() {
   // Спочатку запускаємо оригінальний loadDeadlines

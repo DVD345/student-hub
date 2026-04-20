@@ -1253,6 +1253,13 @@ function _initScheduleUi() {
     var el = document.getElementById(id);
     if(el) el.addEventListener('change', saveScheduleFilters);
   });
+  var openBtn = document.querySelector('#page-schedule .schedule-meta-actions a.btn');
+  if(openBtn) {
+    openBtn.addEventListener('click', function(ev){
+      ev.preventDefault();
+      openScheduleSource();
+    });
+  }
 
   try {
     var rawCache = localStorage.getItem(SCHEDULE_CACHE_KEY);
@@ -1405,6 +1412,14 @@ function _buildScheduleParams(filters) {
   return params;
 }
 
+function openScheduleSource() {
+  try {
+    window.open(SCHEDULE_FACULTY_URL, '_blank', 'noopener');
+  } catch(e) {
+    location.href = SCHEDULE_FACULTY_URL;
+  }
+}
+
 async function _fetchScheduleJson(path, init) {
   var requestInit = Object.assign({ method:'GET', headers:{ Accept:'application/json, text/plain, */*' } }, init || {});
   if(requestInit.body && !(typeof requestInit.body === 'string')) {
@@ -1434,6 +1449,12 @@ function _setScheduleStatus(text, tone) {
   if(!el) return;
   el.className = 'schedule-status' + (tone ? ' is-' + tone : '');
   el.textContent = text;
+}
+
+function _showScheduleFallback() {
+  var root = document.getElementById('schedule-results');
+  if(!root) return;
+  root.innerHTML = '<div class="schedule-fallback-card"><div class="schedule-fallback-emo">⚠</div><div class="schedule-fallback-title">Schedule is temporarily unavailable</div><p class="schedule-fallback-copy">The university schedule site did not allow this request. You can open the official page directly or try again.</p><div class="schedule-fallback-actions"><button class="btn a" type="button" onclick="openScheduleSource()">Open university site ↗</button><button class="btn" type="button" onclick="loadFacultySchedule(true)">Try again</button></div></div>';
 }
 
 function _sanitizeScheduleHtml(html) {
@@ -1527,10 +1548,12 @@ async function loadFacultySchedule(force) {
     if(!restored) {
       var root = document.getElementById('schedule-results');
       if(root) {
+        root.innerHTML = '<div class="schedule-fallback-card"><div class="schedule-fallback-emo">вљ пёЏ</div><div class="schedule-fallback-title">РќРµ РІРґР°Р»РѕСЃСЏ РїС–РґС‚СЏРіРЅСѓС‚Рё СЂРѕР·РєР»Р°Рґ Р°РІС‚РѕРјР°С‚РёС‡РЅРѕ</div><p class="schedule-fallback-copy">РЎР°Р№С‚ СЂРѕР·РєР»Р°РґСѓ С‚РёРјС‡Р°СЃРѕРІРѕ РЅРµ РІС–РґРїРѕРІС–РІ Р°Р±Рѕ Р·Р°Р±Р»РѕРєСѓРІР°РІ РєСЂРѕСЃРґРѕРјРµРЅРЅРёР№ Р·Р°РїРёС‚. РњРѕР¶РЅР° С€РІРёРґРєРѕ РїРµСЂРµР№С‚Рё РЅР° РѕС„С–С†С–Р№РЅРёР№ СЃР°Р№С‚ Р°Р±Рѕ СЃРїСЂРѕР±СѓРІР°С‚Рё С‰Рµ СЂР°Р·.</p><div class="schedule-fallback-actions"><button class="btn a" type="button" onclick="openScheduleSource()">Р’С–РґРєСЂРёС‚Рё СЃР°Р№С‚ СѓРЅС–РІРµСЂСѓ в†—</button><button class="btn" type="button" onclick="loadFacultySchedule(true)">РЎРїСЂРѕР±СѓРІР°С‚Рё С‰Рµ СЂР°Р·</button></div></div>';
         root.innerHTML = '<div class="empty"><div class="emo">⚠️</div><p>Не вдалося завантажити розклад. Спробуй ще раз або відкрий сайт універу.</p></div>';
       }
       _setScheduleStatus('Сайт розкладу не відповів або заблокував запит. Кешу теж немає.', 'error');
     }
+    if(!restored) _showScheduleFallback();
   } finally {
     _scheduleState.loading = false;
   }

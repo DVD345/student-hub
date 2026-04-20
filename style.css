@@ -2515,6 +2515,40 @@ body.deadlines-resizing .dl-width-resizer::before {
   padding: calc(16px * var(--ui-font-scale));
 }
 
+.schedule-fallback-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: flex-start;
+  padding: calc(18px * var(--ui-font-scale));
+  border-radius: calc(16px * var(--ui-font-scale));
+  border: 1px solid color-mix(in srgb, var(--accent2) 24%, transparent);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--accent2) 7%, transparent), rgba(255,255,255,.015));
+}
+
+.schedule-fallback-emo {
+  font-size: calc(22px * var(--ui-font-scale));
+  line-height: 1;
+}
+
+.schedule-fallback-title {
+  font-size: calc(16px * var(--ui-font-scale));
+  font-weight: 800;
+  color: var(--text);
+}
+
+.schedule-fallback-copy {
+  font-size: calc(12px * var(--ui-font-scale));
+  line-height: 1.6;
+  color: var(--text2);
+}
+
+.schedule-fallback-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
 .schedule-table-wrap {
   margin-top: 12px;
   overflow: auto;

@@ -1110,7 +1110,7 @@ function setupNav() {
 
 var SCHEDULE_BASE_URL = 'http://rasp.kart.edu.ua';
 var SCHEDULE_FACULTY_URL = SCHEDULE_BASE_URL + '/faculty';
-var SCHEDULE_PROXY_PREFIXES = ['', 'https://cors.isomorphic-git.org/'];
+var SCHEDULE_PROXY_URL = 'https://schedule-proxy.dvdkunec.workers.dev';
 var SCHEDULE_FILTERS_KEY = 'sh_schedule_filters_v1';
 var SCHEDULE_CACHE_KEY = 'sh_schedule_cache_v1';
 var _scheduleUiReady = false;
@@ -1428,20 +1428,10 @@ async function _fetchScheduleJson(path, init) {
   if(requestInit.body) {
     requestInit.headers = Object.assign({}, requestInit.headers, { 'Content-Type':'application/x-www-form-urlencoded; charset=UTF-8' });
   }
-  var lastError = null;
-  for(var i=0;i<SCHEDULE_PROXY_PREFIXES.length;i++) {
-    var prefix = SCHEDULE_PROXY_PREFIXES[i];
-    var url = prefix ? prefix + SCHEDULE_BASE_URL + path : SCHEDULE_BASE_URL + path;
-    try {
-      var response = await fetch(url, requestInit);
-      if(!response.ok) throw new Error('HTTP ' + response.status);
-      var text = await response.text();
-      return JSON.parse(text);
-    } catch(err) {
-      lastError = err;
-    }
-  }
-  throw lastError || new Error('Schedule request failed');
+  var response = await fetch(SCHEDULE_PROXY_URL + path, requestInit);
+  if(!response.ok) throw new Error('HTTP ' + response.status);
+  var text = await response.text();
+  return JSON.parse(text);
 }
 
 function _setScheduleStatus(text, tone) {

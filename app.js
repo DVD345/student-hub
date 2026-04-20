@@ -1775,13 +1775,17 @@ function toggleDlFocusToday(dlId, e) {
 
 function _getPlannerSource() {
   var now = Date.now()/1000;
-  return allDl.filter(function(d){
+  var base = allDl.filter(function(d){
     if(_dlDeleted.includes(String(d.id))) return false;
     if(d.submitted === 'submitted') return false;
     var eff = getEffectiveDue(d);
     return eff && eff > now;
+  }).concat(_getCalendarDeadlineItems());
+
+  return base.filter(function(d){
+    return d && d.due && d.due > now;
   }).map(function(d){
-    var due = getEffectiveDue(d);
+    var due = d._calNote ? d.due : getEffectiveDue(d);
     var sid = String(d.id);
     var diff = due - now;
     var priority = _getDeadlinePriority(sid);
@@ -1805,6 +1809,35 @@ function _getPlannerSource() {
 
 function _formatShortDue(ts) {
   return new Date(ts*1000).toLocaleDateString('uk-UA',{day:'numeric',month:'short'});
+}
+
+function _getCalendarDeadlineItems() {
+  var now = Date.now()/1000;
+  var rows = [];
+  Object.entries(_calNotes || {}).forEach(function(entry){
+    var ds = entry[0];
+    getCalNotes(ds).forEach(function(note){
+      var fullDt = new Date(ds + 'T' + (note.time || '23:59'));
+      var due = Math.floor(fullDt.getTime()/1000);
+      if(!due || due <= now) return;
+      rows.push({
+        id: 'cal_' + ds + '_' + (note.id || 'note'),
+        name: note.text || 'Нотатка з календаря',
+        _normName: (note.text || 'Нотатка з календаря').toLowerCase().trim(),
+        course: 'Нотатка в календарі',
+        due: due,
+        past: false,
+        url: '',
+        assignid: null,
+        submitted: null,
+        _calNote: true,
+        _calNoteDate: ds,
+        _calNoteId: note.id || '',
+        _calPreview: true
+      });
+    });
+  });
+  return rows.sort(function(a,b){ return a.due - b.due; });
 }
 
 function _getDeadlineSortScore(d) {
@@ -1833,15 +1866,32 @@ function _renderDeadlineSmartPanels() {
   var focusItems = items.filter(function(d){ return d._focus; }).slice(0,4);
   var topItems = (focusItems.length ? focusItems : items.slice(0,4));
   if(plannerEl) {
-    plannerEl.innerHTML = topItems.length
-      ? '<div class="smart-list">' + topItems.map(function(d){
-          var badge = d._focus ? 'Фокус' : (d._priority === 'high' ? 'Пріоритет' : (d._module && _isModuleWeekActive() ? 'Модуль' : 'Дедлайн'));
-          return '<button class="smart-item" onclick="' + (d.url && d.url !== '#' ? "window.open('" + escHtml(d.url) + "','_blank')" : "go('deadlines')") + '">' +
-            '<span class="smart-item-main"><strong>' + escHtml(d.name) + '</strong><span>' + escHtml(d.course) + '</span></span>' +
-            '<span class="smart-item-meta"><span class="smart-pill">' + escHtml(badge) + '</span><span>' + escHtml(_formatShortDue(d.due)) + '</span></span>' +
-          '</button>';
-        }).join('') + '</div>'
-      : '<div class="widget-empty">Немає задач для фокусу.</div>';
+    var urgentCount = items.filter(function(d){ return d.diff <= 86400; }).length;
+    var focusCount = items.filter(function(d){ return d._focus; }).length;
+    var moduleCount = items.filter(function(d){ return d._module; }).length;
+    var thisWeekCount = items.filter(function(d){ return d.diff <= 7*86400; }).length;
+    var topCourses = {};
+    items.slice(0,10).forEach(function(d){
+      topCourses[d.course] = (topCourses[d.course] || 0) + 1;
+    });
+    var busiest = Object.keys(topCourses).sort(function(a,b){ return topCourses[b] - topCourses[a]; })[0] || '—';
+    plannerEl.innerHTML =
+      '<div class="smart-kpi-grid">' +
+        '<div class="smart-kpi"><strong>' + urgentCount + '</strong><span>на добу</span></div>' +
+        '<div class="smart-kpi"><strong>' + focusCount + '</strong><span>у фокусі</span></div>' +
+        '<div class="smart-kpi"><strong>' + thisWeekCount + '</strong><span>на тиждень</span></div>' +
+        '<div class="smart-kpi"><strong>' + moduleCount + '</strong><span>модульних</span></div>' +
+      '</div>' +
+      '<div class="smart-mode-sub">Найбільше навантаження зараз у: <strong style="color:var(--text)">' + escHtml(busiest) + '</strong></div>' +
+      (topItems.length
+        ? '<div class="smart-list compact">' + topItems.slice(0,3).map(function(d){
+            var badge = d._focus ? 'Фокус' : (d._priority === 'high' ? 'Пріоритет' : (d._module && _isModuleWeekActive() ? 'Модуль' : 'Далі'));
+            return '<button class="smart-item compact" onclick="' + (d._calNote ? ("openCalNoteModal('" + escHtml(d._calNoteDate) + "',event,'" + escHtml(d._calNoteId || '') + "')") : (d.url && d.url !== '#' ? "window.open('" + escHtml(d.url) + "','_blank')" : "go('deadlines')")) + '">' +
+              '<span class="smart-item-main"><strong>' + escHtml(d.name) + '</strong><span>' + escHtml(d.course) + '</span></span>' +
+              '<span class="smart-item-meta"><span class="smart-pill">' + escHtml(badge) + '</span><span>' + escHtml(_formatShortDue(d.due)) + '</span></span>' +
+            '</button>';
+          }).join('') + '</div>'
+        : '<div class="widget-empty">Немає задач для фокусу.</div>');
   }
 
   if(moduleEl) {
@@ -2089,11 +2139,7 @@ function _renderCalNotesInDeadlines() {
       dashNotes.id = 'cal-notes-in-dash';
       dashDl.parentNode.insertBefore(dashNotes, dashDl);
     }
-    const futureNotes = allNoteRows.filter(({ds, note}) => {
-      const fullDt = new Date(ds + 'T' + (note.time || '23:59'));
-      return fullDt > now;
-    });
-    dashNotes.innerHTML = futureNotes.length ? _buildNoteRows(futureNotes, today, now) : '';
+    dashNotes.innerHTML = '';
   }
 }
 
@@ -2211,7 +2257,12 @@ function renderDashDl() {
   }).map(d => {
     const eff = (typeof getEffectiveDue === 'function') ? getEffectiveDue(d) : d.due;
     return { ...d, due: eff, past: false };
-  }).sort((a,b)=>a.due-b.due).slice(0,5);
+  }).concat(_getCalendarDeadlineItems())
+    .sort((a,b)=>{
+      var scoreDiff = _getDeadlineSortScore(b) - _getDeadlineSortScore(a);
+      if(scoreDiff) return scoreDiff;
+      return a.due - b.due;
+    }).slice(0,5);
   if(!top.length){el.innerHTML='<div class="empty"><div class="emo">🎉</div><p>Немає активних дедлайнів!</p></div>';return;}
   if(el) renderDl(top,el);
   if(elHome) renderDl(top,elHome);
@@ -5250,6 +5301,9 @@ renderDl = function(list, el) {
     else if(!isNoDl && diff < _dlWarnD*86400) dateCls = 's';
 
     const hasUrl = d.url && d.url !== '#';
+    const rowOnclick = d._calNote
+      ? ' onclick="openCalNoteModal(\''+escHtml(d._calNoteDate)+'\',event,\''+escHtml(d._calNoteId || '')+'\')"'
+      : (hasUrl ? ' onclick="window.open(this.dataset.url)" data-url="'+escHtml(d.url)+'"' : '');
     const priority = _getDeadlinePriority(sid);
     const isFocused = _isDeadlineFocused(sid);
     const isModule = _isModuleDeadline(d);
@@ -5281,8 +5335,8 @@ renderDl = function(list, el) {
       ? fmtDate(ov.due)
       : (d.due ? fmtDate(d.due) : '<span style="color:var(--text2);font-style:italic;font-size:11px;">без дедлайну</span>');
 
-    return '<div class="dl-item'+(hasUrl?' click':'')+'"'+
-      (hasUrl?' onclick="window.open(this.dataset.url)" data-url="'+escHtml(d.url)+'"':'')+(isPast?' style="opacity:.6"':'')+'>'+
+    return '<div class="dl-item'+((hasUrl || d._calNote)?' click':'')+'"'+
+      rowOnclick+(isPast?' style="opacity:.6"':'')+'>'+
       '<div class="dl-dot '+dotClass+'"></div>'+
       '<div class="dl-info"><div class="dl-name">'+escHtml(d.name)+ovBadge+(hasUrl?' <span style="opacity:.35;font-size:9px">↗</span>':'')+'</div>'+
       '<div class="dl-course">'+escHtml(d.course)+(smartTags ? ' <span class="dl-smart-tags">'+smartTags+'</span>' : '')+'</div></div>'+

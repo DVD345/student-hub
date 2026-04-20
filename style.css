@@ -1130,6 +1130,18 @@ body.deadlines-resizing .dl-width-resizer::before {
 .smart-split-card { min-width:0; }
 .smart-list { display:grid; gap:10px; }
 .smart-list.compact { gap:8px; }
+.smart-kpi-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:10px; margin-bottom:12px; }
+.smart-kpi {
+  display:grid;
+  gap:4px;
+  padding:12px;
+  background:rgba(255,255,255,.03);
+  border:1px solid rgba(255,255,255,.05);
+  border-radius:14px;
+  text-align:center;
+}
+.smart-kpi strong { font-size:22px; line-height:1; color:var(--text); }
+.smart-kpi span { font-size:11px; color:var(--text2); }
 .smart-item {
   display:flex;
   align-items:flex-start;
@@ -1969,6 +1981,9 @@ body.deadlines-resizing .dl-width-resizer::before {
   .dash-smart-split {
     grid-template-columns:1fr;
     gap:14px;
+  }
+  .smart-kpi-grid {
+    grid-template-columns:repeat(2,minmax(0,1fr));
   }
   .dash-panel {
     padding:14px;

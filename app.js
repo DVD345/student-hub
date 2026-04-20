@@ -1110,11 +1110,16 @@ function setupNav() {
 
 var SCHEDULE_BASE_URL = 'http://rasp.kart.edu.ua';
 var SCHEDULE_FACULTY_URL = SCHEDULE_BASE_URL + '/faculty';
+var SCHEDULE_GROUP_URL = SCHEDULE_BASE_URL + '/schedule';
 var SCHEDULE_PROXY_URL = 'https://schedule-proxy.dvdkunec.workers.dev';
 var SCHEDULE_FILTERS_KEY = 'sh_schedule_filters_v1';
+var SCHEDULE_GROUP_FILTERS_KEY = 'sh_schedule_group_filters_v1';
+var SCHEDULE_MODE_KEY = 'sh_schedule_mode_v1';
 var SCHEDULE_CACHE_KEY = 'sh_schedule_cache_v1';
 var _scheduleUiReady = false;
 var _scheduleState = { loaded:false, loading:false, header:null, rows:null, filters:null, caption:'' };
+var _scheduleMode = 'group';
+var _scheduleGroupSchema = null;
 
 var SCHEDULE_YEARS = [
   { id:'87', label:'Навчальний рік 2025-2026 денний' },
@@ -1239,6 +1244,7 @@ function _initScheduleUi() {
   if(_scheduleUiReady) return;
   if(!document.getElementById('page-schedule')) return;
   _scheduleUiReady = true;
+  _installScheduleModeUi();
 
   _fillScheduleSelect('sch-year', SCHEDULE_YEARS);
   _fillScheduleSelect('sch-semester', SCHEDULE_SEMESTERS);
@@ -1261,6 +1267,8 @@ function _initScheduleUi() {
       openScheduleSource();
     });
   }
+  _scheduleMode = localStorage.getItem(SCHEDULE_MODE_KEY) || 'group';
+  setScheduleMode(_scheduleMode, false);
 
   try {
     var rawCache = localStorage.getItem(SCHEDULE_CACHE_KEY);
@@ -1275,6 +1283,238 @@ function _initScheduleUi() {
       }
     }
   } catch(e) {}
+}
+
+function _installScheduleModeUi() {
+  var shell = document.querySelector('#page-schedule .schedule-shell');
+  var facultyCard = document.querySelector('#page-schedule .schedule-filter-card');
+  if(!shell || !facultyCard) return;
+  facultyCard.id = 'schedule-faculty-card';
+  if(!document.getElementById('schedule-mode-tabs')) {
+    var tabs = document.createElement('div');
+    tabs.id = 'schedule-mode-tabs';
+    tabs.className = 'schedule-mode-tabs';
+    tabs.innerHTML = '' +
+      '<button class="schedule-mode-tab" type="button" data-mode="group" onclick="setScheduleMode(\'group\', true)">Група</button>' +
+      '<button class="schedule-mode-tab" type="button" data-mode="faculty" onclick="setScheduleMode(\'faculty\', true)">Факультет</button>';
+    shell.insertBefore(tabs, facultyCard);
+  }
+  if(!document.getElementById('schedule-group-card')) {
+    var groupCard = document.createElement('div');
+    groupCard.id = 'schedule-group-card';
+    groupCard.className = 'schedule-filter-card';
+    groupCard.style.display = 'none';
+    groupCard.innerHTML = '' +
+      '<div class="schedule-filter-head">' +
+        '<div>' +
+          '<div class="schedule-filter-title">Параметри пошуку групи</div>' +
+          '<div class="schedule-filter-sub">Тут буде той самий набір полів, що на сторінці розкладу групи.</div>' +
+        '</div>' +
+        '<div class="schedule-filter-actions">' +
+          '<button class="btn" type="button" onclick="resetGroupScheduleFilters()">Скинути</button>' +
+          '<button class="btn a" type="button" onclick="loadFacultySchedule(true)">Пошук</button>' +
+        '</div>' +
+      '</div>' +
+      '<div id="schedule-group-fields"><div class="loading"><div class="spinner"></div>Завантаження форми...</div></div>';
+    shell.insertBefore(groupCard, facultyCard);
+  }
+}
+
+function setScheduleMode(mode, remember) {
+  _scheduleMode = mode === 'faculty' ? 'faculty' : 'group';
+  if(remember !== false) localStorage.setItem(SCHEDULE_MODE_KEY, _scheduleMode);
+  var groupCard = document.getElementById('schedule-group-card');
+  var facultyCard = document.getElementById('schedule-faculty-card') || document.querySelector('#page-schedule .schedule-filter-card');
+  if(groupCard) groupCard.style.display = _scheduleMode === 'group' ? '' : 'none';
+  if(facultyCard) facultyCard.style.display = _scheduleMode === 'faculty' ? '' : 'none';
+  document.querySelectorAll('.schedule-mode-tab').forEach(function(btn){
+    btn.classList.toggle('on', btn.dataset.mode === _scheduleMode);
+  });
+  var openBtn = document.querySelector('#page-schedule .schedule-meta-actions a.btn');
+  if(openBtn) openBtn.setAttribute('href', _scheduleMode === 'group' ? SCHEDULE_GROUP_URL : SCHEDULE_FACULTY_URL);
+  if(_scheduleMode === 'group') {
+    _ensureGroupScheduleSchema();
+    _setScheduleStatus('Режим групи активний. Обери потрібну групу і натисни «Пошук».');
+  } else {
+    _setScheduleStatus('Режим факультету активний. Можна шукати розклад за факультетом, курсами й парами.');
+  }
+}
+
+async function _ensureGroupScheduleSchema(force) {
+  if(_scheduleGroupSchema && !force) {
+    _renderGroupScheduleForm(_scheduleGroupSchema);
+    return _scheduleGroupSchema;
+  }
+  var host = document.getElementById('schedule-group-fields');
+  if(host) host.innerHTML = '<div class="loading"><div class="spinner"></div>Завантаження форми...</div>';
+  try {
+    var html = await _fetchScheduleText('/schedule');
+    _scheduleGroupSchema = _parseGroupScheduleSchema(html);
+    _renderGroupScheduleForm(_scheduleGroupSchema);
+    return _scheduleGroupSchema;
+  } catch(e) {
+    if(host) host.innerHTML = '<div class="empty"><div class="emo">⚠</div><p>Не вдалося завантажити форму розкладу групи.</p></div>';
+    throw e;
+  }
+}
+
+async function _fetchScheduleText(path, init) {
+  var requestInit = Object.assign({ method:'GET', headers:{ Accept:'text/html,application/json,text/plain,*/*' } }, init || {});
+  if(requestInit.body && !(typeof requestInit.body === 'string')) requestInit.body = String(requestInit.body);
+  if(requestInit.body) requestInit.headers = Object.assign({}, requestInit.headers, { 'Content-Type':'application/x-www-form-urlencoded; charset=UTF-8' });
+  var response = await fetch(SCHEDULE_PROXY_URL + path, requestInit);
+  if(!response.ok) throw new Error('HTTP ' + response.status);
+  return await response.text();
+}
+
+function _parseGroupScheduleSchema(html) {
+  var doc = new DOMParser().parseFromString(html, 'text/html');
+  var form = doc.querySelector('form');
+  if(!form) throw new Error('Group schedule form not found');
+  var fields = [];
+  Array.from(form.querySelectorAll('tr')).forEach(function(row){
+    var th = row.querySelector('th');
+    var td = row.querySelector('td');
+    if(!th || !td) return;
+    var label = (th.textContent || '').replace(/\s+/g, ' ').trim();
+    var select = td.querySelector('select[name]');
+    if(select) {
+      fields.push({
+        type: 'select',
+        name: select.name,
+        label: label,
+        multiple: !!select.multiple,
+        options: Array.from(select.options).map(function(opt){
+          return {
+            value: opt.value,
+            label: (opt.textContent || '').replace(/\s+/g, ' ').trim(),
+            selected: !!opt.selected
+          };
+        })
+      });
+      return;
+    }
+    var checks = Array.from(td.querySelectorAll('input[type="checkbox"][name]'));
+    if(checks.length) {
+      fields.push({
+        type: 'checkboxes',
+        name: checks[0].name,
+        label: label,
+        options: checks.map(function(input){
+          var txt = input.nextSibling && input.nextSibling.textContent ? input.nextSibling.textContent : '';
+          return {
+            value: input.value,
+            label: txt.replace(/\s+/g, ' ').trim() || input.value,
+            selected: !!input.checked
+          };
+        })
+      });
+    }
+  });
+  var headerMatch = html.match(/\/schedule\/jheader[^'"]+/i);
+  var contentMatch = html.match(/\/schedule\/jcontent[^'"]+/i);
+  return {
+    headerPath: headerMatch ? headerMatch[0] : '/schedule/jheaderschedule',
+    contentPath: contentMatch ? contentMatch[0] : '/schedule/jcontentschedule',
+    fields: fields
+  };
+}
+
+function _renderGroupScheduleForm(schema) {
+  var host = document.getElementById('schedule-group-fields');
+  if(!host || !schema) return;
+  var saved = _readGroupScheduleFilters();
+  host.innerHTML = schema.fields.map(function(field, idx){
+    if(field.type === 'select') {
+      return '<label class="schedule-field">' +
+        '<span>' + escHtml(field.label) + '</span>' +
+        '<select data-sg-name="' + escHtml(field.name) + '" id="sgf-' + idx + '">' +
+          field.options.map(function(opt){
+            var selected = _isGroupScheduleOptionSelected(saved, field.name, opt.value, opt.selected) ? ' selected' : '';
+            return '<option value="' + escHtml(opt.value) + '"' + selected + '>' + escHtml(opt.label) + '</option>';
+          }).join('') +
+        '</select>' +
+      '</label>';
+    }
+    return '<div class="schedule-check-block">' +
+      '<div class="schedule-check-label">' + escHtml(field.label) + '</div>' +
+      '<div class="schedule-chip-group">' +
+        field.options.map(function(opt){
+          var active = _isGroupScheduleOptionSelected(saved, field.name, opt.value, opt.selected) ? ' on' : '';
+          return '<button class="schedule-chip' + active + '" type="button" data-sg-name="' + escHtml(field.name) + '" data-sg-value="' + escHtml(opt.value) + '">' + escHtml(opt.label) + '</button>';
+        }).join('') +
+      '</div>' +
+    '</div>';
+  }).join('');
+  host.className = 'schedule-group-grid';
+  Array.from(host.querySelectorAll('.schedule-chip')).forEach(function(btn){
+    btn.addEventListener('click', function(){
+      btn.classList.toggle('on');
+      saveGroupScheduleFilters();
+    });
+  });
+  Array.from(host.querySelectorAll('select[data-sg-name]')).forEach(function(select){
+    select.addEventListener('change', saveGroupScheduleFilters);
+  });
+  _autoSelectCurrentGroup(host);
+}
+
+function _isGroupScheduleOptionSelected(saved, name, value, fallbackSelected) {
+  if(saved && Object.prototype.hasOwnProperty.call(saved, name)) {
+    var cur = saved[name];
+    if(Array.isArray(cur)) return cur.map(String).includes(String(value));
+    return String(cur) === String(value);
+  }
+  return !!fallbackSelected;
+}
+
+function _autoSelectCurrentGroup(host) {
+  if(!host || !group || !group.name) return;
+  var normalizedCurrent = String(group.name).trim().toLowerCase();
+  var selects = Array.from(host.querySelectorAll('select[data-sg-name]'));
+  var target = selects.find(function(select){
+    return Array.from(select.options).some(function(opt){ return String(opt.textContent || '').trim().toLowerCase() === normalizedCurrent; });
+  });
+  if(target && !target.dataset.autofilled) {
+    var exact = Array.from(target.options).find(function(opt){ return String(opt.textContent || '').trim().toLowerCase() === normalizedCurrent; });
+    if(exact) {
+      target.value = exact.value;
+      target.dataset.autofilled = '1';
+      saveGroupScheduleFilters();
+    }
+  }
+}
+
+function _readGroupScheduleFilters() {
+  try { return JSON.parse(localStorage.getItem(SCHEDULE_GROUP_FILTERS_KEY) || 'null'); } catch(e) { return null; }
+}
+
+function _collectGroupScheduleFilters() {
+  var host = document.getElementById('schedule-group-fields');
+  var data = {};
+  if(!host) return data;
+  Array.from(host.querySelectorAll('select[data-sg-name]')).forEach(function(select){
+    data[select.dataset.sgName] = select.multiple
+      ? Array.from(select.selectedOptions).map(function(opt){ return opt.value; })
+      : select.value;
+  });
+  Array.from(host.querySelectorAll('.schedule-chip[data-sg-name]')).forEach(function(btn){
+    var name = btn.dataset.sgName;
+    if(!data[name]) data[name] = [];
+    if(btn.classList.contains('on')) data[name].push(btn.dataset.sgValue);
+  });
+  return data;
+}
+
+function saveGroupScheduleFilters() {
+  try { localStorage.setItem(SCHEDULE_GROUP_FILTERS_KEY, JSON.stringify(_collectGroupScheduleFilters())); } catch(e) {}
+  _scheduleState.loaded = false;
+}
+
+function resetGroupScheduleFilters() {
+  localStorage.removeItem(SCHEDULE_GROUP_FILTERS_KEY);
+  _scheduleState.loaded = false;
+  if(_scheduleGroupSchema) _renderGroupScheduleForm(_scheduleGroupSchema);
 }
 
 function _fillScheduleSelect(id, options) {
@@ -1414,9 +1654,9 @@ function _buildScheduleParams(filters) {
 
 function openScheduleSource() {
   try {
-    window.open(SCHEDULE_FACULTY_URL, '_blank', 'noopener');
+    window.open(_scheduleMode === 'group' ? SCHEDULE_GROUP_URL : SCHEDULE_FACULTY_URL, '_blank', 'noopener');
   } catch(e) {
-    location.href = SCHEDULE_FACULTY_URL;
+    location.href = _scheduleMode === 'group' ? SCHEDULE_GROUP_URL : SCHEDULE_FACULTY_URL;
   }
 }
 
@@ -1493,6 +1733,7 @@ function _renderScheduleResults(headerData, contentData, caption, fromCache) {
 
 async function loadFacultySchedule(force) {
   _initScheduleUi();
+  if(_scheduleMode === 'group') return loadGroupSchedule(force);
   if(_scheduleState.loading) return;
   if(_scheduleState.loaded && !force) return;
   var filters = _collectScheduleFilters();
@@ -1544,6 +1785,51 @@ async function loadFacultySchedule(force) {
       _setScheduleStatus('Сайт розкладу не відповів або заблокував запит. Кешу теж немає.', 'error');
     }
     if(!restored) _showScheduleFallback();
+  } finally {
+    _scheduleState.loading = false;
+  }
+}
+
+async function loadGroupSchedule(force) {
+  _initScheduleUi();
+  if(_scheduleState.loading) return;
+  if(_scheduleState.loaded && !force) return;
+  var schema = await _ensureGroupScheduleSchema();
+  var filters = _collectGroupScheduleFilters();
+  if(!Object.keys(filters).length) {
+    _setScheduleStatus('Спочатку обери параметри групи для пошуку.', 'warn');
+    return;
+  }
+  _scheduleState.loading = true;
+  _setScheduleStatus('Підтягуємо розклад групи з сайту універу…');
+  try {
+    var params = new URLSearchParams();
+    Object.keys(filters).forEach(function(name){
+      var value = filters[name];
+      if(Array.isArray(value)) value.forEach(function(v){ params.append(name, v); });
+      else params.append(name, value);
+    });
+    var headerData = await _fetchScheduleJson(schema.headerPath, { method:'POST', body: params.toString() });
+    if(!headerData || headerData.result !== 'success') throw new Error('Bad group schedule header');
+    var contentData = await _fetchScheduleJson(schema.contentPath + '?' + params.toString(), { method:'GET' });
+    _scheduleState.loaded = true;
+    _scheduleState.header = headerData;
+    _scheduleState.rows = contentData;
+    _scheduleState.filters = filters;
+    _scheduleState.caption = headerData.caption || '';
+    _renderScheduleResults(headerData, contentData, headerData.caption || 'Розклад групи', false);
+    try {
+      localStorage.setItem(SCHEDULE_CACHE_KEY, JSON.stringify({
+        header: headerData,
+        rows: contentData,
+        filters: filters,
+        caption: headerData.caption || '',
+        savedAt: Date.now()
+      }));
+    } catch(e) {}
+  } catch(e) {
+    _setScheduleStatus('Не вдалося завантажити розклад групи. Спробуй іншу групу або відкрий оригінальний сайт.', 'error');
+    _showScheduleFallback();
   } finally {
     _scheduleState.loading = false;
   }

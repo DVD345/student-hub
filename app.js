@@ -1856,76 +1856,8 @@ function _getDeadlineSortScore(d) {
 }
 
 function _renderDeadlineSmartPanels() {
-  _ensureDeadlineInsightsUi();
-  var plannerEl = document.getElementById('dash-planner-body');
-  var moduleEl = document.getElementById('dash-module-body');
-  var overloadEl = document.getElementById('dash-overload-body');
-  if(!plannerEl && !moduleEl && !overloadEl) return;
-
-  var items = _getPlannerSource();
-  var focusItems = items.filter(function(d){ return d._focus; }).slice(0,4);
-  var topItems = (focusItems.length ? focusItems : items.slice(0,4));
-  if(plannerEl) {
-    var urgentCount = items.filter(function(d){ return d.diff <= 86400; }).length;
-    var focusCount = items.filter(function(d){ return d._focus; }).length;
-    var moduleCount = items.filter(function(d){ return d._module; }).length;
-    var thisWeekCount = items.filter(function(d){ return d.diff <= 7*86400; }).length;
-    var topCourses = {};
-    items.slice(0,10).forEach(function(d){
-      topCourses[d.course] = (topCourses[d.course] || 0) + 1;
-    });
-    var busiest = Object.keys(topCourses).sort(function(a,b){ return topCourses[b] - topCourses[a]; })[0] || '—';
-    plannerEl.innerHTML =
-      '<div class="smart-kpi-grid">' +
-        '<div class="smart-kpi"><strong>' + urgentCount + '</strong><span>на добу</span></div>' +
-        '<div class="smart-kpi"><strong>' + focusCount + '</strong><span>у фокусі</span></div>' +
-        '<div class="smart-kpi"><strong>' + thisWeekCount + '</strong><span>на тиждень</span></div>' +
-        '<div class="smart-kpi"><strong>' + moduleCount + '</strong><span>модульних</span></div>' +
-      '</div>' +
-      '<div class="smart-mode-sub">Найбільше навантаження зараз у: <strong style="color:var(--text)">' + escHtml(busiest) + '</strong></div>' +
-      (topItems.length
-        ? '<div class="smart-list compact">' + topItems.slice(0,3).map(function(d){
-            var badge = d._focus ? 'Фокус' : (d._priority === 'high' ? 'Пріоритет' : (d._module && _isModuleWeekActive() ? 'Модуль' : 'Далі'));
-            return '<button class="smart-item compact" onclick="' + (d._calNote ? ("openCalNoteModal('" + escHtml(d._calNoteDate) + "',event,'" + escHtml(d._calNoteId || '') + "')") : (d.url && d.url !== '#' ? "window.open('" + escHtml(d.url) + "','_blank')" : "go('deadlines')")) + '">' +
-              '<span class="smart-item-main"><strong>' + escHtml(d.name) + '</strong><span>' + escHtml(d.course) + '</span></span>' +
-              '<span class="smart-item-meta"><span class="smart-pill">' + escHtml(badge) + '</span><span>' + escHtml(_formatShortDue(d.due)) + '</span></span>' +
-            '</button>';
-          }).join('') + '</div>'
-        : '<div class="widget-empty">Немає задач для фокусу.</div>');
-  }
-
-  if(moduleEl) {
-    var moduleItems = items.filter(function(d){ return d._module; }).slice(0,4);
-    var state = _isModuleWeekActive();
-    moduleEl.innerHTML =
-      '<div class="smart-mode-row"><span class="smart-pill ' + (state ? 'warn' : '') + '">' + (state ? 'Активний' : 'Неактивний') + '</span>' +
-      '<button class="btn" type="button" onclick="toggleModuleWeekMode()">' + (state ? 'Вимкнути' : 'Увімкнути') + '</button></div>' +
-      '<div class="smart-mode-sub">' + (_moduleWeekStart && _moduleWeekEnd ? ('Проміжок: ' + escHtml(_moduleWeekStart) + ' — ' + escHtml(_moduleWeekEnd)) : 'Задайте дати у налаштуваннях дедлайнів або вмикайте вручну.') + '</div>' +
-      (moduleItems.length ? '<div class="smart-list compact">' + moduleItems.map(function(d){
-        return '<button class="smart-item compact" onclick="' + (d.url && d.url !== '#' ? "window.open('" + escHtml(d.url) + "','_blank')" : "go('deadlines')") + '">' +
-          '<span class="smart-item-main"><strong>' + escHtml(d.name) + '</strong><span>' + escHtml(_formatShortDue(d.due)) + '</span></span>' +
-        '</button>';
-      }).join('') + '</div>' : '<div class="widget-empty">Модульних задач зараз небагато.</div>');
-  }
-
-  if(overloadEl) {
-    var days = {};
-    items.forEach(function(d){
-      var key = new Date(d.due*1000).toISOString().slice(0,10);
-      var weight = 1 + (d._priority === 'high' ? 1 : 0) + (d._focus ? 1 : 0) + (d._module ? .8 : 0) + (d.diff <= 86400 ? 1.2 : (d.diff <= 3*86400 ? .6 : 0));
-      days[key] = (days[key] || 0) + weight;
-    });
-    var dayEntries = Object.keys(days).sort().slice(0,7).map(function(key){ return { key:key, score:days[key] }; });
-    var peak = dayEntries.reduce(function(best, day){ return !best || day.score > best.score ? day : best; }, null);
-    var level = !peak ? 'Низьке' : (peak.score >= 5 ? 'Високе' : (peak.score >= 3 ? 'Середнє' : 'Низьке'));
-    overloadEl.innerHTML = peak
-      ? '<div class="smart-overload-head"><span class="smart-pill ' + (level === 'Високе' ? 'danger' : (level === 'Середнє' ? 'warn' : '')) + '">' + level + '</span><span>Пік: ' + escHtml(peak.key) + '</span></div>' +
-        '<div class="smart-bars">' + dayEntries.map(function(day){
-          var pct = Math.min(100, Math.round((day.score / Math.max(peak.score, 1)) * 100));
-          return '<div class="smart-bar-row"><span>' + escHtml(day.key.slice(5)) + '</span><div class="smart-bar"><i style="width:' + pct + '%"></i></div></div>';
-        }).join('') + '</div>'
-      : '<div class="widget-empty">Найближчий тиждень поки спокійний.</div>';
-  }
+  var planner = document.getElementById('dash-planner-panel');
+  if(planner) planner.remove();
 }
 
 function _ensureDeadlineInsightsUi() {
@@ -2139,7 +2071,7 @@ function _renderCalNotesInDeadlines() {
       dashNotes.id = 'cal-notes-in-dash';
       dashDl.parentNode.insertBefore(dashNotes, dashDl);
     }
-    dashNotes.innerHTML = '';
+    dashNotes.remove();
   }
 }
 
@@ -2258,11 +2190,7 @@ function renderDashDl() {
     const eff = (typeof getEffectiveDue === 'function') ? getEffectiveDue(d) : d.due;
     return { ...d, due: eff, past: false };
   }).concat(_getCalendarDeadlineItems())
-    .sort((a,b)=>{
-      var scoreDiff = _getDeadlineSortScore(b) - _getDeadlineSortScore(a);
-      if(scoreDiff) return scoreDiff;
-      return a.due - b.due;
-    }).slice(0,5);
+    .sort((a,b)=>a.due-b.due).slice(0,5);
   if(!top.length){el.innerHTML='<div class="empty"><div class="emo">🎉</div><p>Немає активних дедлайнів!</p></div>';return;}
   if(el) renderDl(top,el);
   if(elHome) renderDl(top,elHome);

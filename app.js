@@ -1267,12 +1267,11 @@ function _initScheduleUi() {
     if(rawCache) {
       var cache = JSON.parse(rawCache);
       if(cache && cache.header && cache.rows) {
-        _scheduleState.loaded = true;
+        _scheduleState.loaded = false;
         _scheduleState.header = cache.header;
         _scheduleState.rows = cache.rows;
         _scheduleState.caption = cache.caption || '';
         _scheduleState.filters = cache.filters || null;
-        _renderScheduleResults(cache.header, cache.rows, cache.caption || '', true);
       }
     }
   } catch(e) {}
@@ -4289,7 +4288,6 @@ function go(name) {
   document.getElementById('topbar-title').textContent=PAGE_TITLES[name]||name;
   if(name==='calendar') renderCalendar();
   if(name==='chat') _clearChatBadge();
-  if(name==='schedule') loadFacultySchedule();
   if(name==='assistant'||name==='notes') _loadKaTeX();
   if(name==='notes') loadNotes();
   if(name==='grades') loadGrades();

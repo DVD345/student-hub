@@ -365,6 +365,8 @@ async function initApp() {
   _initDeadlinesWidthResizer();
   _setupDeadlinesToolbar();
   _applyDeadlinesWidth();
+  _installScheduleUi();
+  _initScheduleUi();
   // Clear any browser-restored input values
   var chatInp = document.getElementById('chat-inp');
   if(chatInp) chatInp.value = '';
@@ -1103,6 +1105,434 @@ function setupNav() {
   if (canAdmin()) {
     document.getElementById('admin-section').style.display='';
     document.getElementById('nav-admin').style.display='';
+  }
+}
+
+var SCHEDULE_BASE_URL = 'https://rasp.kart.edu.ua';
+var SCHEDULE_FACULTY_URL = SCHEDULE_BASE_URL + '/faculty';
+var SCHEDULE_PROXY_PREFIXES = ['', 'https://cors.isomorphic-git.org/'];
+var SCHEDULE_FILTERS_KEY = 'sh_schedule_filters_v1';
+var SCHEDULE_CACHE_KEY = 'sh_schedule_cache_v1';
+var _scheduleUiReady = false;
+var _scheduleState = { loaded:false, loading:false, header:null, rows:null, filters:null, caption:'' };
+
+var SCHEDULE_YEARS = [
+  { id:'87', label:'Навчальний рік 2025-2026 денний' },
+  { id:'85', label:'Навчальний рік 2025-2026 заочний' },
+  { id:'81', label:'Навчальний рік 2024-2025 денна форма здобуття освіти' },
+  { id:'83', label:'Навчальний рік 2024-2025 заочна форма здобуття освіти' },
+  { id:'75', label:'Навчальний рік 2023-2024' },
+  { id:'76', label:'Навчальний рік 2023-2024 заочний' },
+  { id:'62', label:'Навчальний рік 2022-2023' },
+  { id:'65', label:'Навчальний рік 2022-2023 заочний' },
+  { id:'53', label:'Навчальний рік 2021-2022' },
+  { id:'63', label:'Навчальний рік 2020-2021' },
+  { id:'36', label:'Навчальний рік 2019-2020' },
+  { id:'37', label:'Навчальний рік 2019-2020 заочний' },
+  { id:'32', label:'Навчальний рік 2018-2019' },
+  { id:'33', label:'Навчальний рік 2018-2019 заочний' },
+  { id:'20', label:'Навчальний рік 2017-2018' },
+  { id:'17', label:'Навчальний рік 2016-2017' },
+  { id:'9', label:'Навчальний рік 2015-2016' },
+  { id:'8', label:'Навчальний рік 2014-2015' }
+];
+var SCHEDULE_SEMESTERS = [
+  { id:'1', label:'осінній (1 семестр)' },
+  { id:'2', label:'весняний (2 семестр)' }
+];
+var SCHEDULE_WEEK_TYPES = [
+  { id:'0', label:'За обома тижнями' },
+  { id:'1', label:'Парний тиждень' },
+  { id:'2', label:'Непарний тиждень' }
+];
+var SCHEDULE_FACULTIES = [
+  { id:'2', label:'Інформаційно-керуючі системи і технології' },
+  { id:'5', label:'Будівельний' },
+  { id:'11', label:'Навчально-науковий центр гуманітарної освіти' },
+  { id:'3', label:'Економічний' },
+  { id:'4', label:'Механіко-енергетичний' },
+  { id:'1', label:'Управління процесами перевезень' }
+];
+var SCHEDULE_COURSE_OPTIONS = [
+  { id:'1', label:'1 курс' }, { id:'2', label:'2 курс' }, { id:'3', label:'3 курс' },
+  { id:'4', label:'4 курс' }, { id:'5', label:'5 курс' }, { id:'6', label:'6 курс' }
+];
+var SCHEDULE_WEEKDAY_OPTIONS = [
+  { id:'1', label:'Пн' }, { id:'2', label:'Вт' }, { id:'3', label:'Ср' }, { id:'4', label:'Чт' },
+  { id:'5', label:'Пт' }, { id:'6', label:'Сб' }, { id:'7', label:'Нд' }
+];
+var SCHEDULE_PAIR_OPTIONS = [
+  { id:'1', label:'1 пара' }, { id:'2', label:'2 пара' }, { id:'3', label:'3 пара' }, { id:'4', label:'4 пара' },
+  { id:'5', label:'5 пара' }, { id:'6', label:'6 пара' }, { id:'7', label:'7 пара' }, { id:'8', label:'8 пара' }
+];
+
+function _installScheduleUi() {
+  var nav = document.getElementById('nav');
+  if(nav) {
+    var filesItem = nav.querySelector('.nav-item[onclick="go(\'files\')"]');
+    var chatItem = nav.querySelector('.nav-item[onclick="go(\'chat\')"]');
+    var materialsItem = nav.querySelector('.nav-item[onclick="go(\'materials\')"]');
+    var notesItem = nav.querySelector('.nav-item[onclick="go(\'notes\')"]');
+    if(chatItem) { chatItem.dataset.page = 'chat'; }
+    if(filesItem) { filesItem.dataset.page = 'files'; }
+    if(materialsItem) { materialsItem.dataset.page = 'materials'; }
+    if(notesItem) { notesItem.dataset.page = 'notes'; }
+    if(chatItem && filesItem) nav.insertBefore(chatItem, filesItem);
+    if(!nav.querySelector('.nav-item[data-page="schedule"]')) {
+      var scheduleItem = document.createElement('div');
+      scheduleItem.className = 'nav-item';
+      scheduleItem.dataset.page = 'schedule';
+      scheduleItem.innerHTML = '<span class="ni">🗓</span>Розклад';
+      scheduleItem.onclick = function(){ go('schedule'); };
+      if(filesItem) nav.insertBefore(scheduleItem, filesItem);
+      else if(materialsItem) nav.insertBefore(scheduleItem, materialsItem);
+      else nav.appendChild(scheduleItem);
+    }
+  }
+
+  if(document.getElementById('page-schedule')) return;
+  var pageChat = document.getElementById('page-chat');
+  if(!pageChat || !pageChat.parentNode) return;
+  var page = document.createElement('div');
+  page.className = 'page';
+  page.id = 'page-schedule';
+  page.innerHTML = [
+    '<div class="page-header"><h2>🗓 Розклад</h2><p>Офіційний розклад з сайту універу прямо всередині StudentHub</p></div>',
+    '<div class="schedule-shell">',
+      '<div class="schedule-filter-card">',
+        '<div class="schedule-filter-head">',
+          '<div>',
+            '<div class="schedule-filter-title">Параметри пошуку</div>',
+            '<div class="schedule-filter-sub">Ті самі фільтри, що на сайті розкладу, але в інтерфейсі твого порталу.</div>',
+          '</div>',
+          '<div class="schedule-filter-actions">',
+            '<button class="btn" onclick="resetScheduleFilters()">Скинути</button>',
+            '<button class="btn a" onclick="loadFacultySchedule(true)">Пошук</button>',
+          '</div>',
+        '</div>',
+        '<div class="schedule-filter-grid">',
+          '<label class="schedule-field"><span>Рік</span><select id="sch-year"></select></label>',
+          '<label class="schedule-field"><span>Семестр</span><select id="sch-semester"></select></label>',
+          '<label class="schedule-field"><span>Тип тижня</span><select id="sch-week-type"></select></label>',
+          '<label class="schedule-field"><span>Факультет</span><select id="sch-faculty"></select></label>',
+        '</div>',
+        '<div class="schedule-check-wrap">',
+          '<div class="schedule-check-block"><div class="schedule-check-label">Курси</div><div class="schedule-chip-group" id="sch-courses"></div></div>',
+          '<div class="schedule-check-block"><div class="schedule-check-label">Дні тижня</div><div class="schedule-chip-group" id="sch-weekdays"></div></div>',
+          '<div class="schedule-check-block"><div class="schedule-check-label">Пари</div><div class="schedule-chip-group" id="sch-pairs"></div></div>',
+        '</div>',
+      '</div>',
+      '<div class="schedule-meta">',
+        '<div class="schedule-status" id="sch-status">Готово до пошуку. Параметри вже підлаштовані під твою групу.</div>',
+        '<div class="schedule-meta-actions">',
+          '<button class="btn" onclick="loadFacultySchedule(true)">Оновити</button>',
+          '<a class="btn" href="https://rasp.kart.edu.ua/faculty" target="_blank" rel="noopener">Сайт універу ↗</a>',
+        '</div>',
+      '</div>',
+      '<div id="schedule-results" class="schedule-results"><div class="empty"><div class="emo">🗓</div><p>Натисни «Пошук», щоб підтягнути розклад.</p></div></div>',
+    '</div>'
+  ].join('');
+  pageChat.insertAdjacentElement('afterend', page);
+}
+
+function _initScheduleUi() {
+  if(_scheduleUiReady) return;
+  if(!document.getElementById('page-schedule')) return;
+  _scheduleUiReady = true;
+
+  _fillScheduleSelect('sch-year', SCHEDULE_YEARS);
+  _fillScheduleSelect('sch-semester', SCHEDULE_SEMESTERS);
+  _fillScheduleSelect('sch-week-type', SCHEDULE_WEEK_TYPES);
+  _fillScheduleSelect('sch-faculty', SCHEDULE_FACULTIES);
+
+  var saved = _readScheduleFilters();
+  var defaults = _getDefaultScheduleFilters();
+  _applyScheduleFilters(saved || defaults);
+
+  ['sch-year','sch-semester','sch-week-type','sch-faculty'].forEach(function(id){
+    var el = document.getElementById(id);
+    if(el) el.addEventListener('change', saveScheduleFilters);
+  });
+
+  try {
+    var rawCache = localStorage.getItem(SCHEDULE_CACHE_KEY);
+    if(rawCache) {
+      var cache = JSON.parse(rawCache);
+      if(cache && cache.header && cache.rows) {
+        _scheduleState.loaded = true;
+        _scheduleState.header = cache.header;
+        _scheduleState.rows = cache.rows;
+        _scheduleState.caption = cache.caption || '';
+        _scheduleState.filters = cache.filters || null;
+        _renderScheduleResults(cache.header, cache.rows, cache.caption || '', true);
+      }
+    }
+  } catch(e) {}
+}
+
+function _fillScheduleSelect(id, options) {
+  var el = document.getElementById(id);
+  if(!el) return;
+  el.innerHTML = options.map(function(opt){
+    return '<option value="' + escHtml(opt.id) + '">' + escHtml(opt.label) + '</option>';
+  }).join('');
+}
+
+function _renderScheduleChipGroup(containerId, options, selectedValues) {
+  var el = document.getElementById(containerId);
+  if(!el) return;
+  var selected = (selectedValues || []).map(String);
+  el.innerHTML = options.map(function(opt){
+    var active = selected.includes(String(opt.id)) ? ' on' : '';
+    return '<button type="button" class="schedule-chip' + active + '" data-value="' + escHtml(opt.id) + '">' + escHtml(opt.label) + '</button>';
+  }).join('');
+  Array.from(el.querySelectorAll('.schedule-chip')).forEach(function(btn){
+    btn.addEventListener('click', function() {
+      btn.classList.toggle('on');
+      saveScheduleFilters();
+    });
+  });
+}
+
+function _getDefaultScheduleFilters() {
+  var now = new Date();
+  var startYear = now.getMonth() >= 7 ? now.getFullYear() : now.getFullYear() - 1;
+  var currentYearKey = String(startYear) + '-' + String(startYear + 1);
+  var yearMatch = SCHEDULE_YEARS.find(function(item){ return item.label.indexOf(currentYearKey) !== -1; });
+  var course = parseInt(getGroupCourse(group), 10);
+  if(!(course >= 1 && course <= 6)) course = 1;
+  return {
+    year_id: yearMatch ? yearMatch.id : SCHEDULE_YEARS[0].id,
+    semester_id: now.getMonth() >= 7 ? '1' : '2',
+    week_type_id: '0',
+    faculty_id: _guessScheduleFacultyId(),
+    courses: [String(course)],
+    weekdays: ['1','2','3','4','5'],
+    pairs: ['1','2','3','4']
+  };
+}
+
+function _guessScheduleFacultyId() {
+  var raw = ((group && group.faculty) || '').toLowerCase();
+  if(!raw) return SCHEDULE_FACULTIES[0].id;
+  if(raw.indexOf('інформац') !== -1 || raw.indexOf('керуюч') !== -1 || raw.indexOf('систем') !== -1) return '2';
+  if(raw.indexOf('будів') !== -1) return '5';
+  if(raw.indexOf('гуман') !== -1) return '11';
+  if(raw.indexOf('економ') !== -1) return '3';
+  if(raw.indexOf('механ') !== -1 || raw.indexOf('енерг') !== -1) return '4';
+  if(raw.indexOf('управл') !== -1 || raw.indexOf('перевез') !== -1) return '1';
+  return SCHEDULE_FACULTIES[0].id;
+}
+
+function _readScheduleFilters() {
+  try {
+    var raw = localStorage.getItem(SCHEDULE_FILTERS_KEY);
+    if(!raw) return null;
+    var parsed = JSON.parse(raw);
+    if(!parsed) return null;
+    return {
+      year_id: parsed.year_id || '',
+      semester_id: parsed.semester_id || '1',
+      week_type_id: parsed.week_type_id || '0',
+      faculty_id: parsed.faculty_id || '',
+      courses: Array.isArray(parsed.courses) ? parsed.courses.map(String) : [],
+      weekdays: Array.isArray(parsed.weekdays) ? parsed.weekdays.map(String) : [],
+      pairs: Array.isArray(parsed.pairs) ? parsed.pairs.map(String) : []
+    };
+  } catch(e) {
+    return null;
+  }
+}
+
+function _applyScheduleFilters(filters) {
+  if(!filters) return;
+  var year = document.getElementById('sch-year');
+  var semester = document.getElementById('sch-semester');
+  var weekType = document.getElementById('sch-week-type');
+  var faculty = document.getElementById('sch-faculty');
+  if(year) year.value = filters.year_id || SCHEDULE_YEARS[0].id;
+  if(semester) semester.value = filters.semester_id || '1';
+  if(weekType) weekType.value = filters.week_type_id || '0';
+  if(faculty) faculty.value = filters.faculty_id || SCHEDULE_FACULTIES[0].id;
+  _renderScheduleChipGroup('sch-courses', SCHEDULE_COURSE_OPTIONS, filters.courses || []);
+  _renderScheduleChipGroup('sch-weekdays', SCHEDULE_WEEKDAY_OPTIONS, filters.weekdays || []);
+  _renderScheduleChipGroup('sch-pairs', SCHEDULE_PAIR_OPTIONS, filters.pairs || []);
+}
+
+function _collectScheduleFilters() {
+  return {
+    year_id: (document.getElementById('sch-year') || {}).value || '',
+    semester_id: (document.getElementById('sch-semester') || {}).value || '1',
+    week_type_id: (document.getElementById('sch-week-type') || {}).value || '0',
+    faculty_id: (document.getElementById('sch-faculty') || {}).value || '',
+    courses: _collectScheduleChipValues('sch-courses'),
+    weekdays: _collectScheduleChipValues('sch-weekdays'),
+    pairs: _collectScheduleChipValues('sch-pairs')
+  };
+}
+
+function _collectScheduleChipValues(containerId) {
+  var el = document.getElementById(containerId);
+  if(!el) return [];
+  return Array.from(el.querySelectorAll('.schedule-chip.on')).map(function(btn){ return String(btn.dataset.value || ''); }).filter(Boolean);
+}
+
+function saveScheduleFilters() {
+  if(!_scheduleUiReady) return;
+  var filters = _collectScheduleFilters();
+  _scheduleState.loaded = false;
+  try { localStorage.setItem(SCHEDULE_FILTERS_KEY, JSON.stringify(filters)); } catch(e) {}
+  _setScheduleStatus('Параметри збережено. Можна оновити розклад у будь-який момент.');
+}
+
+function resetScheduleFilters() {
+  _initScheduleUi();
+  var filters = _getDefaultScheduleFilters();
+  _applyScheduleFilters(filters);
+  saveScheduleFilters();
+  _setScheduleStatus('Фільтри скинуто до значень за замовчуванням для твоєї групи.');
+}
+
+function _buildScheduleParams(filters) {
+  var params = new URLSearchParams();
+  params.append('year_id', filters.year_id);
+  params.append('semester_id', filters.semester_id);
+  params.append('week_type_id', filters.week_type_id);
+  params.append('faculty_id', filters.faculty_id);
+  (filters.courses || []).forEach(function(value){ params.append('courses[]', value); });
+  (filters.weekdays || []).forEach(function(value){ params.append('weekdays[]', value); });
+  (filters.pairs || []).forEach(function(value){ params.append('pairs[]', value); });
+  return params;
+}
+
+async function _fetchScheduleJson(path, init) {
+  var requestInit = Object.assign({ method:'GET', headers:{ Accept:'application/json, text/plain, */*' } }, init || {});
+  if(requestInit.body && !(typeof requestInit.body === 'string')) {
+    requestInit.body = String(requestInit.body);
+  }
+  if(requestInit.body) {
+    requestInit.headers = Object.assign({}, requestInit.headers, { 'Content-Type':'application/x-www-form-urlencoded; charset=UTF-8' });
+  }
+  var lastError = null;
+  for(var i=0;i<SCHEDULE_PROXY_PREFIXES.length;i++) {
+    var prefix = SCHEDULE_PROXY_PREFIXES[i];
+    var url = prefix ? prefix + SCHEDULE_BASE_URL + path : SCHEDULE_BASE_URL + path;
+    try {
+      var response = await fetch(url, requestInit);
+      if(!response.ok) throw new Error('HTTP ' + response.status);
+      var text = await response.text();
+      return JSON.parse(text);
+    } catch(err) {
+      lastError = err;
+    }
+  }
+  throw lastError || new Error('Schedule request failed');
+}
+
+function _setScheduleStatus(text, tone) {
+  var el = document.getElementById('sch-status');
+  if(!el) return;
+  el.className = 'schedule-status' + (tone ? ' is-' + tone : '');
+  el.textContent = text;
+}
+
+function _sanitizeScheduleHtml(html) {
+  var safe = String(html == null ? '' : html);
+  safe = safe.replace(/<script[\s\S]*?<\/script>/gi, '');
+  safe = safe.replace(/\son\w+=(["']).*?\1/gi, '');
+  safe = safe.replace(/\son\w+=\S+/gi, '');
+  safe = safe.replace(/javascript:/gi, '');
+  safe = safe.replace(/<a\b/gi, '<a target="_blank" rel="noopener"');
+  return safe;
+}
+
+function _stripScheduleHtml(html) {
+  return String(html == null ? '' : html).replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
+function _renderScheduleResults(headerData, contentData, caption, fromCache) {
+  var root = document.getElementById('schedule-results');
+  if(!root) return;
+  var colNames = Array.isArray(headerData && headerData.colNames) ? headerData.colNames : [];
+  var rows = Array.isArray(contentData && contentData.rows) ? contentData.rows : [];
+  if(!rows.length) {
+    root.innerHTML = '<div class="empty"><div class="emo">🗓</div><p>За цими параметрами розклад не знайдено.</p></div>';
+    _setScheduleStatus(fromCache ? 'Показано збережену копію без записів.' : 'Розклад не знайдено. Спробуй змінити параметри.', fromCache ? 'warn' : 'warn');
+    return;
+  }
+  var updatedAt = new Date();
+  var summaryHtml = '<div class="schedule-result-head">' +
+    '<div><div class="schedule-result-title">' + escHtml(caption || 'Розклад факультету') + '</div>' +
+    '<div class="schedule-result-sub">' + rows.length + ' рядків' + (fromCache ? ' • з кешу' : ' • оновлено щойно') + '</div></div>' +
+    '<div class="schedule-result-stamp">' + escHtml(updatedAt.toLocaleString('uk-UA')) + '</div>' +
+  '</div>';
+  var tableHead = '<tr>' + colNames.map(function(name){ return '<th>' + escHtml(name) + '</th>'; }).join('') + '</tr>';
+  var tableBody = rows.map(function(row){
+    var cells = Array.isArray(row.cell) ? row.cell : [];
+    var titles = Array.isArray(row.title) ? row.title : [];
+    return '<tr>' + cells.map(function(cell, idx){
+      var title = escHtml(titles[idx] || _stripScheduleHtml(cell));
+      return '<td title="' + title + '">' + _sanitizeScheduleHtml(cell) + '</td>';
+    }).join('') + '</tr>';
+  }).join('');
+  root.innerHTML = summaryHtml +
+    '<div class="schedule-table-wrap"><table class="schedule-table"><thead>' + tableHead + '</thead><tbody>' + tableBody + '</tbody></table></div>';
+  _setScheduleStatus(fromCache ? 'Показано останню збережену копію розкладу.' : 'Розклад успішно оновлено.');
+}
+
+async function loadFacultySchedule(force) {
+  _initScheduleUi();
+  if(_scheduleState.loading) return;
+  if(_scheduleState.loaded && !force) return;
+  var filters = _collectScheduleFilters();
+  if(!filters.year_id || !filters.faculty_id || !filters.courses.length || !filters.weekdays.length || !filters.pairs.length) {
+    _setScheduleStatus('Для пошуку потрібно вибрати рік, факультет і хоча б один курс, день та пару.', 'warn');
+    return;
+  }
+  saveScheduleFilters();
+  _scheduleState.loading = true;
+  _setScheduleStatus('Підтягуємо розклад з сайту універу…');
+  var params = _buildScheduleParams(filters);
+  try {
+    var headerData = await _fetchScheduleJson('/faculty/jheaderfaculty', { method:'POST', body: params.toString() });
+    if(!headerData || headerData.result !== 'success') throw new Error('Bad schedule header');
+    var contentData = await _fetchScheduleJson('/faculty/jcontentfaculty?' + params.toString(), { method:'GET' });
+    _scheduleState.loaded = true;
+    _scheduleState.header = headerData;
+    _scheduleState.rows = contentData;
+    _scheduleState.filters = filters;
+    _scheduleState.caption = headerData.caption || '';
+    _renderScheduleResults(headerData, contentData, headerData.caption || '', false);
+    try {
+      localStorage.setItem(SCHEDULE_CACHE_KEY, JSON.stringify({
+        header: headerData,
+        rows: contentData,
+        filters: filters,
+        caption: headerData.caption || '',
+        savedAt: Date.now()
+      }));
+    } catch(e) {}
+  } catch(err) {
+    var restored = false;
+    try {
+      var rawCache = localStorage.getItem(SCHEDULE_CACHE_KEY);
+      if(rawCache) {
+        var cache = JSON.parse(rawCache);
+        if(cache && cache.header && cache.rows) {
+          restored = true;
+          _renderScheduleResults(cache.header, cache.rows, cache.caption || '', true);
+        }
+      }
+    } catch(e) {}
+    if(!restored) {
+      var root = document.getElementById('schedule-results');
+      if(root) {
+        root.innerHTML = '<div class="empty"><div class="emo">⚠️</div><p>Не вдалося завантажити розклад. Спробуй ще раз або відкрий сайт універу.</p></div>';
+      }
+      _setScheduleStatus('Сайт розкладу не відповів або заблокував запит. Кешу теж немає.', 'error');
+    }
+  } finally {
+    _scheduleState.loading = false;
   }
 }
 
@@ -3799,8 +4229,9 @@ async function delGroup(id){ if(!confirm('Видалити групу?'))return;
 
 // ── NAV ──
 var PAGE_TITLES={dashboard:'Головна',deadlines:'Дедлайни',courses:'Курси',grades:'Оцінки',files:'Файли',materials:'Матеріали',chat:'Чати',admin:'Адмін-панель',calendar:'Календар',notes:'Нотатки',assistant:'Асистент',notifications:'Сповіщення'};
-const PAGE_ORDER = ['dashboard','deadlines','courses','grades','calendar','assistant','files','materials','notes','chat','notifications','admin'];
+const PAGE_ORDER = ['dashboard','deadlines','courses','grades','calendar','assistant','chat','schedule','files','materials','notes','notifications','admin'];
 let _currentPage = 'dashboard';
+PAGE_TITLES.schedule = 'Розклад';
 
 function go(name) {
   const prevName = _currentPage;
@@ -3830,9 +4261,11 @@ function go(name) {
   if(hamburger) hamburger.style.display = inChat ? 'none' : '';
   const labels={dashboard:'Голов',deadlines:'Дедл',courses:'Курс',grades:'Оцін',files:'Файл',materials:'Матер',chat:'Чат',admin:'Адмін',calendar:'Календ',notes:'Нотат',assistant:'Асист',notifications:'Сповіщ'};
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.toggle('active',n.textContent.trim().startsWith(labels[name]||'_')));
+  document.querySelectorAll('.nav-item[data-page]').forEach(function(n){ n.classList.toggle('active', n.dataset.page === name); });
   document.getElementById('topbar-title').textContent=PAGE_TITLES[name]||name;
   if(name==='calendar') renderCalendar();
   if(name==='chat') _clearChatBadge();
+  if(name==='schedule') loadFacultySchedule();
   if(name==='assistant'||name==='notes') _loadKaTeX();
   if(name==='notes') loadNotes();
   if(name==='grades') loadGrades();

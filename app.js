@@ -1110,16 +1110,13 @@ function setupNav() {
 
 var SCHEDULE_BASE_URL = 'http://rasp.kart.edu.ua';
 var SCHEDULE_FACULTY_URL = SCHEDULE_BASE_URL + '/faculty';
-var SCHEDULE_GROUP_URL = SCHEDULE_BASE_URL + '/schedule';
 var SCHEDULE_PROXY_URL = 'https://schedule-proxy.dvdkunec.workers.dev';
 var SCHEDULE_FILTERS_KEY = 'sh_schedule_filters_v1';
-var SCHEDULE_GROUP_FILTERS_KEY = 'sh_schedule_group_filters_v1';
-var SCHEDULE_MODE_KEY = 'sh_schedule_mode_v1';
+var SCHEDULE_VIEW_GROUP_KEY = 'sh_schedule_view_group_v1';
 var SCHEDULE_CACHE_KEY = 'sh_schedule_cache_v1';
 var _scheduleUiReady = false;
 var _scheduleState = { loaded:false, loading:false, header:null, rows:null, filters:null, caption:'' };
-var _scheduleMode = 'group';
-var _scheduleGroupSchema = null;
+var _scheduleKnownGroups = [];
 
 var SCHEDULE_YEARS = [
   { id:'87', label:'Навчальний рік 2025-2026 денний' },
@@ -1244,7 +1241,7 @@ function _initScheduleUi() {
   if(_scheduleUiReady) return;
   if(!document.getElementById('page-schedule')) return;
   _scheduleUiReady = true;
-  _installScheduleModeUi();
+  _installScheduleGroupPicker();
 
   _fillScheduleSelect('sch-year', SCHEDULE_YEARS);
   _fillScheduleSelect('sch-semester', SCHEDULE_SEMESTERS);
@@ -1267,8 +1264,6 @@ function _initScheduleUi() {
       openScheduleSource();
     });
   }
-  _scheduleMode = localStorage.getItem(SCHEDULE_MODE_KEY) || 'group';
-  setScheduleMode(_scheduleMode, false);
 
   try {
     var rawCache = localStorage.getItem(SCHEDULE_CACHE_KEY);
@@ -1318,6 +1313,130 @@ function _installScheduleModeUi() {
       '<div id="schedule-group-fields"><div class="loading"><div class="spinner"></div>Завантаження форми...</div></div>';
     shell.insertBefore(groupCard, facultyCard);
   }
+}
+
+function _installScheduleGroupPicker() {
+  var card = document.getElementById('schedule-faculty-card') || document.querySelector('#page-schedule .schedule-filter-card');
+  if(!card || document.getElementById('schedule-group-picker')) return;
+  var checks = card.querySelector('.schedule-check-wrap');
+  var box = document.createElement('div');
+  box.id = 'schedule-group-picker';
+  box.className = 'schedule-group-picker';
+  box.innerHTML = '' +
+    '<div class="schedule-group-picker-head">' +
+      '<div class="schedule-group-picker-title">Група для відображення</div>' +
+      '<div class="schedule-group-picker-sub">Розклад вантажиться по факультету, а тут можна показати саме твою або будь-яку іншу групу.</div>' +
+    '</div>' +
+    '<div class="schedule-group-picker-row">' +
+      '<input class="tb-input" id="sch-view-group" list="sch-view-group-list" placeholder="Наприклад: ' + escHtml((group && group.name) || '103-ОПУТ-Д24') + '">' +
+      '<datalist id="sch-view-group-list"></datalist>' +
+      '<button class="btn" type="button" onclick="applyScheduleViewGroup()">Показати</button>' +
+      '<button class="btn" type="button" onclick="resetScheduleViewGroup()">Моя група</button>' +
+    '</div>';
+  if(checks) card.insertBefore(box, checks);
+  else card.appendChild(box);
+  var input = document.getElementById('sch-view-group');
+  if(input) {
+    input.value = localStorage.getItem(SCHEDULE_VIEW_GROUP_KEY) || ((group && group.name) || '');
+    input.addEventListener('change', saveScheduleViewGroup);
+    input.addEventListener('keydown', function(ev){
+      if(ev.key === 'Enter') {
+        ev.preventDefault();
+        applyScheduleViewGroup();
+      }
+    });
+  }
+  _renderScheduleGroupOptions(_scheduleKnownGroups);
+}
+
+function saveScheduleViewGroup() {
+  var input = document.getElementById('sch-view-group');
+  if(!input) return;
+  localStorage.setItem(SCHEDULE_VIEW_GROUP_KEY, input.value.trim());
+  _scheduleState.loaded = false;
+}
+
+function applyScheduleViewGroup() {
+  saveScheduleViewGroup();
+  if(_scheduleState.header && _scheduleState.rows) {
+    _renderScheduleResults(_scheduleState.header, _scheduleState.rows, _scheduleState.caption || '', false);
+  }
+}
+
+function resetScheduleViewGroup() {
+  var input = document.getElementById('sch-view-group');
+  if(input) {
+    input.value = (group && group.name) || '';
+    saveScheduleViewGroup();
+    applyScheduleViewGroup();
+  }
+}
+
+function _getScheduleViewGroup() {
+  var input = document.getElementById('sch-view-group');
+  if(input && input.value.trim()) return input.value.trim();
+  return localStorage.getItem(SCHEDULE_VIEW_GROUP_KEY) || ((group && group.name) || '');
+}
+
+function _renderScheduleGroupOptions(options) {
+  var list = document.getElementById('sch-view-group-list');
+  if(!list) return;
+  var items = Array.from(new Set([((group && group.name) || '')].concat(options || []).filter(Boolean)));
+  items.sort(function(a,b){ return String(a).localeCompare(String(b), 'uk'); });
+  list.innerHTML = items.map(function(name){ return '<option value="' + escHtml(name) + '"></option>'; }).join('');
+}
+
+function _normalizeScheduleGroupName(value) {
+  return String(value || '')
+    .toLowerCase()
+    .replace(/[–—−]/g, '-')
+    .replace(/\s+/g, '')
+    .trim();
+}
+
+function _extractScheduleGroupNames(colNames, rows) {
+  var found = new Set();
+  function pushCandidate(raw) {
+    var text = String(raw || '').replace(/\s+/g, ' ').trim();
+    if(!text || text.length < 3) return;
+    if(/\d/.test(text) && /[-–]/.test(text)) found.add(text);
+  }
+  (colNames || []).forEach(pushCandidate);
+  (rows || []).forEach(function(row){
+    (row.cell || []).forEach(function(cell){
+      var plain = _stripScheduleHtml(cell);
+      var matches = plain.match(/[A-Za-zА-Яа-яІіЇїЄєҐґ0-9]+(?:[-–][A-Za-zА-Яа-яІіЇїЄєҐґ0-9]+){1,}/g);
+      if(matches) matches.forEach(pushCandidate);
+    });
+  });
+  return Array.from(found);
+}
+
+function _filterScheduleForGroup(colNames, rows) {
+  var selectedGroup = _getScheduleViewGroup();
+  if(!selectedGroup) return { colNames: colNames, rows: rows, selectedGroup: '', filtered:false };
+  var normalized = _normalizeScheduleGroupName(selectedGroup);
+  var keep = [];
+  var matchedIndexes = [];
+  (colNames || []).forEach(function(name, idx){
+    var low = _normalizeScheduleGroupName(name);
+    if(idx < 2) keep.push(idx);
+    if(low.includes(normalized)) {
+      if(!keep.includes(idx)) keep.push(idx);
+      matchedIndexes.push(idx);
+    }
+  });
+  if(!matchedIndexes.length) {
+    return { colNames: colNames, rows: rows, selectedGroup: selectedGroup, filtered:false };
+  }
+  var nextColNames = keep.map(function(idx){ return colNames[idx]; });
+  var nextRows = (rows || []).map(function(row){
+    var clone = Object.assign({}, row);
+    clone.cell = keep.map(function(idx){ return (row.cell || [])[idx]; });
+    clone.title = keep.map(function(idx){ return (row.title || [])[idx]; });
+    return clone;
+  });
+  return { colNames: nextColNames, rows: nextRows, selectedGroup: selectedGroup, filtered:true };
 }
 
 function setScheduleMode(mode, remember) {
@@ -1654,9 +1773,9 @@ function _buildScheduleParams(filters) {
 
 function openScheduleSource() {
   try {
-    window.open(_scheduleMode === 'group' ? SCHEDULE_GROUP_URL : SCHEDULE_FACULTY_URL, '_blank', 'noopener');
+    window.open(SCHEDULE_FACULTY_URL, '_blank', 'noopener');
   } catch(e) {
-    location.href = _scheduleMode === 'group' ? SCHEDULE_GROUP_URL : SCHEDULE_FACULTY_URL;
+    location.href = SCHEDULE_FACULTY_URL;
   }
 }
 
@@ -1704,19 +1823,35 @@ function _stripScheduleHtml(html) {
 function _renderScheduleResults(headerData, contentData, caption, fromCache) {
   var root = document.getElementById('schedule-results');
   if(!root) return;
-  var colNames = Array.isArray(headerData && headerData.colNames) ? headerData.colNames : [];
-  var rows = Array.isArray(contentData && contentData.rows) ? contentData.rows : [];
+  var originalColNames = Array.isArray(headerData && headerData.colNames) ? headerData.colNames : [];
+  var originalRows = Array.isArray(contentData && contentData.rows) ? contentData.rows : [];
+  _scheduleKnownGroups = _extractScheduleGroupNames(originalColNames, originalRows);
+  _renderScheduleGroupOptions(_scheduleKnownGroups);
+  var groupView = _filterScheduleForGroup(originalColNames, originalRows);
+  var colNames = groupView.colNames || originalColNames;
+  var rows = groupView.rows || originalRows;
+  var selectedGroup = groupView.selectedGroup || '';
+  var summaryChip = '';
+
+  if(selectedGroup && groupView.filtered) {
+    summaryChip = '<div class="schedule-result-chip">?????: ' + escHtml(selectedGroup) + '</div>';
+  } else if(selectedGroup) {
+    summaryChip = '<div class="schedule-result-chip warn">????? ' + escHtml(selectedGroup) + ' ?????? ?? ????????, ???????? ???? ?????????</div>';
+  }
+
   if(!rows.length) {
-    root.innerHTML = '<div class="empty"><div class="emo">🗓</div><p>За цими параметрами розклад не знайдено.</p></div>';
-    _setScheduleStatus(fromCache ? 'Показано збережену копію без записів.' : 'Розклад не знайдено. Спробуй змінити параметри.', fromCache ? 'warn' : 'warn');
+    root.innerHTML = '<div class="empty"><div class="emo">??</div><p>?? ???? ??????????? ??????? ?? ????????.</p></div>';
+    _setScheduleStatus(fromCache ? '???????? ????????? ????? ??? ???????.' : '??????? ?? ????????. ??????? ??????? ?????????.', 'warn');
     return;
   }
+
   var updatedAt = new Date();
   var summaryHtml = '<div class="schedule-result-head">' +
-    '<div><div class="schedule-result-title">' + escHtml(caption || 'Розклад факультету') + '</div>' +
-    '<div class="schedule-result-sub">' + rows.length + ' рядків' + (fromCache ? ' • з кешу' : ' • оновлено щойно') + '</div></div>' +
+    '<div><div class="schedule-result-title">' + escHtml(caption || '??????? ??????????') + '</div>' +
+    '<div class="schedule-result-sub">' + rows.length + ' ??????' + (fromCache ? ' ? ? ????' : ' ? ???????? ?????') + '</div>' + summaryChip + '</div>' +
     '<div class="schedule-result-stamp">' + escHtml(updatedAt.toLocaleString('uk-UA')) + '</div>' +
   '</div>';
+
   var tableHead = '<tr>' + colNames.map(function(name){ return '<th>' + escHtml(name) + '</th>'; }).join('') + '</tr>';
   var tableBody = rows.map(function(row){
     var cells = Array.isArray(row.cell) ? row.cell : [];
@@ -1726,14 +1861,21 @@ function _renderScheduleResults(headerData, contentData, caption, fromCache) {
       return '<td title="' + title + '">' + _sanitizeScheduleHtml(cell) + '</td>';
     }).join('') + '</tr>';
   }).join('');
+
   root.innerHTML = summaryHtml +
     '<div class="schedule-table-wrap"><table class="schedule-table"><thead>' + tableHead + '</thead><tbody>' + tableBody + '</tbody></table></div>';
-  _setScheduleStatus(fromCache ? 'Показано останню збережену копію розкладу.' : 'Розклад успішно оновлено.');
+
+  if(selectedGroup && groupView.filtered) {
+    _setScheduleStatus('???????? ???????????? ??????? ??? ????? ' + selectedGroup + (fromCache ? ' ? ????.' : '.'));
+  } else if(selectedGroup) {
+    _setScheduleStatus('???????????? ??????? ???????????, ??? ?????? ??????? ??? ????? ' + selectedGroup + ' ?? ????????.', 'warn');
+  } else {
+    _setScheduleStatus(fromCache ? '???????? ??????? ????????? ????? ????????.' : '??????? ??????? ????????.');
+  }
 }
 
 async function loadFacultySchedule(force) {
   _initScheduleUi();
-  if(_scheduleMode === 'group') return loadGroupSchedule(force);
   if(_scheduleState.loading) return;
   if(_scheduleState.loaded && !force) return;
   var filters = _collectScheduleFilters();

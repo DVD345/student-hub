@@ -2416,6 +2416,26 @@ body.deadlines-resizing .dl-width-resizer::before {
   color: var(--text2);
 }
 
+.schedule-result-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: calc(30px * var(--ui-font-scale));
+  margin-top: 8px;
+  padding: 0 calc(12px * var(--ui-font-scale));
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--accent) 58%, transparent);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  color: var(--accent);
+  font-size: calc(11px * var(--ui-font-scale));
+  font-weight: 700;
+}
+
+.schedule-result-chip.warn {
+  border-color: rgba(240,192,64,.34);
+  background: rgba(240,192,64,.10);
+  color: #f0c040;
+}
+
 .schedule-filter-actions,
 .schedule-meta-actions {
   display: flex;

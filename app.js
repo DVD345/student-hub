@@ -1108,7 +1108,7 @@ function setupNav() {
   }
 }
 
-var SCHEDULE_BASE_URL = 'https://rasp.kart.edu.ua';
+var SCHEDULE_BASE_URL = 'http://rasp.kart.edu.ua';
 var SCHEDULE_FACULTY_URL = SCHEDULE_BASE_URL + '/faculty';
 var SCHEDULE_PROXY_PREFIXES = ['', 'https://cors.isomorphic-git.org/'];
 var SCHEDULE_FILTERS_KEY = 'sh_schedule_filters_v1';
@@ -1255,6 +1255,7 @@ function _initScheduleUi() {
   });
   var openBtn = document.querySelector('#page-schedule .schedule-meta-actions a.btn');
   if(openBtn) {
+    openBtn.setAttribute('href', SCHEDULE_FACULTY_URL);
     openBtn.addEventListener('click', function(ev){
       ev.preventDefault();
       openScheduleSource();
@@ -1454,7 +1455,7 @@ function _setScheduleStatus(text, tone) {
 function _showScheduleFallback() {
   var root = document.getElementById('schedule-results');
   if(!root) return;
-  root.innerHTML = '<div class="schedule-fallback-card"><div class="schedule-fallback-emo">⚠</div><div class="schedule-fallback-title">Schedule is temporarily unavailable</div><p class="schedule-fallback-copy">The university schedule site did not allow this request. You can open the official page directly or try again.</p><div class="schedule-fallback-actions"><button class="btn a" type="button" onclick="openScheduleSource()">Open university site ↗</button><button class="btn" type="button" onclick="loadFacultySchedule(true)">Try again</button></div></div>';
+  root.innerHTML = '<div class="schedule-fallback-card"><div class="schedule-fallback-emo">⚠</div><div class="schedule-fallback-title">Не вдалося завантажити розклад автоматично</div><p class="schedule-fallback-copy">Сайт розкладу тимчасово не відповів або заблокував кросдоменний запит. Можна відкрити офіційний сайт напряму або спробувати ще раз.</p><div class="schedule-fallback-actions"><button class="btn a" type="button" onclick="openScheduleSource()">Відкрити сайт універу ↗</button><button class="btn" type="button" onclick="loadFacultySchedule(true)">Спробувати ще раз</button></div></div>';
 }
 
 function _sanitizeScheduleHtml(html) {

@@ -1414,10 +1414,11 @@ function _extractScheduleGroupNames(colNames, rows) {
 
 function _filterScheduleForGroup(colNames, rows) {
   var selectedGroup = _getScheduleViewGroup();
-  if(!selectedGroup) return { colNames: colNames, rows: rows, selectedGroup: '', filtered:false };
+  if(!selectedGroup) return { colNames: colNames, rows: rows, selectedGroup: '', filtered:false, focusCols:[] };
   var normalized = _normalizeScheduleGroupName(selectedGroup);
   var keep = [];
   var matchedIndexes = [];
+
   (colNames || []).forEach(function(name, idx){
     var low = _normalizeScheduleGroupName(name);
     if(idx < 2) keep.push(idx);
@@ -1426,17 +1427,27 @@ function _filterScheduleForGroup(colNames, rows) {
       matchedIndexes.push(idx);
     }
   });
+
   if(!matchedIndexes.length) {
-    return { colNames: colNames, rows: rows, selectedGroup: selectedGroup, filtered:false };
+    return { colNames: colNames, rows: rows, selectedGroup: selectedGroup, filtered:false, focusCols:[] };
   }
+
   var nextColNames = keep.map(function(idx){ return colNames[idx]; });
+  var focusCols = matchedIndexes.map(function(idx){ return keep.indexOf(idx); }).filter(function(idx){ return idx >= 0; });
   var nextRows = (rows || []).map(function(row){
     var clone = Object.assign({}, row);
     clone.cell = keep.map(function(idx){ return (row.cell || [])[idx]; });
     clone.title = keep.map(function(idx){ return (row.title || [])[idx]; });
     return clone;
   });
-  return { colNames: nextColNames, rows: nextRows, selectedGroup: selectedGroup, filtered:true };
+
+  return {
+    colNames: nextColNames,
+    rows: nextRows,
+    selectedGroup: selectedGroup,
+    filtered:true,
+    focusCols: focusCols
+  };
 }
 
 function setScheduleMode(mode, remember) {
@@ -1827,38 +1838,45 @@ function _renderScheduleResults(headerData, contentData, caption, fromCache) {
   var originalRows = Array.isArray(contentData && contentData.rows) ? contentData.rows : [];
   _scheduleKnownGroups = _extractScheduleGroupNames(originalColNames, originalRows);
   _renderScheduleGroupOptions(_scheduleKnownGroups);
+
   var groupView = _filterScheduleForGroup(originalColNames, originalRows);
   var colNames = groupView.colNames || originalColNames;
   var rows = groupView.rows || originalRows;
   var selectedGroup = groupView.selectedGroup || '';
+  var focusCols = Array.isArray(groupView.focusCols) ? groupView.focusCols : [];
   var summaryChip = '';
 
   if(selectedGroup && groupView.filtered) {
-    summaryChip = '<div class="schedule-result-chip">?????: ' + escHtml(selectedGroup) + '</div>';
+    summaryChip = '<div class="schedule-result-chip">\u0413\u0440\u0443\u043f\u0430: ' + escHtml(selectedGroup) + '</div>';
   } else if(selectedGroup) {
-    summaryChip = '<div class="schedule-result-chip warn">????? ' + escHtml(selectedGroup) + ' ?????? ?? ????????, ???????? ???? ?????????</div>';
+    summaryChip = '<div class="schedule-result-chip warn">\u0413\u0440\u0443\u043f\u0443 ' + escHtml(selectedGroup) + ' \u043e\u043a\u0440\u0435\u043c\u043e \u043d\u0435 \u0437\u043d\u0430\u0439\u0434\u0435\u043d\u043e, \u043f\u043e\u043a\u0430\u0437\u0430\u043d\u043e \u0432\u0435\u0441\u044c \u0444\u0430\u043a\u0443\u043b\u044c\u0442\u0435\u0442</div>';
   }
 
   if(!rows.length) {
-    root.innerHTML = '<div class="empty"><div class="emo">??</div><p>?? ???? ??????????? ??????? ?? ????????.</p></div>';
-    _setScheduleStatus(fromCache ? '???????? ????????? ????? ??? ???????.' : '??????? ?? ????????. ??????? ??????? ?????????.', 'warn');
+    root.innerHTML = '<div class="empty"><div class="emo">&#128467;</div><p>\u0417\u0430 \u0446\u0438\u043c\u0438 \u043f\u0430\u0440\u0430\u043c\u0435\u0442\u0440\u0430\u043c\u0438 \u0440\u043e\u0437\u043a\u043b\u0430\u0434 \u043d\u0435 \u0437\u043d\u0430\u0439\u0434\u0435\u043d\u043e.</p></div>';
+    _setScheduleStatus(fromCache ? '\u041f\u043e\u043a\u0430\u0437\u0430\u043d\u043e \u0437\u0431\u0435\u0440\u0435\u0436\u0435\u043d\u0443 \u043a\u043e\u043f\u0456\u044e \u0431\u0435\u0437 \u0437\u0430\u043f\u0438\u0441\u0456\u0432.' : '\u0420\u043e\u0437\u043a\u043b\u0430\u0434 \u043d\u0435 \u0437\u043d\u0430\u0439\u0434\u0435\u043d\u043e. \u0421\u043f\u0440\u043e\u0431\u0443\u0439 \u0437\u043c\u0456\u043d\u0438\u0442\u0438 \u043f\u0430\u0440\u0430\u043c\u0435\u0442\u0440\u0438.', 'warn');
     return;
   }
 
   var updatedAt = new Date();
   var summaryHtml = '<div class="schedule-result-head">' +
-    '<div><div class="schedule-result-title">' + escHtml(caption || '??????? ??????????') + '</div>' +
-    '<div class="schedule-result-sub">' + rows.length + ' ??????' + (fromCache ? ' ? ? ????' : ' ? ???????? ?????') + '</div>' + summaryChip + '</div>' +
+    '<div><div class="schedule-result-title">' + escHtml(caption || '\u0420\u043e\u0437\u043a\u043b\u0430\u0434 \u0444\u0430\u043a\u0443\u043b\u044c\u0442\u0435\u0442\u0443') + '</div>' +
+    '<div class="schedule-result-sub">' + rows.length + ' \u0440\u044f\u0434\u043a\u0456\u0432' + (fromCache ? ' \u00b7 \u0437 \u043a\u0435\u0448\u0443' : ' \u00b7 \u043e\u043d\u043e\u0432\u043b\u0435\u043d\u043e \u0449\u043e\u0439\u043d\u043e') + '</div>' + summaryChip + '</div>' +
     '<div class="schedule-result-stamp">' + escHtml(updatedAt.toLocaleString('uk-UA')) + '</div>' +
   '</div>';
 
-  var tableHead = '<tr>' + colNames.map(function(name){ return '<th>' + escHtml(name) + '</th>'; }).join('') + '</tr>';
+  var tableHead = '<tr>' + colNames.map(function(name, idx){
+    var cls = focusCols.includes(idx) ? ' class="schedule-col-focus"' : '';
+    return '<th' + cls + '>' + escHtml(name) + '</th>';
+  }).join('') + '</tr>';
+
   var tableBody = rows.map(function(row){
     var cells = Array.isArray(row.cell) ? row.cell : [];
     var titles = Array.isArray(row.title) ? row.title : [];
     return '<tr>' + cells.map(function(cell, idx){
       var title = escHtml(titles[idx] || _stripScheduleHtml(cell));
-      return '<td title="' + title + '">' + _sanitizeScheduleHtml(cell) + '</td>';
+      var cls = focusCols.includes(idx) ? ' class="schedule-col-focus"' : '';
+      return '<td' + cls + ' title="' + title + '">' + _sanitizeScheduleHtml(cell) + '</td>';
     }).join('') + '</tr>';
   }).join('');
 
@@ -1866,11 +1884,11 @@ function _renderScheduleResults(headerData, contentData, caption, fromCache) {
     '<div class="schedule-table-wrap"><table class="schedule-table"><thead>' + tableHead + '</thead><tbody>' + tableBody + '</tbody></table></div>';
 
   if(selectedGroup && groupView.filtered) {
-    _setScheduleStatus('???????? ???????????? ??????? ??? ????? ' + selectedGroup + (fromCache ? ' ? ????.' : '.'));
+    _setScheduleStatus('\u041f\u043e\u043a\u0430\u0437\u0430\u043d\u043e \u0444\u0430\u043a\u0443\u043b\u044c\u0442\u0435\u0442\u043d\u0438\u0439 \u0440\u043e\u0437\u043a\u043b\u0430\u0434 \u0434\u043b\u044f \u0433\u0440\u0443\u043f\u0438 ' + selectedGroup + (fromCache ? ' \u0437 \u043a\u0435\u0448\u0443.' : '.'));
   } else if(selectedGroup) {
-    _setScheduleStatus('???????????? ??????? ???????????, ??? ?????? ??????? ??? ????? ' + selectedGroup + ' ?? ????????.', 'warn');
+    _setScheduleStatus('\u0424\u0430\u043a\u0443\u043b\u044c\u0442\u0435\u0442\u043d\u0438\u0439 \u0440\u043e\u0437\u043a\u043b\u0430\u0434 \u0437\u0430\u0432\u0430\u043d\u0442\u0430\u0436\u0435\u043d\u043e, \u0430\u043b\u0435 \u043e\u043a\u0440\u0435\u043c\u0443 \u043a\u043e\u043b\u043e\u043d\u043a\u0443 \u0434\u043b\u044f \u0433\u0440\u0443\u043f\u0438 ' + selectedGroup + ' \u043d\u0435 \u0437\u043d\u0430\u0439\u0434\u0435\u043d\u043e.', 'warn');
   } else {
-    _setScheduleStatus(fromCache ? '???????? ??????? ????????? ????? ????????.' : '??????? ??????? ????????.');
+    _setScheduleStatus(fromCache ? '\u041f\u043e\u043a\u0430\u0437\u0430\u043d\u043e \u043e\u0441\u0442\u0430\u043d\u043d\u044e \u0437\u0431\u0435\u0440\u0435\u0436\u0435\u043d\u0443 \u043a\u043e\u043f\u0456\u044e \u0440\u043e\u0437\u043a\u043b\u0430\u0434\u0443.' : '\u0420\u043e\u0437\u043a\u043b\u0430\u0434 \u0443\u0441\u043f\u0456\u0448\u043d\u043e \u043e\u043d\u043e\u0432\u043b\u0435\u043d\u043e.');
   }
 }
 

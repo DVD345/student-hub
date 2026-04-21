@@ -1879,8 +1879,8 @@ function _renderScheduleResults(headerData, contentData, caption, fromCache) {
   function formatScheduleCell(cell, idx) {
     if(idx !== 2) return _sanitizeScheduleHtml(cell);
     var plain = _stripScheduleHtml(cell).toLowerCase();
-    if(plain.indexOf('\u043f\u0430\u0440\u043d') !== -1) return '<span class="schedule-week-badge">\u041f\u0430\u0440\u043d\u0438\u0439</span>';
     if(plain.indexOf('\u043d\u0435\u043f\u0430\u0440') !== -1) return '<span class="schedule-week-badge alt">\u041d\u0435\u043f\u0430\u0440\u043d\u0438\u0439</span>';
+    if(plain.indexOf('\u043f\u0430\u0440\u043d') !== -1) return '<span class="schedule-week-badge">\u041f\u0430\u0440\u043d\u0438\u0439</span>';
     return _sanitizeScheduleHtml(cell);
   }
 

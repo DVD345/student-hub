@@ -1426,7 +1426,7 @@ function _filterScheduleForGroup(colNames, rows) {
 
   (colNames || []).forEach(function(name, idx){
     var low = _normalizeScheduleGroupName(name);
-    if(idx < 2) keep.push(idx);
+    if(idx < 3) keep.push(idx);
     if(low.includes(normalized)) {
       if(!keep.includes(idx)) keep.push(idx);
       matchedIndexes.push(idx);
@@ -1870,9 +1870,23 @@ function _renderScheduleResults(headerData, contentData, caption, fromCache) {
     '<div class="schedule-result-stamp">' + escHtml(updatedAt.toLocaleString('uk-UA')) + '</div>' +
   '</div>';
 
+  function formatScheduleHeader(name, idx) {
+    var plain = _stripScheduleHtml(name);
+    if(idx === 2 && /^(нд\.?|тижд)/i.test(plain)) return '\u0422\u0438\u0436\u0434\u0435\u043d\u044c';
+    return escHtml(name);
+  }
+
+  function formatScheduleCell(cell, idx) {
+    if(idx !== 2) return _sanitizeScheduleHtml(cell);
+    var plain = _stripScheduleHtml(cell).toLowerCase();
+    if(plain.indexOf('\u043f\u0430\u0440\u043d') !== -1) return '<span class="schedule-week-badge">\u041f\u0430\u0440\u043d\u0438\u0439</span>';
+    if(plain.indexOf('\u043d\u0435\u043f\u0430\u0440') !== -1) return '<span class="schedule-week-badge alt">\u041d\u0435\u043f\u0430\u0440\u043d\u0438\u0439</span>';
+    return _sanitizeScheduleHtml(cell);
+  }
+
   var tableHead = '<tr>' + colNames.map(function(name, idx){
     var cls = focusCols.includes(idx) ? ' class="schedule-col-focus"' : '';
-    return '<th' + cls + '>' + escHtml(name) + '</th>';
+    return '<th' + cls + '>' + formatScheduleHeader(name, idx) + '</th>';
   }).join('') + '</tr>';
 
   var tableBody = rows.map(function(row){
@@ -1881,7 +1895,7 @@ function _renderScheduleResults(headerData, contentData, caption, fromCache) {
     return '<tr>' + cells.map(function(cell, idx){
       var title = escHtml(titles[idx] || _stripScheduleHtml(cell));
       var cls = focusCols.includes(idx) ? ' class="schedule-col-focus"' : '';
-      return '<td' + cls + ' title="' + title + '">' + _sanitizeScheduleHtml(cell) + '</td>';
+      return '<td' + cls + ' title="' + title + '">' + formatScheduleCell(cell, idx) + '</td>';
     }).join('') + '</tr>';
   }).join('');
 

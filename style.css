@@ -2677,6 +2677,25 @@ body.deadlines-resizing .dl-width-resizer::before {
   line-height: 1.55;
 }
 
+.schedule-week-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: calc(28px * var(--ui-font-scale));
+  padding: 0 calc(10px * var(--ui-font-scale));
+  border-radius: 999px;
+  background: rgba(90,160,255,.12);
+  border: 1px solid rgba(90,160,255,.24);
+  color: #9fc1ff;
+  font-size: calc(11px * var(--ui-font-scale));
+  font-weight: 700;
+}
+
+.schedule-week-badge.alt {
+  background: rgba(240,192,64,.10);
+  border-color: rgba(240,192,64,.24);
+  color: #f0c040;
+}
+
 .schedule-table th.schedule-col-focus {
   background:
     linear-gradient(180deg, rgba(240,192,64,.14), rgba(240,192,64,.06)),

@@ -2489,6 +2489,44 @@ body.deadlines-resizing .dl-width-resizer::before {
   margin-top: 14px;
 }
 
+.schedule-group-picker {
+  margin-top: 14px;
+  padding: calc(12px * var(--ui-font-scale));
+  border: 1px solid rgba(255,255,255,.05);
+  border-radius: calc(16px * var(--ui-font-scale));
+  background: rgba(255,255,255,.02);
+}
+
+.schedule-group-picker-head {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.schedule-group-picker-title {
+  font-size: calc(14px * var(--ui-font-scale));
+  font-weight: 800;
+  color: var(--text);
+}
+
+.schedule-group-picker-sub {
+  font-size: calc(12px * var(--ui-font-scale));
+  line-height: 1.5;
+  color: var(--text2);
+}
+
+.schedule-group-picker-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+
+.schedule-group-picker-row .tb-input {
+  flex: 1 1 260px;
+}
+
 .schedule-group-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

@@ -1352,7 +1352,9 @@ function _installScheduleGroupPicker() {
 function saveScheduleViewGroup() {
   var input = document.getElementById('sch-view-group');
   if(!input) return;
-  localStorage.setItem(SCHEDULE_VIEW_GROUP_KEY, input.value.trim());
+  var clean = String(input.value || '').replace(/^\s*група\s+/i, '').trim();
+  input.value = clean;
+  localStorage.setItem(SCHEDULE_VIEW_GROUP_KEY, clean);
   _scheduleState.loaded = false;
 }
 
@@ -1374,14 +1376,16 @@ function resetScheduleViewGroup() {
 
 function _getScheduleViewGroup() {
   var input = document.getElementById('sch-view-group');
-  if(input && input.value.trim()) return input.value.trim();
-  return localStorage.getItem(SCHEDULE_VIEW_GROUP_KEY) || ((group && group.name) || '');
+  if(input && input.value.trim()) return String(input.value).replace(/^\s*група\s+/i, '').trim();
+  return String(localStorage.getItem(SCHEDULE_VIEW_GROUP_KEY) || ((group && group.name) || '')).replace(/^\s*група\s+/i, '').trim();
 }
 
 function _renderScheduleGroupOptions(options) {
   var list = document.getElementById('sch-view-group-list');
   if(!list) return;
-  var items = Array.from(new Set([((group && group.name) || '')].concat(options || []).filter(Boolean)));
+  var items = Array.from(new Set([((group && group.name) || '')].concat(options || []).filter(Boolean).map(function(name){
+    return String(name || '').replace(/^\s*група\s+/i, '').trim();
+  })));
   items.sort(function(a,b){ return String(a).localeCompare(String(b), 'uk'); });
   list.innerHTML = items.map(function(name){ return '<option value="' + escHtml(name) + '"></option>'; }).join('');
 }
@@ -1389,6 +1393,7 @@ function _renderScheduleGroupOptions(options) {
 function _normalizeScheduleGroupName(value) {
   return String(value || '')
     .toLowerCase()
+    .replace(/^\s*група\s+/i, '')
     .replace(/[–—−]/g, '-')
     .replace(/\s+/g, '')
     .trim();

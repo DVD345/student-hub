@@ -1337,7 +1337,8 @@ function _installScheduleGroupPicker() {
   else card.appendChild(box);
   var input = document.getElementById('sch-view-group');
   if(input) {
-    input.value = localStorage.getItem(SCHEDULE_VIEW_GROUP_KEY) || ((group && group.name) || '');
+    var savedGroup = localStorage.getItem(SCHEDULE_VIEW_GROUP_KEY);
+    input.value = savedGroup == null ? '' : savedGroup;
     input.addEventListener('change', saveScheduleViewGroup);
     input.addEventListener('keydown', function(ev){
       if(ev.key === 'Enter') {
@@ -1377,7 +1378,8 @@ function resetScheduleViewGroup() {
 function _getScheduleViewGroup() {
   var input = document.getElementById('sch-view-group');
   if(input && input.value.trim()) return String(input.value).replace(/^\s*група\s+/i, '').trim();
-  return String(localStorage.getItem(SCHEDULE_VIEW_GROUP_KEY) || ((group && group.name) || '')).replace(/^\s*група\s+/i, '').trim();
+  var savedGroup = localStorage.getItem(SCHEDULE_VIEW_GROUP_KEY);
+  return String(savedGroup == null ? '' : savedGroup).replace(/^\s*група\s+/i, '').trim();
 }
 
 function _renderScheduleGroupOptions(options) {

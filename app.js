@@ -5264,6 +5264,85 @@ function updateNotePreview(){
 var aiHistory=[];
 var aiImageBase64=null, aiImageMime='image/jpeg';
 
+function _aiPlainText(content){
+  if(typeof content === 'string') return content;
+  if(Array.isArray(content)) {
+    return content.filter(function(part){ return part && part.type === 'text'; }).map(function(part){ return part.text || ''; }).join(' ').trim();
+  }
+  return '';
+}
+
+function _getAIScheduleContext(){
+  if(!_scheduleState || !_scheduleState.header || !_scheduleState.rows) return '';
+  var selectedGroup = (typeof _getScheduleViewGroup === 'function' ? _getScheduleViewGroup() : '') || '';
+  var caption = _scheduleState.caption || 'Розклад';
+  if(selectedGroup) return caption + ' для групи ' + selectedGroup;
+  return caption;
+}
+
+function _buildAIContextParts(){
+  var parts = [];
+  if(typeof userData !== 'undefined' && userData && userData.fullname) parts.push('Користувач: ' + userData.fullname);
+  if(typeof group !== 'undefined' && group) {
+    if(group.name) parts.push('Група: ' + group.name);
+    if(group.faculty) parts.push('Факультет: ' + group.faculty);
+  }
+  if(typeof _currentPage !== 'undefined' && _currentPage) {
+    var pageLabel = (typeof PAGE_TITLES !== 'undefined' && PAGE_TITLES[_currentPage]) ? PAGE_TITLES[_currentPage] : _currentPage;
+    parts.push('Активний розділ: ' + pageLabel);
+  }
+  if(typeof courses !== 'undefined' && Array.isArray(courses) && courses.length) {
+    parts.push('Курси: ' + courses.slice(0,8).map(function(c){ return c.fullname || c.shortname; }).filter(Boolean).join(', '));
+  }
+  if(typeof allDl !== 'undefined' && Array.isArray(allDl)) {
+    var upcomingDl = allDl.filter(function(d){ return d && !d.past; }).slice(0,6);
+    if(upcomingDl.length) {
+      parts.push('Найближчі дедлайни: ' + upcomingDl.map(function(d){ return (d.name || 'Без назви') + ' (' + fmtDate(d.due) + ')'; }).join(', '));
+    }
+  }
+  if(typeof notes !== 'undefined' && Array.isArray(notes) && notes.length) {
+    parts.push('Останні нотатки: ' + notes.slice(0,4).map(function(n){ return n.title || 'Без назви'; }).join(', '));
+  }
+  if(typeof cachedMats !== 'undefined' && Array.isArray(cachedMats) && cachedMats.length) {
+    parts.push('Матеріали: ' + cachedMats.slice(0,4).map(function(m){ return m.name || m.subject || 'Матеріал'; }).join(', '));
+  }
+  if(typeof cachedFiles !== 'undefined' && Array.isArray(cachedFiles) && cachedFiles.length) {
+    parts.push('Файли групи: ' + cachedFiles.slice(0,4).map(function(f){ return f.name || 'Файл'; }).join(', '));
+  }
+  var scheduleContext = _getAIScheduleContext();
+  if(scheduleContext) parts.push('Розклад: ' + scheduleContext);
+  return parts;
+}
+
+function _selectAIModel(text, hasImage){
+  if(hasImage) {
+    return {
+      primary: 'meta-llama/llama-4-maverick-17b-128e-instruct',
+      fallback: 'meta-llama/llama-4-scout-17b-16e-instruct',
+      maxTokens: 2200
+    };
+  }
+  var normalized = String(text || '').toLowerCase();
+  var wordCount = normalized.split(/\s+/).filter(Boolean).length;
+  var hasMath = /[0-9][0-9x?+\-*/=()]/.test(normalized) || /\b(c\+\+|python|sql|html|css|js|javascript)\b/.test(normalized);
+  var hasStudyKeywords = [
+    'rozv', 'poyasn', 'doved', 'pokrok', 'formula', 'math', 'analiz', 'plan', 'conspect', 'essay', 'lab', 'referat',
+    'розв', 'поясн', 'довед', 'покрок', 'формул', 'матем', 'анал', 'план', 'конспект', 'есе', 'лаборатор', 'реферат', 'іспит', 'екзам'
+  ].some(function(token){ return normalized.indexOf(token) !== -1; });
+  var isComplex = wordCount > 70 || normalized.length > 450 || hasMath || hasStudyKeywords;
+  if(isComplex) {
+    return {
+      primary: 'llama-3.3-70b-versatile',
+      fallback: 'llama-3.1-8b-instant',
+      maxTokens: 2600
+    };
+  }
+  return {
+    primary: 'llama-3.1-8b-instant',
+    fallback: 'llama-3.3-70b-versatile',
+    maxTokens: 1200
+  };
+}
 function setAIImage(base64,mime){
   aiImageBase64=base64; aiImageMime=mime||'image/jpeg';
   document.getElementById('ai-img-thumb').src='data:'+aiImageMime+';base64,'+base64;
@@ -5304,11 +5383,13 @@ async function sendAI(){
   const hasImage=!!aiImageBase64;
   if(!text&&!hasImage)return;
   inp.value='';
-  appendAIMsg('me',text||'📷 Фото',hasImage?('data:'+aiImageMime+';base64,'+aiImageBase64):null);
+  appendAIMsg('me',text||'?? ????',hasImage?('data:'+aiImageMime+';base64,'+aiImageBase64):null);
   let userContent;
   if(hasImage){
-    userContent=[{type:'text',text:text||'Що зображено?'},{type:'image_url',image_url:{url:'data:'+aiImageMime+';base64,'+aiImageBase64}}];
-  } else { userContent=text; }
+    userContent=[{type:'text',text:text||'?? ??????????'},{type:'image_url',image_url:{url:'data:'+aiImageMime+';base64,'+aiImageBase64}}];
+  } else {
+    userContent=text;
+  }
   aiHistory.push({role:'user',content:userContent});
   clearAIImg();
   const thinkingDiv=document.createElement('div');
@@ -5318,46 +5399,52 @@ async function sendAI(){
   document.getElementById('ai-msgs').scrollTop=99999;
   document.getElementById('ai-send').disabled=true;
   try {
-    const contextParts=[];
-    if(typeof courses!=='undefined'&&courses.length) contextParts.push('Курси студента: '+courses.slice(0,10).map(c=>c.fullname||c.shortname).join(', '));
-    if(typeof allDl!=='undefined'){
-      const upcomingDl=allDl.filter(d=>!d.past).slice(0,5);
-      if(upcomingDl.length) contextParts.push('Найближчі дедлайни: '+upcomingDl.map(d=>d.name+' ('+fmtDate(d.due)+')').join(', '));
-    }
-    const systemPrompt=`Ти навчальний асистент для студентів університету УкрДУЗТ.\nПРАВИЛА:\n- Відповідай ЗАВЖДИ українською мовою\n- Давай ТОЧНІ та ПОВНІ відповіді\n- Якщо на фото задача — розв'яжи ПОВНІСТЮ покроково\n- Використовуй markdown: **жирний**, ## заголовки, - списки, \`код\`\n- При математичних розрахунках показуй кожен крок\n- В кінці ЗАВЖДИ давай чітку фінальну відповідь\n${contextParts.length?'\nКонтекст: '+contextParts.join('. '):''}`;
-    const model=hasImage?'meta-llama/llama-4-maverick-17b-128e-instruct':'llama-3.3-70b-versatile';
-    const historyForAPI=aiHistory.slice(-12).map((m,i,arr)=>{
+    const contextParts = _buildAIContextParts();
+    const systemPrompt = [
+      "You are StudentHub academic assistant for university students.",
+      "RULES:",
+      "- Always answer in Ukrainian.",
+      "- Use site context when it is available.",
+      "- Do not invent facts. If you are unsure, say so clearly.",
+      "- If the request is vague, ask one short clarifying question only when necessary.",
+      "- Keep short answers concise and practical.",
+      "- For difficult study questions give structured answers without unnecessary filler.",
+      "- If the user asks to solve a task, explain step by step.",
+      "- If the user asks for a summary, plan, explanation, or study help, format it like a practical cheat sheet.",
+      "- Use markdown: **bold**, headings, bullet lists, and `code` when useful.",
+      "- Write like a helpful student assistant, not like a bureaucratic manual."
+    ].join('\n') + (contextParts.length ? '\nSite context: ' + contextParts.join('. ') : '');
+    const modelPlan = _selectAIModel(text, hasImage);
+    const historyForAPI=aiHistory.slice(-10).map((m,i,arr)=>{
       if(i<arr.length-1&&Array.isArray(m.content)){
-        const textOnly=m.content.filter(p=>p.type==='text').map(p=>p.text).join(' ');
-        return{role:m.role,content:textOnly||'[зображення]'};
+        const textOnly=_aiPlainText(m.content);
+        return {role:m.role,content:textOnly||'[??????????]'};
       }
-      return m;
+      return typeof m.content === 'string' ? m : {role:m.role,content:_aiPlainText(m.content)||'[??????????]'};
     });
     const messages=[{role:'system',content:systemPrompt},...historyForAPI];
     let resp=await fetch(_getAIEndpoint(),{
       method:'POST',
       headers:{'Content-Type':'application/json','Authorization':'Bearer '+_getAIToken()},
-      body:JSON.stringify({model,max_tokens:4096,messages})
+      body:JSON.stringify({model:modelPlan.primary,max_tokens:modelPlan.maxTokens,messages,temperature:0.35})
     });
     let data=await resp.json();
-    // If maverick unavailable — fallback to scout
-    if(data.error && hasImage){
+    if(data.error){
       resp=await fetch(_getAIEndpoint(),{
         method:'POST',
         headers:{'Content-Type':'application/json','Authorization':'Bearer '+_getAIToken()},
-        body:JSON.stringify({model:'meta-llama/llama-4-scout-17b-16e-instruct',max_tokens:4096,messages})
+        body:JSON.stringify({model:modelPlan.fallback,max_tokens:modelPlan.maxTokens,messages,temperature:0.35})
       });
       data=await resp.json();
     }
-    if(data.error){thinkingDiv.remove();appendAIMsg('other','⚠️ Помилка: '+(data.error.message||JSON.stringify(data.error)));document.getElementById('ai-send').disabled=false;return;}
-    const reply=data.choices?.[0]?.message?.content||'Вибачте, не вдалося отримати відповідь.';
+    if(data.error){thinkingDiv.remove();appendAIMsg('other','Error: '+(data.error.message||JSON.stringify(data.error)));document.getElementById('ai-send').disabled=false;return;}
+    const reply=data.choices?.[0]?.message?.content||'Vybach, ne vdalosya otrymaty vidpovid.';
     aiHistory.push({role:'assistant',content:reply});
     thinkingDiv.remove();
     _loadKaTeX().then(()=>appendAIMsg('other',reply));
-  } catch(e){thinkingDiv.remove();appendAIMsg('other','⚠️ Помилка з\'єднання: '+e.message);}
+  } catch(e){thinkingDiv.remove();appendAIMsg('other','Connection error: '+e.message);}
   document.getElementById('ai-send').disabled=false;
 }
-
 function renderMarkdown(text){
   const mathBlocks=[];
   let t=text;

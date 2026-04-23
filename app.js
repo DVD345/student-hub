@@ -5263,6 +5263,9 @@ function updateNotePreview(){
 // ═══ AI ASSISTANT ═══
 var aiHistory=[];
 var aiImageBase64=null, aiImageMime='image/jpeg';
+var aiDocAttachment=null, aiAttachmentBusy=false;
+var _pdfJsLoaded=false, _pdfJsLoading=false, _pdfJsQueue=[];
+var _mammothLoaded=false, _mammothLoading=false, _mammothQueue=[];
 
 function _aiPlainText(content){
   if(typeof content === 'string') return content;
@@ -5314,12 +5317,148 @@ function _buildAIContextParts(){
   return parts;
 }
 
-function _selectAIModel(text, hasImage){
+function _loadPdfJs(){
+  return new Promise(function(resolve, reject){
+    if(window.pdfjsLib) {
+      if(window.pdfjsLib.GlobalWorkerOptions) window.pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+      _pdfJsLoaded = true;
+      resolve();
+      return;
+    }
+    _pdfJsQueue.push({resolve:resolve,reject:reject});
+    if(_pdfJsLoading) return;
+    _pdfJsLoading = true;
+    var s = document.createElement('script');
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+    s.onload = function(){
+      _pdfJsLoaded = true;
+      _pdfJsLoading = false;
+      if(window.pdfjsLib && window.pdfjsLib.GlobalWorkerOptions) {
+        window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+      }
+      _pdfJsQueue.splice(0).forEach(function(item){ item.resolve(); });
+    };
+    s.onerror = function(err){
+      _pdfJsLoading = false;
+      _pdfJsQueue.splice(0).forEach(function(item){ item.reject(err || new Error('PDF loader failed')); });
+    };
+    document.head.appendChild(s);
+  });
+}
+
+function _loadMammoth(){
+  return new Promise(function(resolve, reject){
+    if(window.mammoth) {
+      _mammothLoaded = true;
+      resolve();
+      return;
+    }
+    _mammothQueue.push({resolve:resolve,reject:reject});
+    if(_mammothLoading) return;
+    _mammothLoading = true;
+    var s = document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/npm/mammoth@1.8.0/mammoth.browser.min.js';
+    s.onload = function(){
+      _mammothLoaded = true;
+      _mammothLoading = false;
+      _mammothQueue.splice(0).forEach(function(item){ item.resolve(); });
+    };
+    s.onerror = function(err){
+      _mammothLoading = false;
+      _mammothQueue.splice(0).forEach(function(item){ item.reject(err || new Error('DOCX loader failed')); });
+    };
+    document.head.appendChild(s);
+  });
+}
+
+async function _extractPdfText(file){
+  await _loadPdfJs();
+  var data = await file.arrayBuffer();
+  var pdf = await window.pdfjsLib.getDocument({ data: data }).promise;
+  var textParts = [];
+  var pages = Math.min(pdf.numPages || 0, 20);
+  for(var pageNum=1; pageNum<=pages; pageNum++){
+    var page = await pdf.getPage(pageNum);
+    var content = await page.getTextContent();
+    var pageText = (content.items || []).map(function(item){ return item && item.str ? item.str : ''; }).join(' ').replace(/\s+/g,' ').trim();
+    if(pageText) textParts.push('[Сторінка ' + pageNum + '] ' + pageText);
+    if(textParts.join('\n').length > 18000) break;
+  }
+  return textParts.join('\n').slice(0, 18000);
+}
+
+async function _extractDocxText(file){
+  await _loadMammoth();
+  var data = await file.arrayBuffer();
+  var result = await window.mammoth.extractRawText({ arrayBuffer: data });
+  return String((result && result.value) || '').replace(/\n{3,}/g, '\n\n').trim().slice(0, 18000);
+}
+
+async function _extractTextFile(file){
+  return String(await file.text()).replace(/\u0000/g,'').trim().slice(0, 18000);
+}
+
+function _showAIDocPreview(name, meta){
+  var box = document.getElementById('ai-doc-preview');
+  var nameEl = document.getElementById('ai-doc-name');
+  var metaEl = document.getElementById('ai-doc-meta');
+  if(nameEl) nameEl.textContent = name || 'Документ';
+  if(metaEl) metaEl.textContent = meta || '';
+  if(box) box.style.display = 'block';
+}
+
+async function _attachAIDocument(file){
+  var ext = ((file.name || '').split('.').pop() || '').toLowerCase();
+  if(file.size > 6 * 1024 * 1024) {
+    alert('Для асистента документ має бути до 6 МБ.');
+    return;
+  }
+  aiAttachmentBusy = true;
+  _showAIDocPreview(file.name, 'Обробка документа...');
+  try {
+    clearAIImg();
+    var extracted = '';
+    if(file.type === 'application/pdf' || ext === 'pdf') {
+      extracted = await _extractPdfText(file);
+    } else if(file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || ext === 'docx') {
+      extracted = await _extractDocxText(file);
+    } else if(file.type.indexOf('text/') === 0 || ext === 'txt') {
+      extracted = await _extractTextFile(file);
+    } else if(ext === 'doc') {
+      throw new Error('Формат .doc поки не підтримується. Краще зберегти файл як .docx або PDF.');
+    } else {
+      throw new Error('Асистент зараз підтримує PDF, DOCX і TXT.');
+    }
+    if(!extracted) throw new Error('Не вдалося витягнути текст із документа.');
+    aiDocAttachment = {
+      name: file.name || 'Документ',
+      type: (ext || file.type || 'document').toUpperCase(),
+      text: extracted
+    };
+    _showAIDocPreview(aiDocAttachment.name, aiDocAttachment.type + ' • ' + extracted.length + ' символів витягнутого тексту');
+  } catch(err) {
+    aiDocAttachment = null;
+    var box = document.getElementById('ai-doc-preview');
+    if(box) box.style.display = 'none';
+    alert(err && err.message ? err.message : 'Не вдалося обробити документ.');
+  } finally {
+    aiAttachmentBusy = false;
+  }
+}
+
+function _selectAIModel(text, hasImage, hasDocument){
   if(hasImage) {
     return {
       primary: 'meta-llama/llama-4-maverick-17b-128e-instruct',
       fallback: 'meta-llama/llama-4-scout-17b-16e-instruct',
       maxTokens: 2200
+    };
+  }
+  if(hasDocument) {
+    return {
+      primary: 'llama-3.3-70b-versatile',
+      fallback: 'llama-3.1-8b-instant',
+      maxTokens: 2800
     };
   }
   var normalized = String(text || '').toLowerCase();
@@ -5344,15 +5483,23 @@ function _selectAIModel(text, hasImage){
   };
 }
 function setAIImage(base64,mime){
+  aiDocAttachment = null;
   aiImageBase64=base64; aiImageMime=mime||'image/jpeg';
   document.getElementById('ai-img-thumb').src='data:'+aiImageMime+';base64,'+base64;
   document.getElementById('ai-img-preview').style.display='block';
+  var docBox = document.getElementById('ai-doc-preview');
+  if(docBox) docBox.style.display='none';
 }
-function handleAIImg(inp){
+async function handleAIImg(inp){
   const file=inp.files[0]; if(!file)return;
-  const reader=new FileReader();
-  reader.onload=e=>setAIImage(e.target.result.split(',')[1],file.type);
-  reader.readAsDataURL(file); inp.value='';
+  if((file.type||'').startsWith('image/')){
+    const reader=new FileReader();
+    reader.onload=e=>setAIImage(e.target.result.split(',')[1],file.type);
+    reader.readAsDataURL(file);
+  } else {
+    await _attachAIDocument(file);
+  }
+  inp.value='';
 }
 function handleAIPaste(e){
   const items=(e.clipboardData||e.originalEvent.clipboardData).items;
@@ -5366,7 +5513,14 @@ function handleAIPaste(e){
     }
   }
 }
-function clearAIImg(){aiImageBase64=null;document.getElementById('ai-img-preview').style.display='none';}
+function clearAIImg(){
+  aiImageBase64=null;
+  aiDocAttachment=null;
+  var imgBox = document.getElementById('ai-img-preview');
+  var docBox = document.getElementById('ai-doc-preview');
+  if(imgBox) imgBox.style.display='none';
+  if(docBox) docBox.style.display='none';
+}
 function aiKey(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendAI();}}
 
 var _AI_PROXY = 'https://groq-proxy.dvdkunec.workers.dev';
@@ -5381,16 +5535,25 @@ async function sendAI(){
   const inp=document.getElementById('ai-inp');
   const text=inp.value.trim();
   const hasImage=!!aiImageBase64;
-  if(!text&&!hasImage)return;
+  const hasDocument=!!(aiDocAttachment && aiDocAttachment.text);
+  if(aiAttachmentBusy){ alert('Зачекай, документ ще обробляється.'); return; }
+  if(!text&&!hasImage&&!hasDocument)return;
   inp.value='';
-  appendAIMsg('me',text||'?? ????',hasImage?('data:'+aiImageMime+';base64,'+aiImageBase64):null);
-  let userContent;
+  appendAIMsg('me',text||(hasDocument?('Файл: '+(aiDocAttachment.name||'Документ')):'?? ????'),hasImage?('data:'+aiImageMime+';base64,'+aiImageBase64):null,hasDocument?(aiDocAttachment.name||'Документ'):null);
+  let userContent, historyContent;
   if(hasImage){
     userContent=[{type:'text',text:text||'?? ??????????'},{type:'image_url',image_url:{url:'data:'+aiImageMime+';base64,'+aiImageBase64}}];
+    historyContent = text || '[Зображення]';
+  } else if(hasDocument){
+    userContent=(text?text+'\n\n':'Проаналізуй вкладений документ.\n\n')+
+      'Назва документа: '+(aiDocAttachment.name||'Документ')+'\n'+
+      'Формат: '+(aiDocAttachment.type||'DOCUMENT')+'\n'+
+      'Витягнутий текст документа:\n"""\n'+String(aiDocAttachment.text||'').slice(0,18000)+'\n"""';
+    historyContent=(text||'Запит по документу')+'\n[Документ: '+(aiDocAttachment.name||'Документ')+']';
   } else {
     userContent=text;
+    historyContent=text;
   }
-  aiHistory.push({role:'user',content:userContent});
   clearAIImg();
   const thinkingDiv=document.createElement('div');
   thinkingDiv.className='msg other';
@@ -5414,15 +5577,15 @@ async function sendAI(){
       "- Use markdown: **bold**, headings, bullet lists, and `code` when useful.",
       "- Write like a helpful student assistant, not like a bureaucratic manual."
     ].join('\n') + (contextParts.length ? '\nSite context: ' + contextParts.join('. ') : '');
-    const modelPlan = _selectAIModel(text, hasImage);
-    const historyForAPI=aiHistory.slice(-10).map((m,i,arr)=>{
+    const modelPlan = _selectAIModel(text, hasImage, hasDocument);
+    const historyForAPI=aiHistory.slice(-9).map((m,i,arr)=>{
       if(i<arr.length-1&&Array.isArray(m.content)){
         const textOnly=_aiPlainText(m.content);
         return {role:m.role,content:textOnly||'[??????????]'};
       }
       return typeof m.content === 'string' ? m : {role:m.role,content:_aiPlainText(m.content)||'[??????????]'};
     });
-    const messages=[{role:'system',content:systemPrompt},...historyForAPI];
+    const messages=[{role:'system',content:systemPrompt},...historyForAPI,{role:'user',content:userContent}];
     let resp=await fetch(_getAIEndpoint(),{
       method:'POST',
       headers:{'Content-Type':'application/json','Authorization':'Bearer '+_getAIToken()},
@@ -5439,6 +5602,7 @@ async function sendAI(){
     }
     if(data.error){thinkingDiv.remove();appendAIMsg('other','Error: '+(data.error.message||JSON.stringify(data.error)));document.getElementById('ai-send').disabled=false;return;}
     const reply=data.choices?.[0]?.message?.content||'Vybach, ne vdalosya otrymaty vidpovid.';
+    aiHistory.push({role:'user',content:historyContent});
     aiHistory.push({role:'assistant',content:reply});
     thinkingDiv.remove();
     _loadKaTeX().then(()=>appendAIMsg('other',reply));
@@ -5478,18 +5642,19 @@ function renderMarkdown(text){
   return t;
 }
 
-function appendAIMsg(side,text,imgSrc){
+function appendAIMsg(side,text,imgSrc,fileLabel){
   const el=document.getElementById('ai-msgs');
   const div=document.createElement('div');
   div.className='msg '+side;
   const isAI=side==='other';
   const imgHtml=imgSrc?'<img src="'+imgSrc+'" style="max-width:100%;width:auto;max-height:260px;border-radius:8px;display:block;margin-bottom:8px;border:1px solid var(--border);">':'';
+  const fileHtml=fileLabel?'<div style="display:inline-flex;align-items:center;gap:6px;margin-bottom:8px;padding:6px 10px;background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:10px;font-size:12px;color:var(--text2);">📄 '+escHtml(fileLabel)+'</div>':'';
   const content=isAI?renderMarkdown(text):'<p style="margin:0;">'+escHtml(text).replace(/\n/g,'<br>')+'</p>';
   const bubbleClass='msg-bubble ai-bubble'+(isAI?' ai-bubble-assistant':' ai-bubble-user');
   const bubbleStyle=isAI
     ?'max-width:88%;font-size:14px;line-height:1.65;'
     :'display:inline-block;margin-left:auto;max-width:min(78%,520px);min-width:120px;width:auto;white-space:normal;word-break:normal;overflow-wrap:anywhere;font-size:14px;line-height:1.65;';
-  div.innerHTML='<div class="'+bubbleClass+'" style="'+bubbleStyle+'">'+imgHtml+content+'</div>';
+  div.innerHTML='<div class="'+bubbleClass+'" style="'+bubbleStyle+'">'+fileHtml+imgHtml+content+'</div>';
   el.appendChild(div);
   el.scrollTop=99999;
 }

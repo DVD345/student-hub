@@ -1574,6 +1574,29 @@ body.deadlines-resizing .dl-width-resizer::before {
 
 .msg-time { font-size:9px; color:var(--text2); font-family:'JetBrains Mono',monospace; padding: 0 2px; }
 
+#ai-msgs .msg {
+  max-width: 100%;
+}
+
+#ai-msgs .msg.me {
+  width: 100%;
+  align-self: stretch;
+}
+
+#ai-msgs .msg.me .msg-bubble {
+  margin-left: auto;
+  width: fit-content;
+  max-width: min(78%, 520px);
+  min-width: 96px;
+  white-space: normal;
+  word-break: normal;
+  overflow-wrap: anywhere;
+}
+
+#ai-msgs .msg.other .msg-bubble {
+  max-width: min(88%, 760px);
+}
+
 /* ── Reactions ── */
 .msg-reactions { display:flex; flex-wrap:wrap; gap:4px; margin-top:4px; }
 .reaction-btn {

@@ -5485,7 +5485,9 @@ function appendAIMsg(side,text,imgSrc){
   const isAI=side==='other';
   const imgHtml=imgSrc?'<img src="'+imgSrc+'" style="max-width:100%;width:auto;max-height:260px;border-radius:8px;display:block;margin-bottom:8px;border:1px solid var(--border);">':'';
   const content=isAI?renderMarkdown(text):'<p style="margin:0;">'+escHtml(text).replace(/\n/g,'<br>')+'</p>';
-  div.innerHTML='<div class="msg-bubble ai-bubble" style="max-width:88%;font-size:14px;line-height:1.65;">'+imgHtml+content+'</div>';
+  const bubbleClass='msg-bubble ai-bubble'+(isAI?' ai-bubble-assistant':' ai-bubble-user');
+  const bubbleStyle=isAI?'max-width:88%;font-size:14px;line-height:1.65;':'font-size:14px;line-height:1.65;';
+  div.innerHTML='<div class="'+bubbleClass+'" style="'+bubbleStyle+'">'+imgHtml+content+'</div>';
   el.appendChild(div);
   el.scrollTop=99999;
 }

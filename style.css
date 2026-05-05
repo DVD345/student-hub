@@ -1208,8 +1208,9 @@ body.deadlines-resizing .dl-width-resizer::before {
   align-items:center;
   justify-content:flex-start;
   gap:8px;
-  width:42px;
+  width:auto;
   min-width:42px;
+  max-width:42px;
   height:34px;
   padding:0 11px;
   overflow:hidden;
@@ -1231,7 +1232,7 @@ body.deadlines-resizing .dl-width-resizer::before {
 }
 .social-btn:hover,
 .social-btn:focus-visible {
-  width:var(--social-open-width, 160px);
+  max-width:var(--social-open-width, 160px);
   transform:translateY(-2px);
 }
 .social-btn:hover .social-label,
@@ -1254,6 +1255,7 @@ body.deadlines-resizing .dl-width-resizer::before {
   .social-btn {
     width:auto;
     min-width:42px;
+    max-width:none;
   }
   .social-btn .social-label {
     opacity:1;

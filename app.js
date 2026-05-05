@@ -378,6 +378,7 @@ async function initApp() {
   _initChatDmRoomsSync();
   _initNotificationsSync();
   setupNav();
+  _initMovingSliders();
   await startUserSettingsSync();
 
   // ✅ IMPROVEMENT 2: load courses and deadlines in PARALLEL
@@ -4756,7 +4757,58 @@ function setBnav(name){
   document.querySelectorAll('.bnav-item').forEach(b=>b.classList.remove('active'));
   const el=document.getElementById('bn-'+name);
   if(el) el.classList.add('active');
+  updateBnavSlider();
 }
+
+function _ensureMovingSlider(parent, className) {
+  if(!parent) return null;
+  var slider = parent.querySelector('.' + className);
+  if(!slider) {
+    slider = document.createElement('span');
+    slider.className = className + (className === 'theme-slider' ? ' floating-slider' : '');
+    slider.setAttribute('aria-hidden', 'true');
+    parent.insertBefore(slider, parent.firstChild);
+  }
+  parent.classList.add('has-slider');
+  return slider;
+}
+
+function _moveSlider(parent, active, className) {
+  if(!parent || !active) return;
+  var slider = _ensureMovingSlider(parent, className);
+  if(!slider) return;
+  requestAnimationFrame(function() {
+    slider.style.width = active.offsetWidth + 'px';
+    slider.style.transform = 'translate3d(' + active.offsetLeft + 'px,0,0)';
+    slider.style.opacity = '1';
+  });
+}
+
+function updateThemeSlider() {
+  var parent = document.getElementById('theme-swatches');
+  if(!parent) return;
+  _moveSlider(parent, parent.querySelector('.theme-swatch.active'), 'theme-slider');
+}
+
+function updateBnavSlider() {
+  var parent = document.querySelector('#bottom-nav .bottom-nav-inner');
+  if(!parent) return;
+  _moveSlider(parent, parent.querySelector('.bnav-item.active'), 'bnav-slider');
+}
+
+function _initMovingSliders() {
+  updateThemeSlider();
+  updateBnavSlider();
+  setTimeout(function() {
+    updateThemeSlider();
+    updateBnavSlider();
+  }, 80);
+}
+
+window.addEventListener('resize', debounce(function() {
+  updateThemeSlider();
+  updateBnavSlider();
+}, 120));
 
 function topbarBack() {
   go('dashboard'); setBnav('dashboard');
@@ -4818,6 +4870,7 @@ function setTheme(t) {
   document.querySelectorAll('.theme-swatch').forEach(el => {
     el.classList.toggle('active', el.dataset.theme === t);
   });
+  updateThemeSlider();
 }
 
 function toggleTheme() {
@@ -4949,6 +5002,7 @@ _applyUiFontScale();
 document.addEventListener('DOMContentLoaded', () => {
   const cur = localStorage.getItem('sh_theme') || 'dark';
   document.querySelectorAll('.theme-swatch').forEach(el => el.classList.toggle('active', el.dataset.theme === cur));
+  _initMovingSliders();
 });
 
 // ═══ CALENDAR ═══

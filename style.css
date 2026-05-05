@@ -436,6 +436,8 @@ a { text-decoration: none; color: inherit; }
   display:flex; gap:5px; flex-wrap:wrap; position:relative;
   padding:3px; border-radius:14px;
   background:rgba(255,255,255,.025);
+  width:max-content;
+  max-width:100%;
 }
 .theme-swatch {
   width:32px; height:32px; border-radius:10px; border:2px solid transparent;
@@ -447,9 +449,9 @@ a { text-decoration: none; color: inherit; }
 .theme-swatch.active { border-color:rgba(255,255,255,.55); box-shadow:0 0 0 1px rgba(240,192,64,.35); transform:scale(1.04); }
 .theme-swatches.has-slider .theme-swatch { transition:transform .18s ease, opacity .18s ease; }
 .theme-swatches.has-slider .theme-swatch.active {
-  border-color:transparent;
-  box-shadow:none;
-  transform:none;
+  border-color:rgba(255,255,255,.72);
+  box-shadow:0 0 0 1px rgba(240,192,64,.75), 0 0 18px rgba(240,192,64,.2);
+  transform:translateY(-1px);
 }
 .theme-swatches.has-slider .theme-swatch:hover { transform:translateY(-2px); }
 .theme-swatch .sw-label {

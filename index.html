@@ -1,0 +1,1044 @@
+<!DOCTYPE html>
+<html lang="uk" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<meta name="theme-color" content="#0a0a0f" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#f0f0f8" media="(prefers-color-scheme: light)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="StudentHub">
+<link rel="manifest" id="pwa-manifest">
+
+<!-- ✅ IMPROVEMENT 6: preconnect to font origins to eliminate render-blocking -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+<!-- legacy course settings modal block moved to body for valid HTML
+  <div class="modal course-settings-modal">
+    <h3>Налаштування курсів</h3>
+    <div class="course-settings-section">
+      <div class="course-settings-label">Карток в одному рядку</div>
+      <div class="course-cols-options" id="course-cols-options"></div>
+    </div>
+    <div class="course-settings-section">
+      <div class="course-settings-row">
+        <div>
+          <div class="course-settings-label">Приховані курси</div>
+          <div class="course-settings-sub">Оберіть курс зі списку, щоб повернути його назад.</div>
+        </div>
+        <button class="btn" type="button" onclick="restoreAllCourses()">Повернути всі</button>
+      </div>
+      <div id="hidden-courses-list" class="hidden-courses-list"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn" type="button" onclick="closeCoursesSettings()">Закрити</button>
+    </div>
+  </div>
+</div> -->
+<script>
+// PWA Manifest inline
+const APP_BUILD = '96';
+(function() {
+  try {
+    const prevBuild = localStorage.getItem('sh_build');
+    if (prevBuild !== APP_BUILD) {
+      localStorage.setItem('sh_build', APP_BUILD);
+      if ('caches' in window) {
+        caches.keys().then(keys => Promise.all(
+          keys.filter(k => /^sh-v\d+$/i.test(k)).map(k => caches.delete(k))
+        )).catch(() => {});
+      }
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then(regs => {
+          regs.forEach(r => r.update().catch(() => {}));
+        }).catch(() => {});
+      }
+      if (sessionStorage.getItem('sh_build_reload_done') !== APP_BUILD) {
+        sessionStorage.setItem('sh_build_reload_done', APP_BUILD);
+        window.addEventListener('load', function() {
+          setTimeout(function() { location.reload(); }, 60);
+        }, { once: true });
+      }
+    }
+  } catch(e) {}
+})();
+const _manifest = {
+  name: "StudentHub — УкрДУЗТ",
+  short_name: "StudentHub",
+  description: "Портал студентів УкрДУЗТ",
+  start_url: "./",
+  display: "standalone",
+  background_color: "#08080f",
+  theme_color: "#f0c040",
+  orientation: "portrait-primary",
+  icons: [
+    { src: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%23f0c040'/><text y='.9em' font-size='80' x='10'>🎓</text></svg>", sizes: "any", type: "image/svg+xml" }
+  ]
+};
+const _mBlob = new Blob([JSON.stringify(_manifest)], {type:'application/manifest+json'});
+document.getElementById('pwa-manifest').href = URL.createObjectURL(_mBlob);
+
+// Service Worker
+if('serviceWorker' in navigator) {
+  const swCode = `
+const CACHE = 'sh-v96';
+const PRECACHE = ['./'];
+self.addEventListener('install', e => {
+  e.waitUntil(caches.open(CACHE).then(c => c.addAll(PRECACHE)).then(() => self.skipWaiting()));
+});
+self.addEventListener('activate', e => {
+  e.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim()));
+});
+self.addEventListener('fetch', e => {
+  if(e.request.method !== 'GET') return;
+  const url = new URL(e.request.url);
+  if(url.origin !== location.origin) return;
+  e.respondWith(
+    caches.match(e.request).then(cached => {
+      const fresh = fetch(e.request).then(r => {
+        if(r && r.status === 200) {
+          const clone = r.clone();
+          caches.open(CACHE).then(c => c.put(e.request, clone));
+        }
+        return r;
+      }).catch(() => cached);
+      return cached || fresh;
+    })
+  );
+});
+`;
+  const swBlob = new Blob([swCode], {type:'application/javascript'});
+  const swUrl = URL.createObjectURL(swBlob);
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register(swUrl).catch(()=>{});
+  });
+}
+</script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Student Hub — УкрДУЗТ</title>
+
+<!-- ✅ IMPROVEMENT 6: font-display=swap already present, preconnect added above -->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css?v=96">
+<style>
+/* Prevent text selection during long-press on messages */
+.msg { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+.msg-bubble { -webkit-user-select: none; user-select: none; }
+/* Prevents iOS zoom on input focus */
+.chat-input { font-size: 16px !important; }
+/* Bigger tap targets for reactions */
+.msg-ctx-emoji-btn { min-width: 40px !important; min-height: 40px !important; font-size: 22px !important; }
+</style>
+<style>
+/* Prevent text selection and callout on long press for messages */
+.msg {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+.msg-bubble {
+  -webkit-user-select: text;
+  user-select: text;
+}
+/* Allow selecting text inside bubble only after menu is dismissed */
+.msg.selecting .msg-bubble {
+  -webkit-user-select: text;
+  user-select: text;
+}
+</style>
+<script>
+// KaTeX lazy load
+var _katexLoaded = false, _katexLoading = false, _katexQueue = [];
+function _loadKaTeX() {
+  return new Promise((resolve) => {
+    if(_katexLoaded) { resolve(); return; }
+    _katexQueue.push(resolve);
+    if(_katexLoading) return;
+    _katexLoading = true;
+    const link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = 'https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css';
+    document.head.appendChild(link);
+    const s1 = document.createElement('script');
+    s1.src = 'https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js';
+    s1.onload = () => {
+      const s2 = document.createElement('script');
+      s2.src = 'https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js';
+      s2.onload = () => { _katexLoaded = true; _katexLoading = false; _katexQueue.forEach(r=>r()); _katexQueue=[]; };
+      document.head.appendChild(s2);
+    };
+    document.head.appendChild(s1);
+  });
+}
+</script>
+</head>
+<body>
+
+<!-- ═══ LOGIN ═══ -->
+<div id="screen-login" class="screen active">
+  <canvas id="login-canvas"></canvas>
+  <div class="login-orb login-orb-1"></div>
+  <div class="login-orb login-orb-2"></div>
+  <div class="login-orb login-orb-3"></div>
+
+  <div class="login-content">
+    <div class="login-badge">
+      <div class="login-badge-dot"></div>
+      УкрДУЗТ · Студентський портал
+    </div>
+
+    <div class="login-brand">
+      <div class="login-brand-logo">🎓</div>
+      <h1>Student<span>Hub</span></h1>
+    </div>
+
+    <div class="auth-box">
+      <div class="field"><label>Логін від Moodle</label><input type="text" id="li" placeholder="Ваш логін" autocomplete="username"></div>
+      <div class="field"><label>Пароль від Moodle</label><input type="password" id="lp" placeholder="Ваш пароль" autocomplete="current-password"></div>
+      <button class="btn-primary" id="login-btn" onclick="doLogin()">Увійти →</button>
+      <div class="err-box" id="lerr"></div>
+    </div>
+
+    <div class="login-security">
+      <div class="login-security-title">🔒 Ваші дані в безпеці</div>
+      <p>
+        Логін і пароль <strong style="color:var(--text)">не зберігаються</strong> на наших серверах.
+        Дані йдуть напряму до <strong style="color:var(--text)">do.kart.edu.ua</strong>.
+        <a href="https://github.com/DVD345/student-hub" target="_blank" rel="noopener" style="color:#38d07a;">Відкритий код ↗</a>
+      </p>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ APP ═══ -->
+<div id="screen-app" class="screen">
+  <div class="sidebar-overlay" id="sov" onclick="closeSidebar()"></div>
+
+  <nav class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <div class="ico">🎓</div>
+      <h1>Student<span>Hub</span></h1>
+      <button class="close-sidebar" onclick="closeSidebar()">✕</button>
+    </div>
+    <div class="group-pill" id="gpill">Група: —</div>
+    <div class="nav" id="nav">
+      <div class="nav-section">Навчання</div>
+      <div class="nav-item active" onclick="go('dashboard')"><span class="ni">🏠</span>Головна</div>
+      <div class="nav-item" onclick="go('deadlines')"><span class="ni">⏰</span>Дедлайни</div>
+      <div class="nav-item" onclick="go('courses')"><span class="ni">📚</span>Курси</div>
+      <div class="nav-item" onclick="go('grades')"><span class="ni">🎓</span>Оцінки</div>
+      <div class="nav-item" onclick="go('calendar')"><span class="ni">📅</span>Календар</div>
+      <div class="nav-item" onclick="go('assistant')"><span class="ni">🤖</span>Асистент</div>
+      <div class="nav-section">Група</div>
+      <div class="nav-item" onclick="go('files')"><span class="ni">📁</span>Файли</div>
+      <div class="nav-item" onclick="go('materials')"><span class="ni">📝</span>Матеріали</div>
+      <div class="nav-item" onclick="go('notes')"><span class="ni">✍️</span>Нотатки</div>
+      <div class="nav-item" onclick="go('chat')"><span class="ni">💬</span>Чати<span class="nav-badge" id="chat-badge" style="display:none">0</span></div>
+      <div class="nav-section" id="admin-section" style="display:none">Адміністрування</div>
+      <div class="nav-item" id="nav-admin" onclick="go('admin')" style="display:none"><span class="ni">⚙️</span>Адмін-панель</div>
+    </div>
+    <div class="sidebar-bottom">
+      <div class="theme-picker">
+        <div class="theme-picker-label">🎨 Тема</div>
+        <div class="theme-swatches" id="theme-swatches">
+          <button class="theme-swatch active" data-theme="dark"    style="background:linear-gradient(135deg,#0d0d1a,#141420)" title="Dark"      onclick="setTheme('dark')"     ><span class="sw-label">Dark</span></button>
+          <button class="theme-swatch"        data-theme="light"   style="background:linear-gradient(135deg,#f0f1f8,#e4e5f0)" title="Light"     onclick="setTheme('light')"    ><span class="sw-label">Light</span></button>
+          <button class="theme-swatch"        data-theme="midnight"style="background:linear-gradient(135deg,#080820,#a57fff44)" title="Midnight" onclick="setTheme('midnight')" ><span class="sw-label">Midnight</span></button>
+          <button class="theme-swatch"        data-theme="solarized"style="background:linear-gradient(135deg,#fdf6e3,#eee8d5)" title="Solarized" onclick="setTheme('solarized')"><span class="sw-label">Solarized</span></button>
+          <button class="theme-swatch"        data-theme="forest"  style="background:linear-gradient(135deg,#0a1a0d,#4ade8044)" title="Forest"   onclick="setTheme('forest')"  ><span class="sw-label">Forest</span></button>
+          <button class="theme-swatch" id="custom-swatch" data-theme="custom" title="Своя тема" onclick="openCustomTheme()"><span style="font-size:16px;">🎨</span><span class="sw-label">Своя</span></button>
+        </div>
+      </div>
+      <div class="user-card">
+        <div class="user-avatar" id="uav" style="background:var(--accent)">?</div>
+        <div class="user-info">
+          <div class="user-name" id="uname">...</div>
+          <div class="user-role-badge" id="urole">Студент</div>
+        </div>
+        <button class="icon-btn" onclick="toggleTheme()">🌓</button>
+        <button class="icon-btn" onclick="doLogout()">↩</button>
+      </div>
+    </div>
+  </nav>
+  <div class="sidebar-resizer" id="sidebar-resizer" aria-hidden="true"></div>
+
+  <div class="main">
+    <div class="topbar" id="topbar">
+      <button class="topbar-menu" id="topbar-back" onclick="topbarBack()" style="display:none">←</button>
+      <button class="topbar-menu" id="topbar-hamburger" onclick="openSidebar()">☰</button>
+      <h2 id="topbar-title">Головна</h2>
+      <button class="icon-btn" onclick="openGlobalSearch()" title="Пошук (Ctrl+K)" style="font-size:16px;">🔍</button>
+      <button class="icon-btn" id="theme-btn-top" onclick="toggleTheme()">🌙</button>
+      <button class="icon-btn" id="bell-btn" onclick="go('notifications')" style="position:relative">🔔<span id="bell-count" style="display:none;position:absolute;top:-2px;right:-2px;background:var(--accent2);color:#fff;font-size:8px;font-weight:700;padding:1px 4px;border-radius:10px;min-width:14px;text-align:center"></span></button>
+    </div>
+
+    <nav class="bottom-nav" id="bottom-nav">
+      <div class="bottom-nav-inner">
+        <button class="bnav-item active" id="bn-dashboard" onclick="go('dashboard');setBnav('dashboard')">
+          <span class="bnav-ico">🏠</span><span>Головна</span>
+        </button>
+        <button class="bnav-item" id="bn-deadlines" onclick="go('deadlines');setBnav('deadlines')">
+          <span class="bnav-ico">⏰</span><span>Дедлайни</span>
+        </button>
+        <button class="bnav-item" id="bn-courses" onclick="go('courses');setBnav('courses')">
+          <span class="bnav-ico">📚</span><span>Курси</span>
+        </button>
+        <button class="bnav-item" id="bn-chat" onclick="go('chat');setBnav('chat')" style="position:relative">
+          <span class="bnav-ico">💬</span><span>Чат</span>
+          <span class="bnav-badge" id="bnav-chat-badge" style="display:none">0</span>
+        </button>
+        <button class="bnav-item" id="bn-more" onclick="openSidebar()">
+          <span class="bnav-ico">☰</span><span>Меню</span>
+        </button>
+      </div>
+    </nav>
+
+    <div class="content">
+      <!-- DASHBOARD -->
+      <div class="page active" id="page-dashboard">
+        <div class="dash-home">
+          <div class="dash-hero">
+            <div class="dash-hero-main">
+              <div class="dash-hero-copy">
+              <div class="dash-hero-kicker">StudentHub</div>
+              <h2>Добрий день! 👋</h2>
+              <p id="dash-sub-home">Завантаження...</p>
+              <div class="dash-hero-meta">
+                <div class="sync-badge"><div class="sync-dot"></div>Moodle</div>
+                <button class="btn social-btn" style="--social-open-width:130px;" onclick="syncMoodle()" title="Оновити"><span class="social-ico">🔄</span><span class="social-label">Оновити</span></button>
+                <a class="btn social-btn support" style="--social-open-width:168px;" href="https://www.patreon.com/cw/Student_Hub" target="_blank" rel="noopener" title="Patreon"><span class="social-ico">★</span><span class="social-label">Patreon</span></a>
+                <a class="btn social-btn code" style="--social-open-width:150px;" href="https://github.com/DVD345/student-hub" target="_blank" rel="noopener" title="GitHub"><span class="social-ico">GH</span><span class="social-label">GitHub</span></a>
+              </div>
+              </div>
+              <div class="dash-font-card">
+                <div class="dash-font-card-title">РЁСЂРёС„С‚ СЃР°Р№С‚Сѓ</div>
+                <div class="dash-font-card-sub">Р—РјС–РЅС–С‚СЊ СЂРѕР·РјС–СЂ С‚РµРєСЃС‚Сѓ РЅР° РІСЃСЊРѕРјСѓ СЃР°Р№С‚С–</div>
+                <div class="dash-font-actions">
+                  <button class="btn" onclick="adjustUiFontScale(-1)" title="РњРµРЅС€РёР№ С€СЂРёС„С‚">Aв€’</button>
+                  <button class="btn" onclick="resetUiFontScale()" title="РЎС‚Р°РЅРґР°СЂС‚РЅРёР№ С€СЂРёС„С‚">A</button>
+                  <button class="btn" onclick="adjustUiFontScale(1)" title="Р‘С–Р»СЊС€РёР№ С€СЂРёС„С‚">A+</button>
+                </div>
+              </div>
+            </div>
+            <div class="dash-hero-side">
+              <div class="dash-theme-card">
+                <div class="dash-theme-title">Теми та стиль</div>
+                <div class="dash-theme-text">Оберіть будь-який стиль інтерфейсу: тему, кольори й атмосферу можна налаштувати під себе.</div>
+              </div>
+            </div>
+          </div>
+          <div class="dash-quick-grid">
+            <button class="dash-quick-card" onclick="go('deadlines');setBnav('deadlines')">
+              <span class="dash-quick-icon">⏰</span>
+              <span class="dash-quick-copy"><strong id="s-urgent-home">—</strong><span>Дедлайни</span></span>
+            </button>
+            <button class="dash-quick-card" onclick="go('grades')">
+              <span class="dash-quick-icon">🎓</span>
+              <span class="dash-quick-copy"><strong id="dash-grade-count">—</strong><span>Оцінки</span></span>
+            </button>
+            <button class="dash-quick-card" onclick="go('materials')">
+              <span class="dash-quick-icon">📝</span>
+              <span class="dash-quick-copy"><strong id="dash-mats-count">—</strong><span>Матеріали</span></span>
+            </button>
+            <button class="dash-quick-card" onclick="go('chat');setBnav('chat')">
+              <span class="dash-quick-icon">💬</span>
+              <span class="dash-quick-copy"><strong id="dash-chat-count">—</strong><span>Чати</span></span>
+            </button>
+          </div>
+          <div class="dash-layout">
+            <div class="dash-column-main">
+              <div class="dash-panel">
+                <div class="dash-panel-head">
+                  <div>
+                    <div class="dash-panel-title">Найближчі дедлайни</div>
+                    <div class="dash-panel-sub">Те, що варто тримати під рукою прямо зараз</div>
+                  </div>
+                  <button class="widget-link" onclick="go('deadlines');setBnav('deadlines')">Всі →</button>
+                </div>
+                <div id="dash-dl-home"><div class="loading"><div class="spinner"></div>Завантаження...</div></div>
+              </div>
+            </div>
+            <div class="dash-column-side">
+              <div class="dash-panel">
+                <div class="dash-panel-head">
+                  <div>
+                    <div class="dash-panel-title">Міні-календар</div>
+                    <div class="dash-panel-sub">Поточний місяць і активні дати</div>
+                  </div>
+                  <button class="widget-link" onclick="go('calendar')">Відкрити →</button>
+                </div>
+                <div id="dash-mini-cal"></div>
+              </div>
+              <div class="dash-panel">
+                <div class="dash-panel-head">
+                  <div>
+                    <div class="dash-panel-title">Останні події</div>
+                    <div class="dash-panel-sub">Матеріали, нотатки та важливі оновлення</div>
+                  </div>
+                </div>
+                <div class="dash-theme-card dash-theme-card-side">
+                  <div class="dash-theme-title">РўРµРјРё С‚Р° СЃС‚РёР»СЊ</div>
+                  <div class="dash-theme-text">РћР±РµСЂС–С‚СЊ Р±СѓРґСЊ-СЏРєРёР№ СЃС‚РёР»СЊ С–РЅС‚РµСЂС„РµР№СЃСѓ: С‚РµРјСѓ, РєРѕР»СЊРѕСЂРё Р№ Р°С‚РјРѕСЃС„РµСЂСѓ РјРѕР¶РЅР° РЅР°Р»Р°С€С‚СѓРІР°С‚Рё РїС–Рґ СЃРµР±Рµ.</div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="dash-theme-card dash-theme-card-bottom">
+            <div class="dash-theme-title">Теми та стиль</div>
+            <div class="dash-theme-text">Оберіть будь-який стиль інтерфейсу: тему, кольори й атмосферу можна налаштувати під себе.</div>
+          </div>
+        </div>
+        <div class="page-header">
+          <h2>Добрий день! 👋</h2>
+          <p id="dash-sub">Завантаження...</p>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;flex-wrap:wrap;">
+          <div class="sync-badge"><div class="sync-dot"></div>Moodle</div>
+          <button class="btn social-btn" style="--social-open-width:130px;" onclick="syncMoodle()" title="Оновити"><span class="social-ico">🔄</span><span class="social-label">Оновити</span></button>
+          <a class="btn social-btn support" style="--social-open-width:168px;" href="https://www.patreon.com/cw/Student_Hub" target="_blank" rel="noopener" title="Patreon"><span class="social-ico">★</span><span class="social-label">Patreon</span></a>
+          <a class="btn social-btn code" style="--social-open-width:150px;" href="https://github.com/DVD345/student-hub" target="_blank" rel="noopener" title="GitHub"><span class="social-ico">GH</span><span class="social-label">GitHub</span></a>
+        </div>
+        <div class="stats-grid">
+          <div class="stat-card"><div class="stat-ico si-y">📚</div><div><div class="stat-val" id="s-courses">—</div><div class="stat-lbl">Курсів</div></div></div>
+          <div class="stat-card"><div class="stat-ico si-r">⏰</div><div><div class="stat-val" id="s-urgent">—</div><div class="stat-lbl">Терміново</div></div></div>
+          <div class="stat-card"><div class="stat-ico si-g">✅</div><div><div class="stat-val" id="s-done">—</div><div class="stat-lbl">Минуло</div></div></div>
+          <div class="stat-card"><div class="stat-ico si-b">📁</div><div><div class="stat-val" id="s-files">—</div><div class="stat-lbl">Файлів</div></div></div>
+        </div>
+
+        <!-- WIDGETS -->
+        <div class="dash-widgets">
+          <div class="widget">
+            <div class="widget-header">
+              <span class="widget-icon">⏰</span>
+              <span class="widget-title">Сьогодні</span>
+              <button class="widget-link" onclick="go('deadlines');setBnav('deadlines')">Всі →</button>
+            </div>
+            <div class="widget-body" id="w-today"></div>
+          </div>
+          <div class="widget">
+            <div class="widget-header">
+              <span class="widget-icon">📅</span>
+              <span class="widget-title">Цього тижня</span>
+              <button class="widget-link" onclick="go('deadlines');setBnav('deadlines')">Всі →</button>
+            </div>
+            <div class="widget-body" id="w-week"></div>
+          </div>
+          <div class="widget">
+            <div class="widget-header">
+              <span class="widget-icon">✍️</span>
+              <span class="widget-title">Останні нотатки</span>
+              <button class="widget-link" onclick="go('notes')">Всі →</button>
+            </div>
+            <div class="widget-body" id="w-notes"></div>
+          </div>
+          <div class="widget">
+            <div class="widget-header">
+              <span class="widget-icon">📁</span>
+              <span class="widget-title">Нові файли</span>
+              <button class="widget-link" onclick="go('files')">Всі →</button>
+            </div>
+            <div class="widget-body" id="w-files"></div>
+          </div>
+        </div>
+
+        <div class="section-title" style="margin-top:4px;">Найближчі дедлайни</div>
+        <div id="dash-dl"><div class="loading"><div class="spinner"></div>Завантаження...</div></div>
+      </div>
+
+      <!-- DEADLINES -->
+      <div class="page" id="page-deadlines">
+        <div class="dl-width-resizer" id="dl-width-resizer" aria-hidden="true"></div>
+        <div class="page-header"><h2>⏰ Дедлайни</h2><p>З Moodle — натисніть щоб відкрити завдання</p></div>
+        <div class="toolbar">
+          <input class="tb-input" id="dl-q" placeholder="🔍 Пошук...">
+          <select class="tb-select" id="dl-f" onchange="applyDlFilter()">
+            <option value="all">Всі</option>
+            <option value="active" selected>Активні</option>
+            <option value="urgent">Термінові</option>
+            <option value="past">Минулі</option>
+          </select>
+          <div class="tb-right">
+            <button class="btn" onclick="adjustDeadlinesFontSize(-1)" title="Менший шрифт">A−</button>
+            <button class="btn" onclick="resetDeadlinesFontSize()" title="Стандартний шрифт">A</button>
+            <button class="btn" onclick="adjustDeadlinesFontSize(1)" title="Більший шрифт">A+</button>
+            <button class="btn" onclick="adjustDeadlinesWidth(-80)" title="Вужче">↔️−</button>
+            <button class="btn" onclick="resetDeadlinesWidth()" title="Стандартна ширина">Стандарт</button>
+            <button class="btn" onclick="adjustDeadlinesWidth(80)" title="Ширше">↔️+</button>
+            <button class="btn" onclick="showNoDlModal()" title="Завдання без дедлайну" style="font-size:11px;">📋 Без дедлайну</button>
+            <button class="btn" onclick="toggleDlSettings()" title="Налаштування кольорів">🎨</button>
+            <button class="btn a" onclick="syncMoodle()">🔄</button>
+          </div>
+        </div>
+        <div id="dl-settings" style="display:none;background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:16px;margin-bottom:14px;animation:fadeUp .2s ease;">
+          <div style="font-size:11px;font-weight:700;color:var(--text2);letter-spacing:.5px;text-transform:uppercase;margin-bottom:12px;">🎨 Налаштування кольорів</div>
+          <div style="display:flex;flex-wrap:wrap;gap:16px;align-items:center;">
+            <label style="display:flex;align-items:center;gap:8px;font-size:13px;">
+              <span style="width:11px;height:11px;border-radius:50%;background:var(--accent2);flex-shrink:0;box-shadow:0 0 6px rgba(224,80,80,.5);"></span>
+              Червоний менше
+              <input type="number" id="dl-urgent-hours" min="1" max="240" inputmode="numeric" pattern="[0-9]*" style="width:70px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:8px 10px;color:var(--text);font-size:16px;text-align:center;outline:none;-webkit-appearance:none;appearance:none;" oninput="saveDlSettings()">
+              год
+            </label>
+            <label style="display:flex;align-items:center;gap:8px;font-size:13px;">
+              <span style="width:11px;height:11px;border-radius:50%;background:var(--warning);flex-shrink:0;"></span>
+              Жовтий менше
+              <input type="number" id="dl-warn-days" min="1" max="60" inputmode="numeric" pattern="[0-9]*" style="width:70px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:8px 10px;color:var(--text);font-size:16px;text-align:center;outline:none;-webkit-appearance:none;appearance:none;" oninput="saveDlSettings()">
+              днів
+            </label>
+          </div>
+          <div style="font-size:11px;color:var(--text2);margin-top:8px;">💾 Зберігається автоматично</div>
+        </div>
+        <div id="dl-list"><div class="loading"><div class="spinner"></div>Завантаження...</div></div>
+      </div>
+
+      <!-- COURSES -->
+      <div class="page" id="page-courses">
+        <div class="page-header"><h2>📚 Курси</h2><p>З Moodle — натисніть щоб відкрити</p></div>
+        <div class="toolbar">
+          <input class="tb-input" id="c-q" placeholder="🔍 Пошук курсу...">
+          <button class="ftab on" id="cs-n" onclick="setCS('name')">А-Я</button>
+          <button class="ftab" id="cs-num" onclick="setCS('num')">#</button>
+          <div class="tb-right" style="display:flex;gap:4px;">
+            <button class="vbtn" id="vcfg" onclick="openCoursesSettings()" title="Налаштування курсів">⚙</button>
+            <button class="vbtn on" id="vg" onclick="setCV('grid')" title="Картки">⊞</button>
+            <button class="vbtn" id="vl" onclick="setCV('list')" title="Список">☰</button>
+          </div>
+        </div>
+        <div id="courses-list"><div class="loading"><div class="spinner"></div>Завантаження...</div></div>
+      </div>
+
+
+      <!-- GRADES -->
+      <div class="page" id="page-grades">
+        <div class="page-header"><h2>🎓 Оцінки</h2><p>Moodle + власні · синхронізація</p></div>
+        <div class="toolbar">
+          <input class="tb-input" id="gr-q" placeholder="🔍 Пошук предмету..." oninput="renderGradesTable()">
+          <div class="tb-right">
+            <button class="btn" onclick="openGrAdd()">＋ Предмет</button>
+            <button class="btn a" onclick="loadGrades(true)">🔄</button>
+          </div>
+        </div>
+        
+        <div id="grades-list"><div class="loading"><div class="spinner"></div>Завантаження...</div></div>
+      </div>
+      <!-- FILES -->
+      <div class="page" id="page-files">
+        <div class="page-header"><h2>📁 Файли</h2><p id="files-lbl">Спільні файли вашої групи</p></div>
+        <div class="upload-zone" id="uz" onclick="document.getElementById('file-input').click()" ondragover="event.preventDefault();this.classList.add('drag')" ondragleave="this.classList.remove('drag')" ondrop="handleDrop(event)">
+          <div class="ui">📤</div>
+          <p><strong>Натисніть або перетягніть</strong></p>
+          <p style="font-size:10px;margin-top:2px;">до 700КБ • більші файли — через Google Drive у Матеріали</p>
+        </div>
+        <input type="file" id="file-input" multiple onchange="handleFileSelect(this)">
+        <div class="file-search-row">
+          <input class="tb-input" id="files-search-inp" placeholder="🔍 Пошук файлу..." style="flex:1;max-width:260px;">
+        </div>
+        <div id="files-list"><div class="loading"><div class="spinner"></div>Завантаження...</div></div>
+      </div>
+
+      <!-- MATERIALS -->
+      <div class="page" id="page-materials">
+        <div class="page-header"><h2>📝 Матеріали</h2><p id="mats-lbl">Конспекти та посилання групи</p></div>
+        <div class="toolbar">
+          <input class="tb-input" id="mats-search-inp" placeholder="🔍 Пошук...">
+          <div class="tb-right"><button class="btn a" onclick="showModal('add-mat')">+ Додати</button></div>
+        </div>
+        <div id="mats-list"><div class="loading"><div class="spinner"></div>Завантаження...</div></div>
+      </div>
+
+      <!-- CHAT -->
+      <div class="page" id="page-chat">
+        <div class="page-header"><h2>💬 Чати</h2><p>Спілкуйтесь з групою та університетом</p></div>
+        <div class="chat-wrap">
+          <div class="chat-sidebar" id="chat-rooms"></div>
+          <div class="chat-main">
+            <div class="chat-header" id="chat-room-title" style="display:flex;align-items:center;justify-content:space-between;">Оберіть кімнату<span id="chat-online-count" style="display:none;font-size:10px;font-weight:500;color:#4caf50;padding:2px 8px;background:rgba(76,175,80,.1);border-radius:10px;border:1px solid rgba(76,175,80,.2);">0 онлайн</span></div>
+            <div class="pinned-bar" id="pinned-bar" style="display:none" onclick="scrollToPinned()">
+              <span class="pinned-bar-icon">📌</span>
+              <span class="pinned-bar-label">Закріплено</span>
+              <span class="pinned-bar-text"></span>
+              <button class="pinned-bar-close" onclick="event.stopPropagation();unpinMessage()" title="Відкріпити">✕</button>
+            </div>
+            <div class="chat-messages" id="chat-msgs"><div class="empty"><div class="emo">💬</div><p>Оберіть чат зліва</p></div></div>
+            <div class="chat-input-wrap" style="flex-direction:column;gap:6px;padding:10px;">
+              <div id="reply-bar" style="display:none;align-items:center;gap:8px;padding:5px 10px;background:var(--bg3);border-radius:8px;border-left:3px solid var(--accent);font-size:11px;">
+                <div style="flex:1;overflow:hidden;">
+                  <div id="reply-bar-author" style="font-weight:700;color:var(--accent);font-size:10px;"></div>
+                  <div id="reply-bar-text" style="color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"></div>
+                </div>
+                <button onclick="_cancelReply()" style="background:none;border:none;color:var(--text2);cursor:pointer;font-size:16px;line-height:1;flex-shrink:0;">✕</button>
+              </div>
+              <div id="chat-file-preview" style="display:none;align-items:center;gap:8px;padding:6px 10px;background:var(--bg3);border-radius:8px;font-size:12px;">
+                <span id="chat-file-name" style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text2);"></span>
+                <button onclick="clearChatFile()" style="background:none;border:none;color:var(--accent2);cursor:pointer;font-size:16px;line-height:1;flex-shrink:0;">✕</button>
+              </div>
+              <div style="display:flex;gap:6px;align-items:flex-end;">
+                <button onclick="document.getElementById('chat-file-input').click()" title="Додати файл/фото" style="width:38px;height:38px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);font-size:18px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;">📎</button>
+                <textarea class="chat-input" id="chat-inp" placeholder="Напишіть або вставте фото (Ctrl+V)..." rows="1" onkeydown="chatKey(event)" onpaste="handleChatPaste(event)" oninput="chatInputHandler(event)" autocomplete="off" style="flex:1;"></textarea>
+                <button class="btn a" onclick="sendMsg()" style="height:38px;padding:0 14px;flex-shrink:0;">→</button>
+              </div>
+              <input type="file" id="chat-file-input" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip" style="display:none" onchange="handleChatFile(this)">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="chat-user-modal" class="chat-user-modal" onclick="if(event.target===this)closeChatUserModal()">
+        <div class="chat-user-sheet" onclick="event.stopPropagation()">
+          <div class="chat-user-sheet-head">
+            <div>
+              <div class="chat-user-sheet-title">Додати чат</div>
+              <div class="chat-user-sheet-sub">Оберіть користувача для особистого листування</div>
+            </div>
+            <button class="chat-user-close" onclick="closeChatUserModal()">✕</button>
+          </div>
+          <input id="chat-user-search" class="tb-input chat-user-search" placeholder="🔍 Пошук користувача..." oninput="filterChatUserList(this.value)">
+          <div id="chat-user-list" class="chat-user-list"><div class="loading"><div class="spinner"></div>Завантаження...</div></div>
+        </div>
+      </div>
+
+      <!-- CALENDAR -->
+      <div class="page" id="page-calendar">
+        <div class="page-header"><h2>📅 Календар</h2><p>Дедлайни та власні нотатки по днях</p></div>
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap;">
+          <button class="btn" onclick="calPrev()">← Назад</button>
+          <div id="cal-title" style="font-size:15px;font-weight:700;flex:1;text-align:center;min-width:140px;"></div>
+          <button class="btn" onclick="calNext()">Вперед →</button>
+          <button class="btn a" onclick="calToday()">Сьогодні</button>
+        </div>
+        <div id="cal-grid"></div>
+
+        <!-- Calendar Note Modal -->
+        <div id="cal-note-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:1000;align-items:center;justify-content:center;padding:16px;">
+          <div style="background:var(--card);border:1px solid var(--border);border-radius:16px;width:100%;max-width:480px;max-height:90dvh;overflow-y:auto;padding:20px;animation:fadeUp .2s ease;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+              <div id="cal-note-date-lbl" style="font-size:15px;font-weight:700;"></div>
+              <button onclick="closeCalNoteModal()" style="background:none;border:none;color:var(--text2);font-size:20px;cursor:pointer;line-height:1;">✕</button>
+            </div>
+            <div id="cal-notes-list-existing"></div>
+            <div id="cal-note-form">
+              <div style="font-size:10px;font-weight:700;color:var(--text2);letter-spacing:.5px;text-transform:uppercase;margin-bottom:8px;" id="cal-note-form-label">➕ Нова нотатка</div>
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+                <label style="font-size:11px;color:var(--text2);flex-shrink:0;">⏰ Час:</label>
+                <input type="time" id="cal-note-time" style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:6px 10px;color:var(--text);font-family:'Inter',sans-serif;font-size:14px;outline:none;width:126px;">
+              </div>
+              <textarea id="cal-note-inp" placeholder="Нотатка для цього дня..." style="width:100%;min-height:80px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:10px 13px;color:var(--text);font-family:'Inter',sans-serif;font-size:14px;resize:vertical;outline:none;line-height:1.6;"></textarea>
+              <div style="display:flex;gap:8px;margin-top:10px;justify-content:flex-end;flex-wrap:wrap;">
+                <button class="btn" onclick="newCalNote()" id="cal-note-new-btn" style="display:none;">+ Нова</button>
+                <button class="btn" onclick="deleteCalNote()" id="cal-note-del" style="color:var(--accent2);display:none;">🗑 Видалити</button>
+                <button class="btn a" onclick="saveCalNote()">💾 Зберегти</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- NOTES -->
+      <div class="page" id="page-notes">
+        <div class="page-header"><h2>✍️ Нотатки</h2></div>
+        <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;align-items:center;">
+          <button class="btn a" onclick="showNewNote()">+ Нова нотатка</button>
+          <input class="tb-input" id="notes-search-inp" placeholder="🔍 Пошук..." style="flex:1;max-width:260px;">
+        </div>
+        <div id="notes-container" style="display:flex;gap:14px;flex-wrap:wrap;"></div>
+      </div>
+
+      <!-- ASSISTANT -->
+      <div class="page" id="page-assistant">
+        <div class="page-header"><h2>🤖 Асистент</h2><p>AI-помічник для навчання — безкоштовно</p></div>
+        <div style="display:flex;flex-direction:column;height:calc(100vh - 200px);min-height:400px;background:var(--card);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;">
+          <div id="ai-msgs" style="flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:10px;">
+            <div class="msg other"><div class="msg-bubble">Привіт! Я твій навчальний асистент 🎓<br>Можу допомогти з поясненням матеріалу, підготовкою до іспитів, написанням конспектів та іншим. Що тебе цікавить?</div></div>
+          </div>
+          <div style="padding:12px;border-top:1px solid var(--border);display:flex;flex-direction:column;gap:8px;">
+            <div id="ai-img-preview" style="display:none;position:relative;width:64px;">
+              <img id="ai-img-thumb" style="width:64px;height:64px;object-fit:cover;border-radius:8px;border:1px solid var(--border);">
+              <button onclick="clearAIImg()" style="position:absolute;top:-6px;right:-6px;width:20px;height:20px;border-radius:50%;background:var(--accent2);border:none;color:#fff;font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;">✕</button>
+            </div>
+            <div id="ai-doc-preview" style="display:none;position:relative;min-width:220px;max-width:420px;background:var(--bg3);border:1px solid var(--border);border-radius:12px;padding:10px 38px 10px 12px;">
+              <div id="ai-doc-name" style="font-size:13px;font-weight:700;color:var(--text);word-break:break-word;"></div>
+              <div id="ai-doc-meta" style="margin-top:4px;font-size:11px;color:var(--text2);"></div>
+              <button onclick="clearAIImg()" style="position:absolute;top:8px;right:8px;width:22px;height:22px;border-radius:50%;background:rgba(224,80,80,.18);border:none;color:#fff;font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;">×</button>
+            </div>
+            <div style="display:flex;gap:8px;align-items:flex-end;">
+              <textarea id="ai-inp" style="flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:10px 14px;color:var(--text);font-family:'Inter',sans-serif;font-size:14px;outline:none;resize:none;min-height:46px;max-height:140px;line-height:1.5;transition:border-color .2s;" rows="2" placeholder="Запитай або вставте фото (Ctrl+V)..." onkeydown="aiKey(event)" onpaste="handleAIPaste(event)"></textarea>
+              <button onclick="document.getElementById('ai-img-input').click()" title="Додати фото" style="width:46px;height:46px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);font-size:20px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:border-color .2s;">📎</button>
+              <button onclick="sendAI()" id="ai-send" style="width:46px;height:46px;background:var(--accent);border:none;border-radius:var(--r);color:#0a0a0f;font-size:22px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:opacity .2s;font-weight:700;">➤</button>
+            </div>
+            <input type="file" id="ai-img-input" accept="image/*,.pdf,.docx,.txt" style="display:none" onchange="handleAIImg(this)">
+          </div>
+        </div>
+      </div>
+
+      <!-- NOTIFICATIONS -->
+      <div class="page" id="page-notifications">
+        <div class="page-header"><h2>🔔 Сповіщення</h2><p>Нові файли, повідомлення та нагадування</p></div>
+        <div style="display:flex;gap:8px;margin-bottom:14px;">
+          <button class="btn a" onclick="requestNotifPerms()">🔔 Увімкнути push-сповіщення</button>
+          <button class="btn" onclick="markAllRead()">✓ Всі прочитані</button>
+        </div>
+        <div id="notif-list"><div class="empty"><div class="emo">🔔</div><p>Немає нових сповіщень</p></div></div>
+      </div>
+
+      <!-- ADMIN -->
+      <div class="page" id="page-admin">
+        <div class="page-header admin-page-head"><div><h2>⚙️ Адмін-панель</h2><p>Управління групами та користувачами</p></div><button class="btn" onclick="resetAdminCardLayout()">Скинути розкладку</button></div>
+        <div class="admin-grid">
+          <div class="admin-card admin-card-groups" data-resize-key="groups">
+            <h3>🏫 Групи</h3>
+            <div id="admin-groups-list" class="admin-list"><div class="loading"><div class="spinner"></div></div></div>
+            <button class="btn a" style="width:100%;margin-top:10px;" onclick="showModal('add-group')">+ Створити групу</button>
+          </div>
+          <div class="admin-card admin-card-users" data-resize-key="users">
+            <h3>👥 Користувачі</h3>
+            <input class="tb-input" id="users-search" placeholder="🔍 Пошук по імені..." style="width:100%;margin-bottom:10px;max-width:100%;">
+            <div id="admin-users-list" class="admin-list admin-users-list"><div class="loading"><div class="spinner"></div></div></div>
+          </div>
+          <div class="admin-card admin-card-stats" data-resize-key="stats">
+            <h3>📊 Статистика</h3>
+            <div id="admin-stats" class="admin-stats"><div class="loading"><div class="spinner"></div></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODALS -->
+<div class="modal-ov" id="modal-add-mat">
+  <div class="modal">
+    <h3>📝 Додати матеріал</h3>
+    <div class="field"><label>Назва</label><input type="text" id="mn" placeholder="Конспект по математиці"></div>
+    <div class="field"><label>Предмет</label><input type="text" id="ms" placeholder="Вища математика"></div>
+    <div class="field"><label>Посилання або опис</label><input type="text" id="md" placeholder="https://drive.google.com/..."></div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal('add-mat')">Скасувати</button>
+      <button class="btn a" onclick="addMat()">Додати</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-ov" id="modal-add-group">
+  <div class="modal">
+    <h3>🏫 Створити групу</h3>
+    <div class="field"><label>Назва групи</label><input type="text" id="gn" placeholder="103-ОПУТ-Д24"></div>
+    <div class="field"><label>Факультет</label><input type="text" id="gf" placeholder="Інформаційні технології"></div>
+    <div class="field">
+      <label>Курс (1-4 авто, 5-6 вручну)</label>
+      <input type="number" id="gc" placeholder="1" min="1" max="6">
+      <div id="gc-hint" style="font-size:9px;color:var(--text2);margin-top:3px;"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal('add-group')">Скасувати</button>
+      <button class="btn a" id="group-modal-btn" onclick="groupModalAction()">Створити</button>
+    </div>
+  </div>
+</div>
+
+<!-- NO DEADLINE MODAL -->
+<div id="modal-no-dl" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:3000;align-items:flex-start;justify-content:center;padding:16px;padding-top:max(16px,env(safe-area-inset-top,16px));backdrop-filter:blur(6px);overflow-y:auto;">
+  <div style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;width:100%;max-width:480px;overflow:visible;box-shadow:0 24px 64px rgba(0,0,0,.5);margin:0 auto;">
+    <div style="padding:16px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;position:sticky;top:0;background:var(--bg2);z-index:1;">
+      <span style="font-size:20px;">📋</span>
+      <div style="flex:1;">
+        <div style="font-size:14px;font-weight:700;">Завдання без дедлайну</div>
+        <div style="font-size:11px;color:var(--text2);">Натисніть ✏️ щоб встановити дедлайн</div>
+      </div>
+      <button onclick="closeNoDlModal()" style="background:none;border:none;color:var(--text2);font-size:20px;cursor:pointer;line-height:1;padding:4px;">✕</button>
+    </div>
+    <div style="padding:12px;overflow:visible;">
+      <input type="text" id="no-dl-search" placeholder="🔍 Пошук завдання..." oninput="renderNoDlList()" style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px 13px;color:var(--text);font-size:14px;outline:none;font-family:Inter,sans-serif;box-sizing:border-box;margin-bottom:6px;">
+      <select id="no-dl-course-select" onchange="_setNoDlCourse(this.value)" style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px 13px;color:var(--text);font-size:13px;font-family:Inter,sans-serif;outline:none;cursor:pointer;margin-bottom:8px;box-sizing:border-box;">
+        <option value="all">Усі курси</option>
+      </select>
+      <div id="no-dl-list" style="max-height:55vh;overflow-y:scroll;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- DEADLINE EDIT MODAL -->
+<div id="modal-dl-edit" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:3000;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(6px);">
+  <div style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;width:100%;max-width:400px;overflow:hidden;box-shadow:0 24px 64px rgba(0,0,0,.5);">
+    <div style="padding:16px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;">
+      <span style="font-size:20px;">✏️</span>
+      <div style="flex:1;">
+        <div style="font-size:14px;font-weight:700;color:var(--text);">Встановити дедлайн</div>
+        <div id="dl-edit-name" style="font-size:11px;color:var(--text2);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:300px;"></div>
+      </div>
+      <button onclick="closeDlEditModal()" style="background:none;border:none;color:var(--text2);font-size:20px;cursor:pointer;line-height:1;padding:4px;">✕</button>
+    </div>
+    <div style="padding:18px;">
+      <div style="margin-bottom:14px;">
+        <label style="font-size:11px;font-weight:700;color:var(--text2);letter-spacing:.5px;text-transform:uppercase;display:block;margin-bottom:7px;">📅 Дата</label>
+        <input type="date" id="dl-edit-date" style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:11px 13px;color:var(--text);font-size:15px;outline:none;font-family:Inter,sans-serif;box-sizing:border-box;">
+      </div>
+      <div style="margin-bottom:18px;">
+        <label style="font-size:11px;font-weight:700;color:var(--text2);letter-spacing:.5px;text-transform:uppercase;display:block;margin-bottom:7px;">🕐 Час (необов'язково)</label>
+        <input type="time" id="dl-edit-time" style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:11px 13px;color:var(--text);font-size:15px;outline:none;font-family:Inter,sans-serif;box-sizing:border-box;">
+      </div>
+      <div id="dl-edit-original" style="display:none;font-size:11px;color:var(--text2);margin-bottom:14px;padding:8px 12px;background:var(--bg3);border-radius:8px;">
+        📌 Оригінальний дедлайн з Moodle: <span id="dl-edit-orig-val" style="color:var(--text);font-weight:600;"></span>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button id="dl-edit-reset-btn" onclick="resetDlOverride()" style="display:none;flex:0 0 auto;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:11px 14px;color:var(--text2);font-size:13px;cursor:pointer;font-family:Inter,sans-serif;">↩ Скинути</button>
+        <button onclick="closeDlEditModal()" style="flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:11px;color:var(--text);font-size:14px;cursor:pointer;font-family:Inter,sans-serif;">Скасувати</button>
+        <button onclick="saveDlOverride()" style="flex:1;background:var(--accent);border:none;border-radius:8px;padding:11px;color:#0a0a0f;font-size:14px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;">💾 Зберегти</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Firebase -->
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+import { getFirestore, collection, addDoc, deleteDoc, doc, query, where, orderBy, onSnapshot, getDocs, setDoc, getDoc, updateDoc, serverTimestamp, limit } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+
+const cfg = {
+  apiKey:"AIzaSyAXscEMkW51sejM_yBkMcL_QyvgfAWT7sE",
+  authDomain:"student-hub-ukrdust.firebaseapp.com",
+  projectId:"student-hub-ukrdust",
+  storageBucket:"student-hub-ukrdust.firebasestorage.app",
+  messagingSenderId:"181184327168",
+  appId:"1:181184327168:web:3ceca4b24980f900eff2e5"
+};
+const app = initializeApp(cfg);
+const db = getFirestore(app);
+window._db = db;
+window._fb = { collection, addDoc, deleteDoc, doc, query, where, orderBy, onSnapshot, getDocs, setDoc, getDoc, updateDoc, serverTimestamp, limit };
+
+async function loadGroupsForLogin() {
+  try {
+    const snap = await getDocs(collection(db, 'groups'));
+    return snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a,b) => (a.name||'').localeCompare(b.name||''));
+  } catch(e) { return []; }
+}
+window._loadGroupsForLogin = loadGroupsForLogin;
+</script>
+
+<script src="app.js?v=96"></script>
+
+<div id="course-contents-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:1000;overflow-y:auto;padding:16px;backdrop-filter:blur(4px);">
+  <div style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;max-width:640px;margin:0 auto;overflow:hidden;">
+    <div style="padding:16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;">
+      <div style="flex:1;font-size:15px;font-weight:700;" id="cc-title">Вміст курсу</div>
+      <button onclick="document.getElementById('course-contents-modal').style.display='none'" style="background:none;border:none;color:var(--text2);font-size:20px;cursor:pointer;line-height:1;">✕</button>
+    </div>
+    <div id="cc-body" style="padding:16px;max-height:75vh;overflow-y:auto;"></div>
+  </div>
+</div>
+
+<!-- NOTE EDITOR -->
+<div class="note-editor-overlay" id="note-editor-overlay">
+  <div class="note-editor">
+    <div class="note-editor-header">
+      <input class="note-title-inp" id="note-title" placeholder="Назва нотатки...">
+      <select class="tb-select" id="note-course-sel" style="font-size:11px;">
+        <option value="">Без курсу</option>
+      </select>
+      <button class="btn a" onclick="saveNote()">💾 Зберегти</button>
+      <button class="btn" onclick="closeNoteEditor()">✕</button>
+    </div>
+    <div class="note-editor-body">
+      <textarea class="note-md-inp" id="note-md" placeholder="# Заголовок&#10;&#10;Пишіть в **Markdown**...&#10;&#10;- Список&#10;- Елементів&#10;&#10;`код`" oninput="updateNotePreview()"></textarea>
+      <div class="note-preview" id="note-preview"><p style="color:var(--text2);font-size:12px;">Попередній перегляд...</p></div>
+    </div>
+  </div>
+</div>
+
+<!-- IMAGE PREVIEW -->
+<div class="preview-modal" id="preview-modal" onclick="this.classList.remove('show')">
+  <div class="preview-inner">
+    <button class="preview-close" onclick="document.getElementById('preview-modal').classList.remove('show')">✕</button>
+    <img id="preview-img" src="" alt="">
+  </div>
+</div>
+
+<!-- LIGHTBOX -->
+<div id="lightbox" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.96);z-index:9999;-webkit-overflow-scrolling:touch;">
+  <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;">
+    <div style="position:absolute;top:0;left:0;right:0;display:flex;align-items:center;justify-content:space-between;padding:max(14px,env(safe-area-inset-top,14px)) 16px 14px;background:linear-gradient(to bottom,rgba(0,0,0,.6),transparent);z-index:2;">
+      <div id="lightbox-filename" style="color:rgba(255,255,255,.85);font-size:13px;font-weight:600;max-width:70%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <a id="lightbox-download" href="#" download style="background:rgba(255,255,255,.15);border:none;color:#fff;width:40px;height:40px;border-radius:50%;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;text-decoration:none;-webkit-tap-highlight-color:transparent;">⬇</a>
+        <button id="lightbox-close" style="background:rgba(255,255,255,.2);border:none;color:#fff;width:52px;height:52px;border-radius:50%;font-size:22px;cursor:pointer;display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent;touch-action:manipulation;">✕</button>
+      </div>
+    </div>
+    <img id="lightbox-img" src="" alt="" style="max-width:100vw;max-height:calc(100vh - 80px);object-fit:contain;display:block;-webkit-user-drag:none;user-select:none;">
+  </div>
+</div>
+
+<!-- Custom theme modal -->
+<div id="modal-custom-theme" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:4000;align-items:flex-start;justify-content:center;overflow-y:auto;padding:16px;padding-top:max(16px,env(safe-area-inset-top,16px));backdrop-filter:blur(6px);" onclick="if(event.target===this)closeCustomTheme()">
+  <div style="background:var(--card);border:1px solid var(--border);border-radius:20px;padding:20px;width:100%;max-width:400px;margin:auto;" onclick="event.stopPropagation()">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;">
+      <div style="font-size:13px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;">🎨 Своя тема</div>
+      <button onclick="closeCustomTheme()" style="background:none;border:none;color:var(--text2);font-size:20px;cursor:pointer;padding:0 4px;min-height:44px;min-width:44px;">✕</button>
+    </div>
+
+    <!-- Фон -->
+    <div style="margin-bottom:16px;">
+      <div style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">🌑 Фон</div>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <input type="color" id="ct-bg" value="#0a0a18" oninput="ctColorChange()" style="width:52px;height:52px;border:none;border-radius:12px;cursor:pointer;padding:3px;background:var(--bg3);flex-shrink:0;">
+        <input type="text" id="ct-bg-hex" maxlength="7" placeholder="#0a0a18" oninput="ctHexChange('bg')" style="flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:12px;color:var(--text);font-size:15px;font-family:'JetBrains Mono',monospace;outline:none;">
+      </div>
+    </div>
+
+    <!-- Акцент -->
+    <div style="margin-bottom:16px;">
+      <div style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">✨ Акцент</div>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <input type="color" id="ct-ac" value="#f0c040" oninput="ctColorChange()" style="width:52px;height:52px;border:none;border-radius:12px;cursor:pointer;padding:3px;background:var(--bg3);flex-shrink:0;">
+        <input type="text" id="ct-ac-hex" maxlength="7" placeholder="#f0c040" oninput="ctHexChange('ac')" style="flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:12px;color:var(--text);font-size:15px;font-family:'JetBrains Mono',monospace;outline:none;">
+      </div>
+    </div>
+
+    <!-- Прев'ю -->
+    <div style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">Прев'ю</div>
+    <div id="ct-preview" style="border-radius:12px;padding:16px;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;transition:background .2s,color .2s;">
+      <div>
+        <div style="font-weight:700;font-size:15px;margin-bottom:3px;" id="ct-prev-title">StudentHub</div>
+        <div style="font-size:11px;opacity:.6;" id="ct-prev-sub">Дедлайни · Файли · Чат</div>
+      </div>
+      <div style="display:flex;gap:6px;align-items:center;">
+        <div id="ct-prev-btn" style="border-radius:8px;padding:7px 14px;font-size:12px;font-weight:700;">Увійти</div>
+        <div id="ct-prev-tag" style="border-radius:8px;padding:7px 10px;font-size:12px;border:1px solid;">Тег</div>
+      </div>
+    </div>
+
+    <!-- Пресети -->
+    <div style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">Пресети</div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:18px;">
+      <button onclick="ctPreset('#0a0a18','#f0c040')" style="background:linear-gradient(135deg,#0a0a18,#f0c04055);border:1px solid #f0c04077;border-radius:10px;padding:10px 4px;color:#f0c040;font-size:12px;cursor:pointer;min-height:44px;">⭐ Золотий</button>
+      <button onclick="ctPreset('#0d0820','#a57fff')" style="background:linear-gradient(135deg,#0d0820,#a57fff55);border:1px solid #a57fff77;border-radius:10px;padding:10px 4px;color:#a57fff;font-size:12px;cursor:pointer;min-height:44px;">🔮 Фіолет</button>
+      <button onclick="ctPreset('#001a10','#00e887')" style="background:linear-gradient(135deg,#001a10,#00e88755);border:1px solid #00e88777;border-radius:10px;padding:10px 4px;color:#00e887;font-size:12px;cursor:pointer;min-height:44px;">🌿 Мінт</button>
+      <button onclick="ctPreset('#180010','#ff4da6')" style="background:linear-gradient(135deg,#180010,#ff4da655);border:1px solid #ff4da677;border-radius:10px;padding:10px 4px;color:#ff4da6;font-size:12px;cursor:pointer;min-height:44px;">🌸 Рожевий</button>
+      <button onclick="ctPreset('#001020','#38bdf8')" style="background:linear-gradient(135deg,#001020,#38bdf855);border:1px solid #38bdf877;border-radius:10px;padding:10px 4px;color:#38bdf8;font-size:12px;cursor:pointer;min-height:44px;">🌊 Блакит</button>
+      <button onclick="ctPreset('#1a0a00','#fb923c')" style="background:linear-gradient(135deg,#1a0a00,#fb923c55);border:1px solid #fb923c77;border-radius:10px;padding:10px 4px;color:#fb923c;font-size:12px;cursor:pointer;min-height:44px;">🔥 Помаранч</button>
+    </div>
+
+    <button onclick="saveCustomTheme()" style="width:100%;background:var(--accent);color:#000;border:none;border-radius:12px;padding:15px;font-size:15px;font-weight:700;cursor:pointer;min-height:52px;">Застосувати</button>
+  </div>
+</div>
+
+<!-- Grades course filter modal -->
+<div id="modal-gr-courses" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:4000;align-items:flex-end;justify-content:center;backdrop-filter:blur(4px);" onclick="if(event.target===this)closeGrCourseFilter()">
+  <div style="background:var(--card);border:1px solid var(--border);border-radius:20px 20px 0 0;padding:20px 20px 0 20px;width:100%;max-width:600px;height:70vh;display:flex;flex-direction:column;" onclick="event.stopPropagation()">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+      <div style="font-size:13px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;">📚 Вибір курсів</div>
+      <div style="display:flex;gap:8px;">
+        <button onclick="grSelectAll()" style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:6px 12px;color:var(--text2);font-size:12px;cursor:pointer;">Всі</button>
+        <button onclick="grSelectNone()" style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:6px 12px;color:var(--text2);font-size:12px;cursor:pointer;">Жодного</button>
+        <button onclick="closeGrCourseFilter()" style="background:none;border:none;color:var(--text2);font-size:20px;cursor:pointer;padding:0 4px;min-width:36px;">✕</button>
+      </div>
+    </div>
+    <div id="gr-course-list" style="overflow-y:auto;flex:1;display:flex;flex-direction:column;gap:6px;padding-bottom:4px;-webkit-overflow-scrolling:touch;"></div>
+    <button onclick="applyGrCourseFilter()" style="flex-shrink:0;margin:12px 0;padding:13px;width:100%;background:var(--accent);color:#000;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;padding-bottom:max(13px,calc(env(safe-area-inset-bottom,0px) + 13px));">Застосувати</button>
+  </div>
+</div>
+
+<div id="modal-course-settings" class="modal-ov" onclick="if(event.target===this) closeCoursesSettings()">
+  <div class="modal course-settings-modal">
+    <h3>Налаштування курсів</h3>
+    <div class="course-settings-section">
+      <div class="course-settings-label">Карток в одному рядку</div>
+      <div class="course-cols-options" id="course-cols-options"></div>
+    </div>
+    <div class="course-settings-section">
+      <div class="course-settings-row">
+        <div>
+          <div class="course-settings-label">Приховані курси</div>
+          <div class="course-settings-sub">Оберіть курс зі списку, щоб повернути його назад.</div>
+        </div>
+        <button class="btn" type="button" onclick="restoreAllCourses()">Повернути всі</button>
+      </div>
+      <div id="hidden-courses-list" class="hidden-courses-list"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn" type="button" onclick="closeCoursesSettings()">Закрити</button>
+    </div>
+  </div>
+</div>
+
+<!-- Grade edit/add modal -->
+<div id="modal-gr-edit" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:4000;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(4px);" onclick="if(event.target===this)closeGrEdit()">
+  <div style="background:var(--card);border:1px solid var(--border);border-radius:20px;padding:22px;width:100%;max-width:380px;animation:fadeUp .2s ease;" onclick="event.stopPropagation()">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;">
+      <div id="gre-title" style="font-size:15px;font-weight:700;color:var(--text);">✏️ Оцінка</div>
+      <button onclick="closeGrEdit()" style="background:none;border:none;color:var(--text2);font-size:20px;cursor:pointer;min-width:36px;min-height:36px;">✕</button>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:11px;">
+      <label style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.4px;">
+        Назва
+        <input id="gre-name" type="text" placeholder="Наприклад: Тест №3" style="display:block;width:100%;margin-top:5px;background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:11px 13px;color:var(--text);font-size:14px;outline:none;box-sizing:border-box;">
+      </label>
+      <label style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.4px;">
+        Предмет
+        <input id="gre-course" type="text" placeholder="Назва курсу" style="display:block;width:100%;margin-top:5px;background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:11px 13px;color:var(--text);font-size:14px;outline:none;box-sizing:border-box;opacity:.6;">
+      </label>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <label style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.4px;">
+          Оцінка
+          <input id="gre-grade" type="number" min="0" placeholder="0" style="display:block;width:100%;margin-top:5px;background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:11px 13px;color:var(--text);font-size:16px;outline:none;box-sizing:border-box;">
+        </label>
+        <label style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.4px;">
+          Максимум
+          <input id="gre-max" type="number" min="1" value="100" style="display:block;width:100%;margin-top:5px;background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:11px 13px;color:var(--text);font-size:16px;outline:none;box-sizing:border-box;">
+        </label>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <label style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.4px;">
+          Модуль
+          <select id="gre-mod" style="display:block;width:100%;margin-top:5px;background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:11px 13px;color:var(--text);font-size:14px;outline:none;box-sizing:border-box;-webkit-appearance:none;">
+            <option value="1">Модуль 1</option>
+            <option value="2">Модуль 2</option>
+          </select>
+        </label>
+        <label style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.4px;">
+          Тип
+          <select id="gre-type" style="display:block;width:100%;margin-top:5px;background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:11px 13px;color:var(--text);font-size:14px;outline:none;box-sizing:border-box;-webkit-appearance:none;">
+            <option value="cur">Поточна</option>
+            <option value="mod">Модульна</option>
+          </select>
+        </label>
+      </div>
+    </div>
+    <button onclick="saveGrEdit()" style="width:100%;margin-top:16px;background:var(--accent);color:#000;border:none;border-radius:10px;padding:13px;font-size:15px;font-weight:700;cursor:pointer;min-height:50px;">Зберегти</button>
+  </div>
+</div>
+<script>
+(() => {
+  const fontCard = document.querySelector('.dash-font-card');
+  if (fontCard) {
+    const title = fontCard.querySelector('.dash-font-card-title');
+    const sub = fontCard.querySelector('.dash-font-card-sub');
+    const buttons = fontCard.querySelectorAll('.dash-font-actions .btn');
+    if (title) title.textContent = '\u0420\u043e\u0437\u043c\u0456\u0440 \u0448\u0440\u0438\u0444\u0442\u0443';
+    if (sub) sub.textContent = '\u0417\u043c\u0456\u043d\u044e\u0439\u0442\u0435 \u0440\u043e\u0437\u043c\u0456\u0440 \u0442\u0435\u043a\u0441\u0442\u0443 \u043d\u0430 \u0432\u0441\u044c\u043e\u043c\u0443 \u0441\u0430\u0439\u0442\u0456, \u0449\u043e\u0431 \u0456\u043d\u0442\u0435\u0440\u0444\u0435\u0439\u0441 \u0431\u0443\u043b\u043e \u0437\u0440\u0443\u0447\u043d\u0456\u0448\u0435 \u0447\u0438\u0442\u0430\u0442\u0438.';
+    if (buttons[0]) {
+      buttons[0].textContent = 'A-';
+      buttons[0].title = '\u041c\u0435\u043d\u0448\u0438\u0439 \u0448\u0440\u0438\u0444\u0442';
+    }
+    if (buttons[1]) {
+      buttons[1].textContent = 'A';
+      buttons[1].title = '\u0421\u0442\u0430\u043d\u0434\u0430\u0440\u0442\u043d\u0438\u0439 \u0448\u0440\u0438\u0444\u0442';
+    }
+    if (buttons[2]) {
+      buttons[2].textContent = 'A+';
+      buttons[2].title = '\u0411\u0456\u043b\u044c\u0448\u0438\u0439 \u0448\u0440\u0438\u0444\u0442';
+    }
+  }
+
+  const themeCard = document.querySelector('.dash-theme-card-side');
+  if (themeCard) {
+    const title = themeCard.querySelector('.dash-theme-title');
+    const text = themeCard.querySelector('.dash-theme-text');
+    if (title) title.textContent = '\u0422\u0435\u043c\u0438 \u0442\u0430 \u0441\u0442\u0438\u043b\u044c';
+    if (text) text.textContent = '\u041e\u0431\u0435\u0440\u0456\u0442\u044c \u0431\u0443\u0434\u044c-\u044f\u043a\u0438\u0439 \u0441\u0442\u0438\u043b\u044c \u0456\u043d\u0442\u0435\u0440\u0444\u0435\u0439\u0441\u0443: \u0442\u0435\u043c\u0443, \u043a\u043e\u043b\u044c\u043e\u0440\u0438 \u0439 \u0430\u0442\u043c\u043e\u0441\u0444\u0435\u0440\u0443 \u043c\u043e\u0436\u043d\u0430 \u043d\u0430\u043b\u0430\u0448\u0442\u0443\u0432\u0430\u0442\u0438 \u043f\u0456\u0434 \u0441\u0435\u0431\u0435.';
+  }
+})();
+</script>
+</body>
+</html>

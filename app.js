@@ -3102,6 +3102,12 @@ function renderDashDl() {
     return { ...d, due: eff, past: false };
   }).concat(_getCalendarDeadlineItems())
     .sort((a,b)=>a.due-b.due).slice(0,5);
+  if(!top.length && elHome) {
+    var emptyHtmlHome = '<div class="empty"><div class="emo">🎉</div><p>Немає активних дедлайнів!</p></div>';
+    if(el) el.innerHTML = emptyHtmlHome;
+    elHome.innerHTML = emptyHtmlHome;
+    return;
+  }
   if(!top.length){el.innerHTML='<div class="empty"><div class="emo">🎉</div><p>Немає активних дедлайнів!</p></div>';return;}
   if(el) renderDl(top,el);
   if(elHome) renderDl(top,elHome);
@@ -3203,11 +3209,12 @@ async function loadGrades(force){
   if(!el) return;
   // Load from Firebase/local first
   if(!_grLoaded) await _grFireLoad();
-  // If Firebase had data and not force-refresh → render, skip Moodle
-  if(_grLoaded&&!force){ renderGradesTable(); return; }
-  // Force refresh OR first time (no Firebase data yet) → sync from Moodle
+  // Show saved grades instantly, then quietly sync Moodle so new tests appear without manual refresh.
+  var hadCachedGrades = _grLoaded && !force;
+  if(hadCachedGrades) renderGradesTable();
+  // Force refresh OR background sync → sync from Moodle
   _grLoading=true;
-  el.innerHTML='<div class="loading"><div class="spinner"></div>Синхронізація з Moodle...</div>';
+  if(!hadCachedGrades) el.innerHTML='<div class="loading"><div class="spinner"></div>Синхронізація з Moodle...</div>';
   try{
     if(!token||!userData.userid){
       el.innerHTML='<div class="empty"><div class="emo">🔒</div><p>Увійдіть через Moodle</p></div>';
@@ -3217,8 +3224,11 @@ async function loadGrades(force){
       var d=await moodleCall('core_enrol_get_users_courses',{userid:userData.userid});
       if(d) courses=d;
     }
+    _loadHiddenCourses();
+    var hiddenCourseSet = new Set((_hiddenCourses || []).map(function(id){ return String(id); }));
+    var gradeCourses = courses.filter(function(course){ return !hiddenCourseSet.has(String(course.id)); });
     var chunks=[];
-    for(var i=0;i<courses.length;i+=10) chunks.push(courses.slice(i,i+10));
+    for(var i=0;i<gradeCourses.length;i+=10) chunks.push(gradeCourses.slice(i,i+10));
     await Promise.all(chunks.map(async function(chunk){
       await Promise.all(chunk.map(async function(course){
         try{
@@ -3272,7 +3282,10 @@ function renderGradesTable(){
   var sumEl=document.getElementById('grades-summary');
   if(!el) return;
   var q=(document.getElementById('gr-q')||{value:''}).value.toLowerCase().trim();
+  _loadHiddenCourses();
+  var hiddenCourseSet = new Set((_hiddenCourses || []).map(function(id){ return String(id); }));
   var list=_grSubjects.filter(function(s){
+    if(s.moodleCourseId && hiddenCourseSet.has(String(s.moodleCourseId))) return false;
     return !q||s.name.toLowerCase().includes(q)||s.items.some(function(i){return i.name.toLowerCase().includes(q);});
   });
 

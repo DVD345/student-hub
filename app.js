@@ -671,10 +671,6 @@ function _applyAdminDesktopLayout() {
   grid.querySelectorAll('.admin-card').forEach(function(card){
     _applyAdminCardLayout(card, _readAdminCardLayout(card, width));
   });
-  if(_adminLayoutsLookBroken(width)) {
-    resetAdminCardLayout();
-    return;
-  }
   _updateAdminGridHeight();
 }
 
@@ -684,8 +680,8 @@ function _refreshAdminLayoutOnOpen() {
   requestAnimationFrame(function(){
     _applyAdminDesktopLayout();
     setTimeout(function(){
-      if(_adminLayoutsLookBroken((_getAdminGrid() || {}).clientWidth || 1400)) resetAdminCardLayout();
-      else _updateAdminGridHeight();
+      _applyAdminDesktopLayout();
+      _updateAdminGridHeight();
     }, 80);
   });
 }

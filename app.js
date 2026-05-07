@@ -610,10 +610,10 @@ function _adminLayoutsLookBroken(gridWidth) {
   });
   for(var i=0;i<layouts.length;i++) {
     var l = layouts[i];
-    if(l.x < 0 || l.y < 0 || l.w < 260 || l.h < 180 || l.x > gridWidth - 40) return true;
+    if(l.x < -20 || l.y < -20 || l.w < 240 || l.h < 160 || l.x > gridWidth - 80) return true;
     for(var j=i+1;j<layouts.length;j++) {
       var overlap = _rectOverlapArea(l, layouts[j]);
-      if(overlap > Math.min(l.w * l.h, layouts[j].w * layouts[j].h) * 0.28) return true;
+      if(overlap > Math.min(l.w * l.h, layouts[j].w * layouts[j].h) * 0.75) return true;
     }
   }
   return false;
@@ -683,7 +683,10 @@ function _refreshAdminLayoutOnOpen() {
   _enableAdminCardResize();
   requestAnimationFrame(function(){
     _applyAdminDesktopLayout();
-    setTimeout(_applyAdminDesktopLayout, 80);
+    setTimeout(function(){
+      if(_adminLayoutsLookBroken((_getAdminGrid() || {}).clientWidth || 1400)) resetAdminCardLayout();
+      else _updateAdminGridHeight();
+    }, 80);
   });
 }
 

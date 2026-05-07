@@ -552,6 +552,20 @@ function _restoreAdminCardLayout(card) {
   } catch(e) {}
   _applyAdminCardLayout(card, layout);
 }
+function _readAdminCardLayout(card, gridWidth) {
+  var storageKey = _adminResizeStorageKey(card);
+  var layout = _defaultAdminCardLayout(card, gridWidth);
+  if(storageKey) {
+    try {
+      var raw = localStorage.getItem(storageKey);
+      if(raw) {
+        var saved = JSON.parse(raw);
+        if(saved && typeof saved === 'object') layout = Object.assign(layout, saved);
+      }
+    } catch(e) {}
+  }
+  return _clampAdminCard(card, layout);
+}
 function _saveAdminCardSize(card) {
   var storageKey = _adminResizeStorageKey(card);
   if(!storageKey) return;
@@ -650,20 +664,27 @@ function _applyAdminDesktopLayout() {
     return;
   }
   var width = grid.clientWidth || 1400;
-  if(!_adminHasSavedLayout() || _adminLayoutsLookBroken(width)) {
+  if(!_adminHasSavedLayout()) {
     resetAdminCardLayout();
     return;
   }
   grid.querySelectorAll('.admin-card').forEach(function(card){
-    var next = _clampAdminCard(card, {
-      x: parseFloat(card.style.left) || 0,
-      y: parseFloat(card.style.top) || 0,
-      w: parseFloat(card.style.width) || card.offsetWidth || _defaultAdminCardLayout(card, width).w,
-      h: parseFloat(card.style.height) || card.offsetHeight || _defaultAdminCardLayout(card, width).h
-    });
-    _applyAdminCardLayout(card, next);
+    _applyAdminCardLayout(card, _readAdminCardLayout(card, width));
   });
+  if(_adminLayoutsLookBroken(width)) {
+    resetAdminCardLayout();
+    return;
+  }
   _updateAdminGridHeight();
+}
+
+function _refreshAdminLayoutOnOpen() {
+  if(window.innerWidth < 900) return;
+  _enableAdminCardResize();
+  requestAnimationFrame(function(){
+    _applyAdminDesktopLayout();
+    setTimeout(_applyAdminDesktopLayout, 80);
+  });
 }
 
 function _deadlinesWidthStorageKey() {
@@ -4762,6 +4783,7 @@ function go(name) {
   if(name==='assistant'||name==='notes') _loadKaTeX();
   if(name==='notes') loadNotes();
   if(name==='grades') loadGrades();
+  if(name==='admin') _refreshAdminLayoutOnOpen();
   if(name==='notifications') markAllRead();
   _applyDynamicLayouts();
   closeSidebar();

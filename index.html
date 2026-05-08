@@ -40,7 +40,7 @@
 </div> -->
 <script>
 // PWA Manifest inline
-const APP_BUILD = '108';
+const APP_BUILD = '109';
 (function() {
   try {
     const prevBuild = localStorage.getItem('sh_build');
@@ -84,7 +84,7 @@ document.getElementById('pwa-manifest').href = URL.createObjectURL(_mBlob);
 // Service Worker
 if('serviceWorker' in navigator) {
   const swCode = `
-const CACHE = 'sh-v108';
+const CACHE = 'sh-v109';
 const PRECACHE = ['./'];
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(PRECACHE)).then(() => self.skipWaiting()));
@@ -122,7 +122,7 @@ self.addEventListener('fetch', e => {
 
 <!-- ✅ IMPROVEMENT 6: font-display=swap already present, preconnect added above -->
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=108">
+<link rel="stylesheet" href="style.css?v=109">
 <style>
 /* Prevent text selection during long-press on messages */
 .msg { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
@@ -310,7 +310,7 @@ function _loadKaTeX() {
               <p id="dash-sub-home">Завантаження...</p>
               <div class="dash-hero-meta">
                 <div class="sync-badge" data-moodle-status="online" title="Moodle: онлайн"><div class="sync-dot"></div><span class="sync-text">Moodle</span></div>
-                <button class="btn social-btn" style="--social-open-width:112px;" onclick="syncMoodle()" title="Оновити"><span class="social-ico">🔄</span><span class="social-label">Оновити</span></button>
+                <button class="btn social-btn" style="--social-open-width:112px;" onclick="syncMoodle(true)" title="Оновити"><span class="social-ico">🔄</span><span class="social-label">Оновити</span></button>
                 <a class="btn social-btn support" style="--social-open-width:106px;" href="https://www.patreon.com/cw/Student_Hub" target="_blank" rel="noopener" title="Patreon"><span class="social-ico">★</span><span class="social-label">Patreon</span></a>
                 <a class="btn social-btn code" style="--social-open-width:96px;" href="https://github.com/DVD345/student-hub" target="_blank" rel="noopener" title="GitHub"><span class="social-ico">GH</span><span class="social-label">GitHub</span></a>
               </div>
@@ -399,7 +399,7 @@ function _loadKaTeX() {
         </div>
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;flex-wrap:wrap;">
           <div class="sync-badge" data-moodle-status="online" title="Moodle: онлайн"><div class="sync-dot"></div><span class="sync-text">Moodle</span></div>
-          <button class="btn social-btn" style="--social-open-width:112px;" onclick="syncMoodle()" title="Оновити"><span class="social-ico">🔄</span><span class="social-label">Оновити</span></button>
+          <button class="btn social-btn" style="--social-open-width:112px;" onclick="syncMoodle(true)" title="Оновити"><span class="social-ico">🔄</span><span class="social-label">Оновити</span></button>
           <a class="btn social-btn support" style="--social-open-width:106px;" href="https://www.patreon.com/cw/Student_Hub" target="_blank" rel="noopener" title="Patreon"><span class="social-ico">★</span><span class="social-label">Patreon</span></a>
           <a class="btn social-btn code" style="--social-open-width:96px;" href="https://github.com/DVD345/student-hub" target="_blank" rel="noopener" title="GitHub"><span class="social-ico">GH</span><span class="social-label">GitHub</span></a>
         </div>
@@ -471,7 +471,7 @@ function _loadKaTeX() {
             <button class="btn" onclick="adjustDeadlinesWidth(80)" title="Ширше">↔️+</button>
             <button class="btn" onclick="showNoDlModal()" title="Завдання без дедлайну" style="font-size:11px;">📋 Без дедлайну</button>
             <button class="btn" onclick="toggleDlSettings()" title="Налаштування кольорів">🎨</button>
-            <button class="btn a" onclick="syncMoodle()">🔄</button>
+            <button class="btn a" onclick="syncMoodle(true)">🔄</button>
           </div>
         </div>
         <div id="dl-settings" style="display:none;background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:16px;margin-bottom:14px;animation:fadeUp .2s ease;">
@@ -819,7 +819,7 @@ async function loadGroupsForLogin() {
 window._loadGroupsForLogin = loadGroupsForLogin;
 </script>
 
-<script src="app.js?v=108"></script>
+<script src="app.js?v=109"></script>
 
 <div id="course-contents-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:1000;overflow-y:auto;padding:16px;backdrop-filter:blur(4px);">
   <div style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;max-width:640px;margin:0 auto;overflow:hidden;">

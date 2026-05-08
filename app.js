@@ -2075,6 +2075,11 @@ var _moodleFailType = '';
 var _moodleLastFailAt = 0;
 var _moodleBannerShownAt = 0;
 var _moodleStatus = 'online';
+var _moodleManualCheck = false;
+
+function _hasMoodleCache() {
+  return !!(localStorage.getItem('sh_cache_courses') || localStorage.getItem('sh_cache_dl'));
+}
 
 function _setMoodleStatus(status, detail) {
   _moodleStatus = status || 'online';
@@ -2103,7 +2108,7 @@ function _markMoodleFailure(type) {
   else _moodleFailStreak = 1;
   _moodleFailType = type;
   _moodleLastFailAt = now;
-  if(_moodleFailStreak >= 2) _setMoodleStatus('offline');
+  if(_moodleFailStreak >= 2 && (_moodleManualCheck || !_hasMoodleCache())) _setMoodleStatus('offline');
 }
 function _clearMoodleFailureState() {
   _moodleFailStreak = 0;
@@ -2115,6 +2120,7 @@ function _clearMoodleFailureState() {
 
 function _maybeShowMoodleBanner(msg, mode) {
   var now = Date.now();
+  if(!_moodleManualCheck && _hasMoodleCache()) return;
   if(_moodleFailStreak < 3) return;
   if(now - _moodleBannerShownAt < 90000) return;
   _moodleBannerShownAt = now;
@@ -2122,6 +2128,7 @@ function _maybeShowMoodleBanner(msg, mode) {
 }
 
 function _showOfflineBanner(msg, mode) {
+  if(!_moodleManualCheck && _hasMoodleCache()) return;
   if(mode === 'refresh') {
     var now = Date.now();
     if(_moodleFailStreak < 3) return;
@@ -2249,9 +2256,10 @@ async function openCourseContents(courseId, btn) {
 }
 
 // ✅ IMPROVEMENT 2: syncMoodle runs loadCourses + loadDeadlines in PARALLEL
-async function syncMoodle() {
+async function syncMoodle(manual) {
   if(syncMoodle._busy) return;
   syncMoodle._busy = true;
+  _moodleManualCheck = !!manual;
   _setMoodleStatus('checking');
 
   var buttons = Array.from(document.querySelectorAll('button[onclick="syncMoodle()"]'));
@@ -2275,7 +2283,7 @@ async function syncMoodle() {
     if(_moodleFailStreak === 0) _setMoodleStatus('online');
   } finally {
     if(_moodleFailStreak > 0) {
-      _setMoodleStatus(_moodleFailStreak >= 2 ? 'offline' : 'online');
+      _setMoodleStatus((_moodleManualCheck || !_hasMoodleCache()) && _moodleFailStreak >= 2 ? 'offline' : 'online');
       _loadCachedData();
     }
     prev.forEach(function(state){
@@ -2283,6 +2291,7 @@ async function syncMoodle() {
       state.btn.innerHTML = state.html;
     });
     syncMoodle._busy = false;
+    _moodleManualCheck = false;
   }
 }
 

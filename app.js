@@ -1074,6 +1074,9 @@ function _loadCachedData() {
       allDl = JSON.parse(cachedDl);
       scheduleRender();
     }
+    if(cachedCourses || cachedDl) {
+      _setMoodleStatus('warning', 'Показуємо кеш, оновлення Moodle ще не підтверджене');
+    }
     if(cacheTs) {
       const age = Math.round((Date.now() - parseInt(cacheTs)) / 60000);
       if(age > 30) _showOfflineBanner('Дані з кешу (' + (age > 1440 ? Math.round(age/1440)+'д' : age+'хв') + ' тому)');
@@ -2077,6 +2080,28 @@ var _moodleFailStreak = 0;
 var _moodleFailType = '';
 var _moodleLastFailAt = 0;
 var _moodleBannerShownAt = 0;
+var _moodleStatus = 'online';
+
+function _setMoodleStatus(status, detail) {
+  _moodleStatus = status || 'online';
+  var labels = {
+    online: 'Moodle',
+    checking: 'Moodle...',
+    warning: 'Moodle?',
+    offline: 'Moodle offline'
+  };
+  document.querySelectorAll('.sync-badge').forEach(function(badge){
+    badge.dataset.moodleStatus = _moodleStatus;
+    badge.title = detail || (
+      _moodleStatus === 'online' ? 'Moodle: онлайн' :
+      _moodleStatus === 'checking' ? 'Moodle: перевіряємо звʼязок' :
+      _moodleStatus === 'warning' ? 'Moodle: нестабільна відповідь' :
+      'Moodle: немає звʼязку, показуємо кеш'
+    );
+    var text = badge.querySelector('.sync-text');
+    if(text) text.textContent = labels[_moodleStatus] || 'Moodle';
+  });
+}
 
 function _markMoodleFailure(type) {
   var now = Date.now();
@@ -2084,12 +2109,14 @@ function _markMoodleFailure(type) {
   else _moodleFailStreak = 1;
   _moodleFailType = type;
   _moodleLastFailAt = now;
+  _setMoodleStatus(_moodleFailStreak >= 2 ? 'offline' : 'warning');
 }
 function _clearMoodleFailureState() {
   _moodleFailStreak = 0;
   _moodleFailType = '';
   _moodleLastFailAt = 0;
   _moodleBannerShownAt = 0;
+  _setMoodleStatus('online');
 }
 
 function _maybeShowMoodleBanner(msg, mode) {
@@ -2148,15 +2175,29 @@ async function _parseMoodleResponse(r) {
 
 async function moodleCall(fn, params={}) {
   const p = new URLSearchParams({ wstoken:token, wsfunction:fn, moodlewsrestformat:'json', ...params });
-  const r = await fetch(MOODLE+'/webservice/rest/server.php?'+p);
-  return _parseMoodleResponse(r);
+  try {
+    const r = await fetch(MOODLE+'/webservice/rest/server.php?'+p);
+    return _parseMoodleResponse(r);
+  } catch(e) {
+    console.warn('Moodle request failed:', fn, e);
+    _markMoodleFailure('network');
+    _maybeShowMoodleBanner('Moodle тимчасово недоступний — показуємо збережені дані', 'refresh');
+    return null;
+  }
 }
 
 async function moodlePost(fn, params={}) {
   const body = new URLSearchParams({ wstoken: token, wsfunction: fn, moodlewsrestformat: 'json' });
   Object.entries(params).forEach(([k,v]) => body.append(k, v));
-  const r = await fetch(MOODLE+'/webservice/rest/server.php', { method:'POST', body });
-  return _parseMoodleResponse(r);
+  try {
+    const r = await fetch(MOODLE+'/webservice/rest/server.php', { method:'POST', body });
+    return _parseMoodleResponse(r);
+  } catch(e) {
+    console.warn('Moodle post failed:', fn, e);
+    _markMoodleFailure('network');
+    _maybeShowMoodleBanner('Moodle тимчасово недоступний — показуємо збережені дані', 'refresh');
+    return null;
+  }
 }
 
 async function loadSubmissionStatuses() {
@@ -2217,6 +2258,7 @@ async function openCourseContents(courseId, btn) {
 async function syncMoodle() {
   if(syncMoodle._busy) return;
   syncMoodle._busy = true;
+  _setMoodleStatus('checking');
 
   var buttons = Array.from(document.querySelectorAll('button[onclick="syncMoodle()"]'));
   var prev = buttons.map(function(btn){
@@ -2236,7 +2278,12 @@ async function syncMoodle() {
     await Promise.all([loadCourses(), loadDeadlines()]);
     renderCalendar();
     loadSubmissionStatuses().then(function() { renderCalendar(); });
+    if(_moodleFailStreak === 0) _setMoodleStatus('online');
   } finally {
+    if(_moodleFailStreak > 0) {
+      _setMoodleStatus(_moodleFailStreak >= 2 ? 'offline' : 'warning');
+      _loadCachedData();
+    }
     prev.forEach(function(state){
       state.btn.disabled = state.disabled;
       state.btn.innerHTML = state.html;
@@ -2367,7 +2414,15 @@ async function loadCourses() {
     var sCourses = document.getElementById('s-courses');
     if(sCourses) sCourses.textContent = courses.length;
     filterCourses();
-  } catch(e) { courses=[]; }
+  } catch(e) {
+    console.warn('loadCourses failed:', e);
+    if(!courses.length) {
+      try {
+        const cachedCourses = localStorage.getItem('sh_cache_courses');
+        if(cachedCourses) { courses = JSON.parse(cachedCourses); filterCourses(); }
+      } catch(e2) {}
+    }
+  }
 }
 
 function renderCourses() { filterCourses(); }
@@ -2539,8 +2594,19 @@ async function loadDeadlines() {
   } catch(e) {
     console.error('Deadlines error:', e);
     const msg = e && e.message ? e.message : String(e);
-    document.getElementById('dl-list').innerHTML='<div class="empty"><div class="emo">⚠️</div><p>Помилка дедлайнів: ' + escHtml(msg) + '</p></div>';
-    document.getElementById('dash-dl').innerHTML='<div class="empty"><div class="emo">⚠️</div><p>Помилка завантаження</p></div>';
+    var restored = false;
+    try {
+      const cachedDl = localStorage.getItem('sh_cache_dl');
+      if(cachedDl) {
+        allDl = JSON.parse(cachedDl);
+        scheduleRender();
+        restored = true;
+      }
+    } catch(e2) {}
+    if(!restored) {
+      document.getElementById('dl-list').innerHTML='<div class="empty"><div class="emo">⚠️</div><p>Помилка дедлайнів: ' + escHtml(msg) + '</p></div>';
+      document.getElementById('dash-dl').innerHTML='<div class="empty"><div class="emo">⚠️</div><p>Помилка завантаження</p></div>';
+    }
     document.getElementById('s-urgent').textContent='!';
     var sDoneErr = document.getElementById('s-done');
     if(sDoneErr) sDoneErr.textContent='!';

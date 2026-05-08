@@ -1893,8 +1893,20 @@ body.deadlines-resizing .dl-width-resizer::before {
 .tag.y { background:rgba(240,192,64,.12); color:var(--accent); border-color:rgba(240,192,64,.2); }
 .tag.r { background:rgba(224,80,80,.12); color:var(--accent2); border-color:rgba(224,80,80,.2); }
 
-.sync-badge { display:inline-flex; align-items:center; gap:5px; background:rgba(56,208,122,.1); border:1px solid rgba(56,208,122,.2); border-radius:20px; padding:3px 9px; font-size:.78rem; color:var(--success); font-weight:600; }
-.sync-dot { width:5px; height:5px; background:var(--success); border-radius:50%; animation:pulse 2s infinite; }
+.sync-badge {
+  --sync-color: var(--success);
+  display:inline-flex; align-items:center; gap:5px;
+  background:color-mix(in srgb, var(--sync-color) 12%, transparent);
+  border:1px solid color-mix(in srgb, var(--sync-color) 28%, transparent);
+  border-radius:20px; padding:3px 9px; font-size:.78rem;
+  color:var(--sync-color); font-weight:600;
+  transition:background .2s ease, border-color .2s ease, color .2s ease;
+}
+.sync-badge[data-moodle-status="checking"] { --sync-color:var(--accent); }
+.sync-badge[data-moodle-status="warning"] { --sync-color:var(--warning); }
+.sync-badge[data-moodle-status="offline"] { --sync-color:var(--accent2); }
+.sync-dot { width:5px; height:5px; background:var(--sync-color); border-radius:50%; animation:pulse 2s infinite; }
+.sync-badge[data-moodle-status="offline"] .sync-dot { animation:none; }
 @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
 
 .loading { display:flex; align-items:center; gap:8px; color:var(--text2); font-size:12px; padding:16px 0; }

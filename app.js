@@ -3326,7 +3326,16 @@ function _grManualCurrentFinal(subj,mod){
 function _grCurrentFinal(subj,mod,autoValue){
   var finals=subj&&subj._currentFinals;
   var key=String(mod);
-  return finals&&finals[key]!=null ? Math.round(parseFloat(finals[key])||0) : autoValue;
+  var saved=finals&&finals[key];
+  if(saved!=null&&typeof saved==='object') return Math.round(parseFloat(saved.grade)||0);
+  return saved!=null ? Math.round(parseFloat(saved)||0) : autoValue;
+}
+function _grCurrentMax(subj,mod,autoValue){
+  var finals=subj&&subj._currentFinals;
+  var key=String(mod);
+  var saved=finals&&finals[key];
+  if(saved!=null&&typeof saved==='object'&&saved.max!=null) return Math.round(parseFloat(saved.max)||0);
+  return autoValue;
 }
 
 // ── Moodle load ──
@@ -3454,8 +3463,12 @@ function renderGradesTable(){
     var m2CurManual = _grManualCurrentFinal(subj,2);
     var m1CurFinal = _grCurrentFinal(subj,1,m1CurItems.length?Math.round(_grSumF(m1CurItems)):null);
     var m2CurFinal = _grCurrentFinal(subj,2,m2CurItems.length?Math.round(_grSumF(m2CurItems)):null);
+    var m1CurMax = _grCurrentMax(subj,1,Math.round(_grMaxF(m1CurItems)));
+    var m2CurMax = _grCurrentMax(subj,2,Math.round(_grMaxF(m2CurItems)));
     var m1Auto = (m1.length||m1CurFinal!=null) ? Math.round((m1CurFinal||0)+_grSumF(m1ModItems)) : null;
     var m2Auto = (m2.length||m2CurFinal!=null) ? Math.round((m2CurFinal||0)+_grSumF(m2ModItems)) : null;
+    var m1Max = Math.round(m1CurMax+_grMaxF(m1ModItems));
+    var m2Max = Math.round(m2CurMax+_grMaxF(m2ModItems));
     var m1Manual = _grManualModuleFinal(subj,1);
     var m2Manual = _grManualModuleFinal(subj,2);
     var m1Final = _grModuleFinal(subj,1,m1Auto);
@@ -3465,12 +3478,12 @@ function renderGradesTable(){
     var autoFinal = (m1Final!=null&&m2Final!=null) ? (m1Final+m2Final)/2 : (m1Final!=null?m1Final:m2Final);
     var finalGrade = subj._finalGrade!=null ? subj._finalGrade : (autoFinal!=null?Math.round(autoFinal):null);
     var isManual = subj._finalGrade!=null;
-    var finalMax = (x1>0&&x2>0) ? ((x1+x2)/2) : (x1>0?x1:(x2>0?x2:null));
+    var finalMax = (m1Max>0&&m2Max>0) ? ((m1Max+m2Max)/2) : (m1Max>0?m1Max:(m2Max>0?m2Max:null));
 
     // Header score: per-module view shows that module sum; "Всі" shows підсумкова without percents
     var headVal, headMax;
-    if(_grModFilter===1){ headVal=m1Final; headMax=Math.round(x1); }
-    else if(_grModFilter===2){ headVal=m2Final; headMax=Math.round(x2); }
+    if(_grModFilter===1){ headVal=m1Final; headMax=m1Max; }
+    else if(_grModFilter===2){ headVal=m2Final; headMax=m2Max; }
     else { headVal=finalGrade; headMax=null; }
 
     var headStr = headVal!=null
@@ -3510,6 +3523,7 @@ function renderGradesTable(){
     var modS=_grSumF(mods),modX=_grMaxF(mods);
     var curManual = _grManualCurrentFinal(subj,_grModFilter||1);
     var curFinal = _grCurrentFinal(subj,_grModFilter||1,cur.length?Math.round(curS):null);
+    var curMax = _grCurrentMax(subj,_grModFilter||1,Math.round(curX));
 
     if(_grModFilter!==0){
       // Draggable rows - поточна
@@ -3536,8 +3550,8 @@ function renderGradesTable(){
       if(cur.length){
         html+='<tr style="background:var(--bg3);">'+
           '<td class="gr-td" colspan="2" style="font-size:11px;font-weight:700;color:var(--text2);">Сума поточна '+(curManual?'<span style="font-size:9px;background:rgba(240,192,64,.2);color:var(--accent);border-radius:3px;padding:1px 5px;">вручну</span>':'<span style="font-size:9px;color:var(--text2);">авто</span>')+'</td>'+
-          '<td class="gr-td" style="text-align:center;font-weight:800;color:'+_grColor(curFinal||0,curX)+';">'+(curFinal!=null?Math.round(curFinal):'—')+'</td>'+
-          '<td class="gr-td" style="text-align:center;color:var(--text2);">'+Math.round(curX)+'</td>'+
+          '<td class="gr-td" style="text-align:center;font-weight:800;color:'+_grColor(curFinal||0,curMax)+';">'+(curFinal!=null?Math.round(curFinal):'—')+'</td>'+
+          '<td class="gr-td" style="text-align:center;color:var(--text2);">'+Math.round(curMax)+'</td>'+
           '<td class="gr-td">'+
             '<button data-sid="'+escHtml(subj.id)+'" data-mod="'+(_grModFilter||1)+'" onclick="grEditCurrentFinal(this.dataset.sid,+this.dataset.mod)" title="Редагувати суму поточну" style="background:none;border:none;color:var(--accent);font-size:13px;cursor:pointer;padding:2px 4px;min-height:28px;opacity:.8;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=.8">✏️</button>'+
             (curManual?'<button data-sid="'+escHtml(subj.id)+'" data-mod="'+(_grModFilter||1)+'" onclick="grClearCurrentFinal(this.dataset.sid,+this.dataset.mod)" style="background:none;border:none;color:var(--text2);font-size:10px;cursor:pointer;padding:2px 3px;min-height:28px;opacity:.5;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=.5" title="Скинути">↺</button>':'')+
@@ -3586,13 +3600,13 @@ function renderGradesTable(){
       // Всі: show M1 sum, M2 sum, then підсумкова = (M1 + M2) / 2
       html+='<tr style="background:var(--bg3);border-top:1px solid var(--border);">'+
         '<td class="gr-td" colspan="2" style="font-size:11px;color:var(--text2);">Σ Модуль 1</td>'+
-        '<td class="gr-td" style="text-align:center;font-weight:700;color:'+_grColor(m1Final==null?0:m1Final,x1)+';">'+(m1Final!=null?Math.round(m1Final):'—')+(m1Manual?' <span style="font-size:9px;color:var(--accent);">✎</span>':'')+'</td>'+
-        '<td class="gr-td" style="text-align:center;color:var(--text2);">'+Math.round(x1)+'</td>'+
+        '<td class="gr-td" style="text-align:center;font-weight:700;color:'+_grColor(m1Final==null?0:m1Final,m1Max)+';">'+(m1Final!=null?Math.round(m1Final):'—')+(m1Manual?' <span style="font-size:9px;color:var(--accent);">✎</span>':'')+'</td>'+
+        '<td class="gr-td" style="text-align:center;color:var(--text2);">'+Math.round(m1Max)+'</td>'+
         '<td class="gr-td"></td></tr>';
       html+='<tr style="background:var(--bg3);">'+
         '<td class="gr-td" colspan="2" style="font-size:11px;color:var(--text2);">Σ Модуль 2</td>'+
-        '<td class="gr-td" style="text-align:center;font-weight:700;color:'+_grColor(m2Final==null?0:m2Final,x2)+';">'+(m2Final!=null?Math.round(m2Final):'—')+(m2Manual?' <span style="font-size:9px;color:var(--accent);">✎</span>':'')+'</td>'+
-        '<td class="gr-td" style="text-align:center;color:var(--text2);">'+Math.round(x2)+'</td>'+
+        '<td class="gr-td" style="text-align:center;font-weight:700;color:'+_grColor(m2Final==null?0:m2Final,m2Max)+';">'+(m2Final!=null?Math.round(m2Final):'—')+(m2Manual?' <span style="font-size:9px;color:var(--accent);">✎</span>':'')+'</td>'+
+        '<td class="gr-td" style="text-align:center;color:var(--text2);">'+Math.round(m2Max)+'</td>'+
         '<td class="gr-td"></td></tr>';
       html+='<tr style="background:var(--bg3);border-top:2px solid var(--border);">'+
         '<td class="gr-td" colspan="2" style="font-size:12px;font-weight:800;color:var(--text);">'+
@@ -3610,7 +3624,7 @@ function renderGradesTable(){
         '</td>'+
       '</tr>';
     } else {
-      var ms=_grModFilter===1?m1Final:m2Final, mx=_grModFilter===1?x1:x2;
+      var ms=_grModFilter===1?m1Final:m2Final, mx=_grModFilter===1?m1Max:m2Max;
       var isModManual=_grModFilter===1?m1Manual:m2Manual;
       html+='<tr style="background:var(--bg3);border-top:2px solid var(--border);">'+
         '<td class="gr-td" colspan="2" style="font-size:12px;font-weight:800;color:var(--text);">Σ Модуль '+_grModFilter+' '+(isModManual?'<span style="font-size:9px;background:rgba(240,192,64,.2);color:var(--accent);border-radius:3px;padding:1px 5px;">вручну</span>':'<span style="font-size:9px;color:var(--text2);">авто</span>')+'</td>'+
@@ -3686,16 +3700,24 @@ function grEditCurrentFinal(sid,mod){
   var subj=_grFind(sid); if(!subj) return;
   var key=String(mod||1);
   var finals=_grCurrentFinals(subj);
-  var cur=finals[key]!=null?String(finals[key]):'';
-  var val=prompt('Сума поточна модуля '+key+'. Пусто = авто', cur);
+  var all=subj.items||[];
+  var curItems=all.filter(function(i){return i.mod===Number(key)&&!i.isMod;});
+  var autoGrade=Math.round(_grSumF(curItems));
+  var autoMax=Math.round(_grMaxF(curItems));
+  var saved=finals[key];
+  var curGrade=saved!=null ? (typeof saved==='object'?saved.grade:saved) : autoGrade;
+  var curMax=saved!=null&&typeof saved==='object'&&saved.max!=null ? saved.max : autoMax;
+  var val=prompt('Сума поточна модуля '+key+'. Формат: бал/макс. Пусто = авто', curGrade+'/'+curMax);
   if(val===null) return;
   val=val.trim();
   if(val===''){
     delete finals[key];
   } else {
-    var n=parseFloat(val);
-    if(isNaN(n)||n<0){ alert('Введіть коректну оцінку'); return; }
-    finals[key]=Math.round(n);
+    var parts=val.split(/[\/\\|;, ]+/).filter(Boolean);
+    var grade=parseFloat(parts[0]);
+    var max=parts.length>1 ? parseFloat(parts[1]) : parseFloat(curMax);
+    if(isNaN(grade)||grade<0||isNaN(max)||max<=0){ alert('Введіть у форматі бал/макс, наприклад 57/190'); return; }
+    finals[key]={grade:Math.round(grade),max:Math.round(max)};
   }
   if(!Object.keys(finals).length) delete subj._currentFinals;
   _grFireSave(); renderGradesTable();

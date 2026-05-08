@@ -3315,6 +3315,19 @@ function _grModuleFinal(subj,mod,autoValue){
   var key=String(mod);
   return finals&&finals[key]!=null ? Math.round(parseFloat(finals[key])||0) : autoValue;
 }
+function _grCurrentFinals(subj){
+  if(!subj._currentFinals || typeof subj._currentFinals!=='object') subj._currentFinals={};
+  return subj._currentFinals;
+}
+function _grManualCurrentFinal(subj,mod){
+  var finals=subj&&subj._currentFinals;
+  return !!(finals&&finals[String(mod)]!=null);
+}
+function _grCurrentFinal(subj,mod,autoValue){
+  var finals=subj&&subj._currentFinals;
+  var key=String(mod);
+  return finals&&finals[key]!=null ? Math.round(parseFloat(finals[key])||0) : autoValue;
+}
 
 // ── Moodle load ──
 async function loadGrades(force){
@@ -3433,8 +3446,16 @@ function renderGradesTable(){
 
     html+='<div class="gr-card">';
 
-    var m1Auto = m1.length ? Math.round(s1) : null;
-    var m2Auto = m2.length ? Math.round(s2) : null;
+    var m1CurItems = m1.filter(function(i){return !i.isMod;});
+    var m2CurItems = m2.filter(function(i){return !i.isMod;});
+    var m1ModItems = m1.filter(function(i){return i.isMod;});
+    var m2ModItems = m2.filter(function(i){return i.isMod;});
+    var m1CurManual = _grManualCurrentFinal(subj,1);
+    var m2CurManual = _grManualCurrentFinal(subj,2);
+    var m1CurFinal = _grCurrentFinal(subj,1,m1CurItems.length?Math.round(_grSumF(m1CurItems)):null);
+    var m2CurFinal = _grCurrentFinal(subj,2,m2CurItems.length?Math.round(_grSumF(m2CurItems)):null);
+    var m1Auto = (m1.length||m1CurFinal!=null) ? Math.round((m1CurFinal||0)+_grSumF(m1ModItems)) : null;
+    var m2Auto = (m2.length||m2CurFinal!=null) ? Math.round((m2CurFinal||0)+_grSumF(m2ModItems)) : null;
     var m1Manual = _grManualModuleFinal(subj,1);
     var m2Manual = _grManualModuleFinal(subj,2);
     var m1Final = _grModuleFinal(subj,1,m1Auto);
@@ -3487,6 +3508,8 @@ function renderGradesTable(){
     var mods=visible.filter(function(i){return i.isMod;});
     var curS=_grSumF(cur),curX=_grMaxF(cur);
     var modS=_grSumF(mods),modX=_grMaxF(mods);
+    var curManual = _grManualCurrentFinal(subj,_grModFilter||1);
+    var curFinal = _grCurrentFinal(subj,_grModFilter||1,cur.length?Math.round(curS):null);
 
     if(_grModFilter!==0){
       // Draggable rows - поточна
@@ -3512,14 +3535,21 @@ function renderGradesTable(){
       });
       if(cur.length){
         html+='<tr style="background:var(--bg3);">'+
-          '<td class="gr-td" colspan="2" style="font-size:11px;font-weight:700;color:var(--text2);">Сума поточна</td>'+
-          '<td class="gr-td" style="text-align:center;font-weight:800;color:'+_grColor(curS,curX)+';">'+Math.round(curS)+'</td>'+
+          '<td class="gr-td" colspan="2" style="font-size:11px;font-weight:700;color:var(--text2);">Сума поточна '+(curManual?'<span style="font-size:9px;background:rgba(240,192,64,.2);color:var(--accent);border-radius:3px;padding:1px 5px;">вручну</span>':'<span style="font-size:9px;color:var(--text2);">авто</span>')+'</td>'+
+          '<td class="gr-td" style="text-align:center;font-weight:800;color:'+_grColor(curFinal||0,curX)+';">'+(curFinal!=null?Math.round(curFinal):'—')+'</td>'+
           '<td class="gr-td" style="text-align:center;color:var(--text2);">'+Math.round(curX)+'</td>'+
-          '<td class="gr-td"><button data-sid="'+escHtml(subj.id)+'" data-mod="'+(_grModFilter||1)+'" onclick="grAddGrade(this.dataset.sid,+this.dataset.mod)" style="background:none;border:none;color:var(--accent);font-size:14px;cursor:pointer;min-height:26px;padding:0 4px;">＋</button></td>'+
+          '<td class="gr-td">'+
+            '<button data-sid="'+escHtml(subj.id)+'" data-mod="'+(_grModFilter||1)+'" onclick="grEditCurrentFinal(this.dataset.sid,+this.dataset.mod)" title="Редагувати суму поточну" style="background:none;border:none;color:var(--accent);font-size:13px;cursor:pointer;padding:2px 4px;min-height:28px;opacity:.8;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=.8">✏️</button>'+
+            (curManual?'<button data-sid="'+escHtml(subj.id)+'" data-mod="'+(_grModFilter||1)+'" onclick="grClearCurrentFinal(this.dataset.sid,+this.dataset.mod)" style="background:none;border:none;color:var(--text2);font-size:10px;cursor:pointer;padding:2px 3px;min-height:28px;opacity:.5;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=.5" title="Скинути">↺</button>':'')+
+            '<button data-sid="'+escHtml(subj.id)+'" data-mod="'+(_grModFilter||1)+'" onclick="grAddGrade(this.dataset.sid,+this.dataset.mod)" style="background:none;border:none;color:var(--accent);font-size:14px;cursor:pointer;min-height:26px;padding:0 4px;">＋</button>'+
+          '</td>'+
         '</tr>';
       } else {
         html+='<tr><td class="gr-td" colspan="4" style="color:var(--text2);font-size:11px;font-style:italic;">Поточних оцінок немає</td>'+
-          '<td class="gr-td"><button data-sid="'+escHtml(subj.id)+'" data-mod="'+(_grModFilter||1)+'" onclick="grAddGrade(this.dataset.sid,+this.dataset.mod)" style="background:none;border:none;color:var(--accent);font-size:14px;cursor:pointer;min-height:26px;padding:0 4px;">＋</button></td>'+
+          '<td class="gr-td">'+
+            '<button data-sid="'+escHtml(subj.id)+'" data-mod="'+(_grModFilter||1)+'" onclick="grEditCurrentFinal(this.dataset.sid,+this.dataset.mod)" title="Редагувати суму поточну" style="background:none;border:none;color:var(--accent);font-size:13px;cursor:pointer;padding:2px 4px;min-height:28px;opacity:.8;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=.8">✏️</button>'+
+            '<button data-sid="'+escHtml(subj.id)+'" data-mod="'+(_grModFilter||1)+'" onclick="grAddGrade(this.dataset.sid,+this.dataset.mod)" style="background:none;border:none;color:var(--accent);font-size:14px;cursor:pointer;min-height:26px;padding:0 4px;">＋</button>'+
+          '</td>'+
         '</tr>';
       }
 
@@ -3650,6 +3680,31 @@ function grClearModuleFinal(sid,mod){
   var finals=_grModuleFinals(subj);
   delete finals[String(mod||1)];
   if(!Object.keys(finals).length) delete subj._moduleFinals;
+  _grFireSave(); renderGradesTable();
+}
+function grEditCurrentFinal(sid,mod){
+  var subj=_grFind(sid); if(!subj) return;
+  var key=String(mod||1);
+  var finals=_grCurrentFinals(subj);
+  var cur=finals[key]!=null?String(finals[key]):'';
+  var val=prompt('Сума поточна модуля '+key+'. Пусто = авто', cur);
+  if(val===null) return;
+  val=val.trim();
+  if(val===''){
+    delete finals[key];
+  } else {
+    var n=parseFloat(val);
+    if(isNaN(n)||n<0){ alert('Введіть коректну оцінку'); return; }
+    finals[key]=Math.round(n);
+  }
+  if(!Object.keys(finals).length) delete subj._currentFinals;
+  _grFireSave(); renderGradesTable();
+}
+function grClearCurrentFinal(sid,mod){
+  var subj=_grFind(sid); if(!subj) return;
+  var finals=_grCurrentFinals(subj);
+  delete finals[String(mod||1)];
+  if(!Object.keys(finals).length) delete subj._currentFinals;
   _grFireSave(); renderGradesTable();
 }
 

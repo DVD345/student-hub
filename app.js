@@ -1074,13 +1074,7 @@ function _loadCachedData() {
       allDl = JSON.parse(cachedDl);
       scheduleRender();
     }
-    if(cachedCourses || cachedDl) {
-      _setMoodleStatus('warning', 'Показуємо кеш, оновлення Moodle ще не підтверджене');
-    }
-    if(cacheTs) {
-      const age = Math.round((Date.now() - parseInt(cacheTs)) / 60000);
-      if(age > 30) _showOfflineBanner('Дані з кешу (' + (age > 1440 ? Math.round(age/1440)+'д' : age+'хв') + ' тому)');
-    }
+    // Cache is a normal fast-start path. Do not show warnings until a real Moodle request fails.
   } catch(e) {}
 }
 
@@ -2109,7 +2103,7 @@ function _markMoodleFailure(type) {
   else _moodleFailStreak = 1;
   _moodleFailType = type;
   _moodleLastFailAt = now;
-  _setMoodleStatus(_moodleFailStreak >= 2 ? 'offline' : 'warning');
+  if(_moodleFailStreak >= 2) _setMoodleStatus('offline');
 }
 function _clearMoodleFailureState() {
   _moodleFailStreak = 0;
@@ -2121,7 +2115,7 @@ function _clearMoodleFailureState() {
 
 function _maybeShowMoodleBanner(msg, mode) {
   var now = Date.now();
-  if(_moodleFailStreak < 4) return;
+  if(_moodleFailStreak < 3) return;
   if(now - _moodleBannerShownAt < 90000) return;
   _moodleBannerShownAt = now;
   _showOfflineBanner(msg, mode);
@@ -2130,7 +2124,7 @@ function _maybeShowMoodleBanner(msg, mode) {
 function _showOfflineBanner(msg, mode) {
   if(mode === 'refresh') {
     var now = Date.now();
-    if(_moodleFailStreak < 4) return;
+    if(_moodleFailStreak < 3) return;
     if(now - _moodleBannerShownAt < 90000) return;
     _moodleBannerShownAt = now;
   }
@@ -2281,7 +2275,7 @@ async function syncMoodle() {
     if(_moodleFailStreak === 0) _setMoodleStatus('online');
   } finally {
     if(_moodleFailStreak > 0) {
-      _setMoodleStatus(_moodleFailStreak >= 2 ? 'offline' : 'warning');
+      _setMoodleStatus(_moodleFailStreak >= 2 ? 'offline' : 'online');
       _loadCachedData();
     }
     prev.forEach(function(state){

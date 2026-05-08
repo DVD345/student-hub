@@ -357,6 +357,37 @@ a { text-decoration: none; color: inherit; }
   border-color:var(--accent);
   box-shadow: 0 0 0 3px rgba(240,192,64,.15);
 }
+.password-field { position:relative; }
+.password-field input { padding-right:50px; }
+.pass-toggle {
+  position:absolute;
+  right:10px;
+  bottom:8px;
+  width:36px;
+  height:36px;
+  border:none;
+  border-radius:10px;
+  background:rgba(255,255,255,.04);
+  color:var(--text2);
+  cursor:pointer;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:15px;
+  line-height:1;
+  transition:background .18s ease, color .18s ease, transform .15s ease, box-shadow .18s ease;
+}
+.pass-toggle:hover,
+.pass-toggle.active {
+  background:rgba(240,192,64,.13);
+  color:var(--accent);
+  box-shadow:0 0 0 1px rgba(240,192,64,.2);
+}
+.pass-toggle:active { transform:scale(.96); }
+.pass-toggle:focus-visible {
+  outline:none;
+  box-shadow:0 0 0 3px rgba(240,192,64,.2);
+}
 
 .btn-primary {
   width:100%;

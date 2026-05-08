@@ -211,6 +211,18 @@ async function showGroupFallback(tok, siteData) {
 function showErr(msg) { const e=document.getElementById('lerr'); e.textContent=msg; e.style.display='block'; }
 document.getElementById('lp').addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
 document.getElementById('li').addEventListener('keydown', e => { if(e.key==='Enter') document.getElementById('lp').focus(); });
+function toggleLoginPassword() {
+  var input = document.getElementById('lp');
+  var btn = document.getElementById('pass-toggle');
+  if(!input || !btn) return;
+  var show = input.type === 'password';
+  input.type = show ? 'text' : 'password';
+  btn.classList.toggle('active', show);
+  btn.setAttribute('aria-pressed', show ? 'true' : 'false');
+  btn.setAttribute('aria-label', show ? 'Сховати пароль' : 'Показати пароль');
+  btn.textContent = show ? '🙈' : '👁';
+  input.focus();
+}
 
 // ══════════════════════════════════════════════
 // LOGIN CANVAS ANIMATION

@@ -1314,6 +1314,26 @@ body.deadlines-resizing .dl-width-resizer::before {
   color:#38d07a;
 }
 
+@media (hover:hover) and (min-width:900px) and (max-width:1500px) {
+  .dash-hero-meta .social-btn,
+  .schedule-meta-actions .social-btn {
+    width:var(--social-open-width, 120px);
+    flex:0 0 auto;
+    transform:none;
+  }
+  .dash-hero-meta .social-btn .social-label,
+  .schedule-meta-actions .social-btn .social-label {
+    opacity:1;
+    transform:none;
+  }
+  .dash-hero-meta .social-btn:hover,
+  .dash-hero-meta .social-btn:focus-visible,
+  .schedule-meta-actions .social-btn:hover,
+  .schedule-meta-actions .social-btn:focus-visible {
+    transform:translateY(-2px);
+  }
+}
+
 @media (hover:none), (max-width:720px) {
   .social-btn {
     width:auto;

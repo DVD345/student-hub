@@ -2722,8 +2722,8 @@ function _isModuleWeekActive() {
 }
 
 function _isModuleDeadline(d) {
-  var hay = ((d && d.name) || '') + ' ' + ((d && d.course) || '');
-  return /(модул|module|контрольн|колокв|рубіж|тест|quiz|exam|захист|залік|іспит)/i.test(hay);
+  var name = String((d && d.name) || '');
+  return /(модул|module|мкр)/i.test(name);
 }
 
 function _getDeadlinePriority(id) {

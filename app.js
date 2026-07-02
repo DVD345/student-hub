@@ -36,6 +36,20 @@ function debounce(fn, ms) {
   };
 }
 
+function openSafeUrl(url) {
+  if(!url || url === '#') return;
+  var raw = String(url).trim();
+  if(!/^(https?:|mailto:|tel:)/i.test(raw)) return;
+  window.open(raw, '_blank', 'noopener,noreferrer');
+}
+
+const SAFE_UPLOAD_EXTS = new Set(['png','jpg','jpeg','gif','webp','pdf','doc','docx','xls','xlsx','ppt','pptx','txt','zip']);
+function isSafeUploadFile(file) {
+  if(!file || !file.name) return false;
+  var ext = String(file.name).split('.').pop().toLowerCase();
+  return SAFE_UPLOAD_EXTS.has(ext);
+}
+
 // ── COURSE CALC ──
 function calcCourse(entryYear) {
   const now = new Date();
@@ -140,7 +154,7 @@ async function doLogin() {
     btn.textContent='Синхронізація...';
     group = await findOrCreateGroup(moodleGroupName, moodleFaculty);
     localStorage.setItem('sh_token', token);
-    localStorage.setItem('sh_creds', btoa(unescape(encodeURIComponent(username + ':' + password))));
+    localStorage.removeItem('sh_creds');
     localStorage.setItem('sh_gid', group.id);
     await initApp();
 
@@ -1821,7 +1835,7 @@ function _buildScheduleParams(filters) {
 
 function openScheduleSource() {
   try {
-    window.open(SCHEDULE_FACULTY_URL, '_blank', 'noopener');
+    openSafeUrl(SCHEDULE_FACULTY_URL);
   } catch(e) {
     location.href = SCHEDULE_FACULTY_URL;
   }
@@ -2047,27 +2061,13 @@ async function loadGroupSchedule(force) {
 }
 
 async function _refreshMoodleToken() {
-  const creds = localStorage.getItem('sh_creds');
-  if(!creds) { doLogout(); return; }
-  try {
-    const decoded = decodeURIComponent(escape(atob(creds)));
-    const [username, password] = decoded.split(':');
-    const r = await fetch(MOODLE+'/login/token.php', {
-      method: 'POST',
-      headers: {'Content-Type':'application/x-www-form-urlencoded'},
-      body: new URLSearchParams({username, password, service:'moodle_mobile_app'})
-    });
-    const d = await r.json();
-    if(d.token) {
-      token = d.token;
-      localStorage.setItem('sh_token', token);
-      const banner = document.getElementById('offline-banner');
-      if(banner) banner.remove();
-      syncMoodle();
-    } else {
-      doLogout();
-    }
-  } catch(e) { doLogout(); }
+  localStorage.removeItem('sh_creds');
+  localStorage.removeItem('sh_token');
+  token = '';
+  const banner = document.getElementById('offline-banner');
+  if(banner) banner.remove();
+  showErr('Сесія Moodle закінчилась. Увійдіть знову.');
+  doLogout();
 }
 
 var _moodleFailStreak = 0;
@@ -2449,7 +2449,7 @@ function filterCourses() {
   const cls=cvMode==='list'?'course-grid lv':'course-grid';
   const gridStyle = cvMode==='list' ? '' : ' style="--course-grid-cols:'+_courseGridCols+';"';
   el.innerHTML='<div class="'+cls+'"'+gridStyle+'>'+list.map((c,i)=>
-    '<div class="course-card" onclick="window.open(\'https://do.kart.edu.ua/course/view.php?id='+encodeURIComponent(c.id)+'\',\'_blank\',\'noopener,noreferrer\')">' +
+    '<div class="course-card" onclick="openSafeUrl(\'https://do.kart.edu.ua/course/view.php?id='+encodeURIComponent(c.id)+'\')">' +
     '<button class="hide-course-btn" data-cid="'+escHtml(String(c.id))+'" onclick="hideCourse(this.dataset.cid,event)" title="Сховати курс">✕ Сховати</button>'+
     '<div class="c-num">№'+(i+1)+'</div>'+
     '<div class="c-name">'+escHtml(c.fullname||c.shortname)+'</div>'+
@@ -3172,7 +3172,7 @@ function renderDl(list, el) {
     else if(diff < _dlUrgentH*3600) tag='<span class="tag r">🔴 Термін!</span>';
     else if(diff < 86400*2) { const dueD=new Date(d.due*1000); const todD=new Date(); const isTomorrow=dueD.getDate()===todD.getDate()+1&&dueD.getMonth()===todD.getMonth()&&dueD.getFullYear()===todD.getFullYear(); if(isTomorrow) tag='<span class="tag y">Завтра</span>'; }
     return '<div class="dl-item'+(hasUrl?' click':'')+'"'+
-      (hasUrl?' onclick="window.open(this.dataset.url)" data-url="'+escHtml(d.url)+'"':'')+(d.past||d.due<=now?' style="opacity:.6"':'')+'>'+
+      (hasUrl?' onclick="openSafeUrl(this.dataset.url)" data-url="'+escHtml(d.url)+'"':'')+(d.past||d.due<=now?' style="opacity:.6"':'')+'>'+
       '<div class="dl-dot '+dc+'"></div>'+
       '<div class="dl-info"><div class="dl-name">'+escHtml(d.name)+(hasUrl?' <span style="opacity:.35;font-size:9px">↗</span>':'')+'</div>'+
       '<div class="dl-course">'+escHtml(d.course)+(smartTags ? ' <span class="dl-smart-tags">'+smartTags+'</span>' : '')+'</div></div>'+
@@ -3929,6 +3929,7 @@ function handleDrop(e) { e.preventDefault(); document.getElementById('uz').class
 async function uploadFile(file) {
   const MAX = 700 * 1024;
   if(file.size > MAX){ alert('Файл більше 700КБ (\'' + file.name + '\'). Завантаж на Google Drive і додай через Матеріали.'); return; }
+  if(!isSafeUploadFile(file)){ alert('Цей тип файлу не підтримується. Дозволено: PDF, DOCX, зображення, таблиці, презентації, TXT, ZIP.'); return; }
   if(!window._db){alert('Firebase не готовий');return;}
   const uz=document.getElementById('uz');
   uz.innerHTML='<div class="ui">⏳</div><p>Завантаження ' + escHtml(file.name) + '...</p>';
@@ -4679,6 +4680,7 @@ function handleChatFile(inp) {
   const file = inp.files[0];
   if(!file) return;
   if(file.size > 700*1024) { alert('Файл завеликий. Максимум 700КБ.'); inp.value=''; return; }
+  if(!isSafeUploadFile(file)) { alert('Цей тип файлу не підтримується.'); inp.value=''; return; }
   _chatFile = file;
   document.getElementById('chat-file-name').textContent = '\u{1F4CE} ' + file.name;
   document.getElementById('chat-file-preview').style.display = 'flex';
@@ -4692,6 +4694,7 @@ function handleChatPaste(e) {
       e.preventDefault();
       const file = item.getAsFile();
       if(!file) break;
+      if(file.size > 700*1024) { alert('Файл завеликий. Максимум 700КБ.'); break; }
       _chatFile = file;
       document.getElementById('chat-file-name').textContent = '\u{1F4F7} Зображення';
       document.getElementById('chat-file-preview').style.display = 'flex';
@@ -5312,7 +5315,7 @@ function renderCalendar() {
       const cls=diff<urgH*3600?'cal-ev-urgent':diff<warnD*86400?'cal-ev-soon':'cal-ev-ok';
       const name=dl.name.length>18?dl.name.slice(0,18)+'…':dl.name;
       const urlData=dl.url&&dl.url!=='#'?' data-url="'+escHtml(dl.url)+'"':'';
-      allItems.push({type:'dl',html:'<div class="cal-event '+cls+'"'+urlData+' onclick="event.stopPropagation();if(this.dataset.url)window.open(this.dataset.url,\'_blank\')" title="'+escHtml(dl.name)+'">'+escHtml(name)+'</div>'});
+      allItems.push({type:'dl',html:'<div class="cal-event '+cls+'"'+urlData+' onclick="event.stopPropagation();openSafeUrl(this.dataset.url)" title="'+escHtml(dl.name)+'">'+escHtml(name)+'</div>'});
     });
 
     let h='<div class="cal-cell'+(otherMonth?' other-month':'')+(isToday?' today':'')+(hasEvents?' has-events':'')+'" data-date="'+dateStr+'" onclick="openCalDayPopup(this.dataset.date)">';
@@ -5403,7 +5406,7 @@ function openCalDayPopup(dateStr) {
     row.className='cal-popup-row';
     row.innerHTML='<span class="cal-dot" style="background:'+color+';flex-shrink:0"></span>'
       +'<span class="cal-popup-row-text"><b>'+time+'</b> '+escHtml(dl.name)+'</span>'
-      +(dl.url&&dl.url!=='#'?'<button onclick="window.open(\''+escHtml(dl.url)+'\',\'_blank\')" class="cal-popup-edit">\u2197\ufe0f</button>':'');
+      +(dl.url&&dl.url!=='#'?'<button data-url="'+escHtml(dl.url)+'" onclick="openSafeUrl(this.dataset.url)" class="cal-popup-edit">\u2197\ufe0f</button>':'');
     popup.appendChild(row);
   });
 
@@ -6109,7 +6112,7 @@ function doLogout(){
   // Прибираємо банер при виході
   const banner = document.getElementById('offline-banner');
   if(banner) banner.remove();
-  localStorage.removeItem('sh_token');localStorage.removeItem('sh_gid');
+  localStorage.removeItem('sh_token');localStorage.removeItem('sh_gid');localStorage.removeItem('sh_creds');
   document.getElementById('screen-app').classList.remove('active');
   document.getElementById('screen-login').classList.add('active');
 }
@@ -6131,30 +6134,8 @@ if(sv&&sgid){
       let testD;
       try { testD = await testR.json(); } catch(e) { testD = {errorcode:'parseerror'}; }
       if(testD && testD.errorcode) {
-        // Токен протух — спробуємо тихо оновити його з кешованих кредів
-        const creds = localStorage.getItem('sh_creds');
-        if(creds) {
-          try {
-            const decoded = decodeURIComponent(escape(atob(creds)));
-            const colonIdx = decoded.indexOf(':');
-            const username = decoded.slice(0, colonIdx);
-            const password = decoded.slice(colonIdx + 1);
-            const rr = await fetch(MOODLE+'/login/token.php', {
-              method:'POST',
-              headers:{'Content-Type':'application/x-www-form-urlencoded'},
-              body: new URLSearchParams({username, password, service:'moodle_mobile_app'})
-            });
-            const rd = await rr.json();
-            if(rd && rd.token) {
-              token = rd.token;
-              localStorage.setItem('sh_token', token);
-              const snap=await getDoc(doc(window._db,'groups',sgid));
-              if(snap.exists()){group={id:sgid,...snap.data()};}
-              await initApp();
-              return;
-            }
-          } catch(e2) {}
-        }
+        // Токен протух — пароль не зберігаємо, тому переходимо в кеш/логін.
+        localStorage.removeItem('sh_creds');
         // Не вдалось оновити — заходимо офлайн якщо є кеш
         if(!cachedGroup){localStorage.removeItem('sh_token');localStorage.removeItem('sh_gid');}
         else{await _offlineLogin(sgid);}
@@ -6194,16 +6175,16 @@ async function _offlineLogin(sgid){
     (allDl||[]).forEach(d=>{
       if(d.past) return;
       const due = d.due ? new Date(d.due*1000).toLocaleDateString('uk-UA',{day:'numeric',month:'short'}) : '';
-      idx.push({type:'deadline',icon:'⏰',name:d.name,sub:due+(d.course?' · '+d.course:''),url:d.url&&d.url!=='#'?d.url:null,action:()=>{if(d.url&&d.url!=='#')window.open(d.url,'_blank');else go('deadlines');}});
+      idx.push({type:'deadline',icon:'⏰',name:d.name,sub:due+(d.course?' · '+d.course:''),url:d.url&&d.url!=='#'?d.url:null,action:()=>{if(d.url&&d.url!=='#')openSafeUrl(d.url);else go('deadlines');}});
     });
     (notes||[]).forEach(n=>{
       idx.push({type:'note',icon:'✍️',name:n.title||'Без назви',sub:(n.content||'').slice(0,60),url:null,action:()=>{go('notes');setTimeout(()=>openNote(n.id),200);}});
     });
     (cachedFiles||[]).forEach(f=>{
-      idx.push({type:'file',icon:'📁',name:f.name,sub:f.uploaderName||'',url:f.url||null,action:()=>{if(f.url)window.open(f.url,'_blank');else go('files');}});
+      idx.push({type:'file',icon:'📁',name:f.name,sub:f.uploaderName||'',url:f.url||null,action:()=>{if(f.url)openSafeUrl(f.url);else go('files');}});
     });
     (cachedMats||[]).forEach(m=>{
-      idx.push({type:'material',icon:'📝',name:m.name,sub:m.subject||m.desc||'',url:m.link||null,action:()=>{if(m.link)window.open(m.link,'_blank');else go('materials');}});
+      idx.push({type:'material',icon:'📝',name:m.name,sub:m.subject||m.desc||'',url:m.link||null,action:()=>{if(m.link)openSafeUrl(m.link);else go('materials');}});
     });
     [
       {name:'Головна',icon:'🏠',action:()=>go('dashboard')},
@@ -6469,7 +6450,7 @@ function renderWidgetToday() {
     var t=new Date(d.due*1000).toLocaleTimeString('uk-UA',{hour:'2-digit',minute:'2-digit'});
     var diff=d.due-now;
     var color=diff<urgH*3600?'var(--accent2)':'var(--warning)';
-    var onclick=d.url&&d.url!=='#'?"window.open('"+escHtml(d.url)+"','_blank')":"go('deadlines')";
+    var onclick=d.url&&d.url!=='#'?"openSafeUrl('"+escHtml(d.url)+"')":"go('deadlines')";
     return '<div class="widget-item" onclick="'+onclick+'" title="'+escHtml(d.name)+'"><span class="widget-item-dot" style="background:'+color+'"></span><span class="widget-item-name">'+escHtml(d.name)+'</span><span class="widget-item-meta">'+t+'</span></div>';
   }).join('');
 }
@@ -6495,7 +6476,7 @@ function renderWidgetWeek() {
     var diff=d.due-now;
     var color=diff<urgH*3600?'var(--accent2)':diff<warnD*86400?'var(--accent)':'var(--success)';
     var label=diff<172800?'Завтра':new Date(d.due*1000).toLocaleDateString('uk-UA',{day:'numeric',month:'short'});
-    var onclick=d.url&&d.url!=='#'?"window.open('"+escHtml(d.url)+"','_blank')":"go('deadlines')";
+    var onclick=d.url&&d.url!=='#'?"openSafeUrl('"+escHtml(d.url)+"')":"go('deadlines')";
     return '<div class="widget-item" onclick="'+onclick+'" title="'+escHtml(d.name)+'"><span class="widget-item-dot" style="background:'+color+'"></span><span class="widget-item-name">'+escHtml(d.name)+'</span><span class="widget-item-meta">'+label+'</span></div>';
   }).join('');
 }
@@ -6694,7 +6675,7 @@ renderDl = function(list, el) {
     const hasUrl = d.url && d.url !== '#';
     const rowOnclick = d._calNote
       ? ' onclick="openCalNoteModal(\''+escHtml(d._calNoteDate)+'\',event,\''+escHtml(d._calNoteId || '')+'\')"'
-      : (hasUrl ? ' onclick="window.open(this.dataset.url)" data-url="'+escHtml(d.url)+'"' : '');
+      : (hasUrl ? ' onclick="openSafeUrl(this.dataset.url)" data-url="'+escHtml(d.url)+'"' : '');
     const priority = _getDeadlinePriority(sid);
     const isFocused = _isDeadlineFocused(sid);
     const isModule = _isModuleDeadline(d);
@@ -7028,7 +7009,7 @@ function renderNoDlList() {
       ? '<span style="font-size:9px;background:rgba(56,208,122,.15);color:var(--success);border:1px solid rgba(56,208,122,.3);border-radius:4px;padding:1px 6px;">✅ '+fmtDate(ov.due)+'</span>'
       : '<span style="font-size:9px;background:var(--bg3);color:var(--text2);border:1px solid var(--border);border-radius:4px;padding:1px 6px;">без дедлайну</span>';
     const typeIcon = d._type === 'quiz' ? '📋 ' : '📝 ';
-    return '<div style="display:flex;align-items:center;gap:10px;padding:10px 8px;border-bottom:1px solid var(--border);cursor:pointer;" onclick="window.open(\''+escHtml(d.url||'#')+'\',\'_blank\')">' +
+    return '<div style="display:flex;align-items:center;gap:10px;padding:10px 8px;border-bottom:1px solid var(--border);cursor:pointer;" data-url="'+escHtml(d.url||'#')+'" onclick="openSafeUrl(this.dataset.url)">' +
       '<div style="width:8px;height:8px;border-radius:50%;background:'+(hasOv?'var(--success)':'var(--text2)')+';flex-shrink:0;"></div>'+
       '<div style="flex:1;min-width:0;">' +
         '<div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+typeIcon+escHtml(d.name)+'</div>'+

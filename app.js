@@ -5,6 +5,7 @@ let unsubs=[], cachedFiles=[], cachedMats=[], currentChatRoom=null, chatUnsub=nu
 let cvMode='grid', csMode='name';
 var _chatUsers = [];
 var _chatDmRooms = [];
+var _offlineMode = false;
 
 // ── XSS PROTECTION ──
 function escHtml(t) { return (t==null?'':String(t)).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;'); }
@@ -79,14 +80,23 @@ async function doLogin() {
   err.style.display='none';
   if (!username||!password) { showErr('Введіть логін та пароль'); return; }
   btn.disabled=true; btn.textContent='Входимо...';
+  let loginTimeout = null;
   try {
+    const ctrl = new AbortController();
+    loginTimeout = setTimeout(function(){ ctrl.abort(); }, 12000);
     const r = await fetch(MOODLE+'/login/token.php', {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({ username, password, service: 'moodle_mobile_app' })
+      body: new URLSearchParams({ username, password, service: 'moodle_mobile_app' }),
+      signal: ctrl.signal
     });
+    clearTimeout(loginTimeout);
     const d = await r.json();
-    if (!d.token) { showErr(d.error || 'Невірний логін або пароль'); btn.disabled=false; btn.textContent='Увійти'; return; }
+    if (!d.token) {
+      if(_isTransientMoodleLoginError(d) && await _tryCachedLogin(username)) return;
+      showErr(d.error || 'Невірний логін або пароль'); btn.disabled=false; btn.textContent='Увійти'; return;
+    }
+    _offlineMode = false;
     token = d.token;
 
     btn.textContent='Визначаємо групу...';
@@ -158,8 +168,54 @@ async function doLogin() {
     localStorage.setItem('sh_gid', group.id);
     await initApp();
 
-  } catch(e) { console.error('Login error:', e); showErr('Помилка підключення'); }
+  } catch(e) {
+    if(loginTimeout) clearTimeout(loginTimeout);
+    console.error('Login error:', e);
+    if(await _tryCachedLogin(username)) return;
+    showErr('Moodle зараз не відповідає. Кешу для офлайн-входу на цьому пристрої немає.');
+  }
   btn.disabled=false; btn.textContent='Увійти';
+}
+
+function _isTransientMoodleLoginError(data) {
+  const msg = String((data && (data.error || data.errorcode || data.message)) || '').toLowerCase();
+  return /maintenance|temporar|unavailable|service|тех|обслугов|недоступ|не доступ|відповіда|не відпов|обслуж|сервис/i.test(msg);
+}
+
+function _getCachedLoginState(username) {
+  try {
+    const cachedUserRaw = localStorage.getItem('sh_cache_user');
+    const cachedGroupRaw = localStorage.getItem('sh_cache_group');
+    if(!cachedUserRaw || !cachedGroupRaw) return null;
+    const cachedUser = JSON.parse(cachedUserRaw);
+    const cachedGroup = JSON.parse(cachedGroupRaw);
+    const cachedUsername = String(cachedUser.username || cachedUser.user || cachedUser.login || '').toLowerCase();
+    if(cachedUsername && username && cachedUsername !== String(username).toLowerCase()) return null;
+    if(!cachedGroup || !cachedGroup.id) return null;
+    return { user: cachedUser, group: cachedGroup };
+  } catch(e) {
+    return null;
+  }
+}
+
+async function _tryCachedLogin(username) {
+  const cached = _getCachedLoginState(username);
+  if(!cached) return false;
+  try {
+    _offlineMode = true;
+    userData = cached.user;
+    group = cached.group;
+    token = localStorage.getItem('sh_token') || '';
+    localStorage.setItem('sh_gid', group.id);
+    localStorage.removeItem('sh_creds');
+    await initApp();
+    _showOfflineBanner('Moodle тимчасово недоступний — відкрито збережені дані', 'refresh');
+    return true;
+  } catch(e) {
+    console.warn('Cached login failed:', e);
+    _offlineMode = false;
+    return false;
+  }
 }
 
 async function findOrCreateGroup(name, faculty) {
@@ -399,7 +455,7 @@ async function initApp() {
   var aiInp = document.getElementById('ai-inp');
   if(aiInp) aiInp.value = '';
 
-  await loadUserInfo();
+  if(!_offlineMode && token) await loadUserInfo();
   await loadUserRole();
   _initChatDmRoomsSync();
   _initNotificationsSync();
@@ -408,7 +464,7 @@ async function initApp() {
   await startUserSettingsSync();
 
   // ✅ IMPROVEMENT 2: load courses and deadlines in PARALLEL
-  await syncMoodle();
+  if(!_offlineMode && token) await syncMoodle();
 
   listenFiles(); listenMats(); setupChatRooms();
   if (canAdmin()) listenAdminData();
@@ -6156,6 +6212,7 @@ async function _offlineLogin(sgid){
   const cachedGroup=localStorage.getItem('sh_cache_group');
   if(!cachedGroup)return;
   try{
+    _offlineMode = true;
     group=JSON.parse(cachedGroup);
     if(window._fb&&window._db){
       try{const {doc,getDoc}=window._fb;const snap=await getDoc(doc(window._db,'groups',sgid));if(snap.exists())group={id:sgid,...snap.data()};}catch(e){}

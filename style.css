@@ -635,9 +635,14 @@ body.deadlines-resizing {
   gap:18px;
   align-items:start;
 }
-.dash-hero {
+.dash-col-left {
   grid-column:1;
-  grid-row:1;
+  display:flex;
+  flex-direction:column;
+  gap:18px;
+  min-width:0;
+}
+.dash-hero {
   display:grid;
   grid-template-columns:minmax(0, 1fr);
   gap:16px;
@@ -762,9 +767,6 @@ body.deadlines-resizing {
   line-height:1.6;
   color:var(--text2);
 }
-.dash-layout {
-  display:contents;
-}
 .dash-column-main,
 .dash-column-side {
   display:flex;
@@ -772,14 +774,8 @@ body.deadlines-resizing {
   gap:16px;
   min-width:0;
 }
-.dash-column-main {
-  grid-column:1;
-  grid-row:2;
-}
 .dash-column-side {
   grid-column:2;
-  grid-row:1 / span 2;
-  align-self:start;
 }
 .dash-column-side .dash-panel:last-child {
   display:block;
@@ -1516,6 +1512,9 @@ body.deadlines-resizing .dl-width-resizer::before {
   overscroll-behavior: contain;
   scroll-behavior: smooth;
 }
+.chat-messages > .empty {
+  margin: auto;
+}
 
 .chat-input-wrap {
   flex-shrink: 0;
@@ -2110,14 +2109,9 @@ body.deadlines-resizing .dl-width-resizer::before {
     grid-template-columns:minmax(0, 1fr);
     gap:16px;
   }
-  .dash-layout {
-    display:grid;
-    grid-template-columns:minmax(0, 1fr);
-  }
-  .dash-column-main,
+  .dash-col-left,
   .dash-column-side {
     grid-column:auto;
-    grid-row:auto;
     width:100%;
   }
   .dash-home > *,
@@ -2132,11 +2126,6 @@ body.deadlines-resizing .dl-width-resizer::before {
   }
   .dash-hero {
     grid-template-columns:1fr;
-  }
-  .dash-layout {
-    display:flex;
-    flex-direction:column;
-    gap:16px;
   }
   .dash-hero-main {
     padding:18px;

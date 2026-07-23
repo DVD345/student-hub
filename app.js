@@ -7,7 +7,19 @@ var _chatUsers = [];
 var _chatDmRooms = [];
 var _offlineMode = false;
 var _guestMode = false;
-var GUEST_RESTRICTED = ['deadlines','courses','grades','files','materials','chat','calendar','notes','assistant','notifications','admin'];
+var GUEST_RESTRICTED = ['deadlines','courses','grades','files','materials','chat','notes','assistant','notifications','admin'];
+var GUEST_SECTION_INFO = {
+  deadlines: { ico:'⏰', title:'Дедлайни', text:'Тут ви побачите всі актуальні завдання та терміни здачі, підтягнуті прямо з Moodle.' },
+  courses: { ico:'📚', title:'Курси', text:'Список ваших курсів з Moodle з матеріалами та посиланнями на кожен.' },
+  grades: { ico:'🎓', title:'Оцінки', text:'Всі ваші оцінки за курсами, зведені в одну зручну таблицю.' },
+  files: { ico:'📁', title:'Файли', text:'Спільні файли вашої групи — можна завантажувати й ділитися своїми.' },
+  materials: { ico:'📝', title:'Матеріали', text:'Конспекти, шпаргалки та інші матеріали, якими поділилась група.' },
+  chat: { ico:'💬', title:'Чати', text:'Спілкування з групою та факультетом у реальному часі.' },
+  notes: { ico:'✍️', title:'Нотатки', text:'Ваші особисті нотатки — доступні лише вам після входу.' },
+  assistant: { ico:'🤖', title:'Асистент', text:'AI-асистент, який допоможе розібратися з навчальними питаннями.' },
+  notifications: { ico:'🔔', title:'Сповіщення', text:'Сповіщення про нові дедлайни, файли та повідомлення в чатах.' },
+  admin: { ico:'⚙️', title:'Адмін-панель', text:'Керування групами та користувачами — доступно лише адміністраторам.' }
+};
 
 // ── XSS PROTECTION ──
 function escHtml(t) { return (t==null?'':String(t)).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;'); }
@@ -209,6 +221,7 @@ function enterGuestMode() {
   _initSidebarResizer();
   setupNav();
   _initMovingSliders();
+  renderDashboardMiniCalendar();
 }
 
 function _isTransientMoodleLoginError(data) {
@@ -5059,7 +5072,7 @@ function go(name) {
       });
     });
   }
-  showGuestLock(isGuestLocked);
+  showGuestLock(isGuestLocked, name);
   _currentPage = name;
   // Show back arrow instead of hamburger when in chat (mobile)
   const backBtn = document.getElementById('topbar-back');
@@ -6207,9 +6220,20 @@ function doLogout(){
   document.getElementById('screen-login').classList.add('active');
 }
 
-function showGuestLock(show) {
+function showGuestLock(show, sectionName) {
   const el = document.getElementById('guest-lock');
   if(el) el.style.display = show ? 'flex' : 'none';
+  if(show) {
+    const info = GUEST_SECTION_INFO[sectionName];
+    const icoEl = document.getElementById('guest-lock-ico');
+    const titleEl = document.getElementById('guest-lock-title');
+    const textEl = document.getElementById('guest-lock-text');
+    if(icoEl) icoEl.textContent = info ? info.ico : '🔒';
+    if(titleEl) titleEl.textContent = info ? info.title : 'Цей розділ доступний лише студентам';
+    if(textEl) textEl.textContent = info ? info.text : 'Увійдіть через Moodle, щоб побачити реальні дані.';
+    const content = document.querySelector('.content');
+    if(content) content.scrollTop = 0;
+  }
 }
 
 // ── AUTO LOGIN ──

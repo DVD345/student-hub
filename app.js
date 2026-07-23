@@ -6,6 +6,8 @@ let cvMode='grid', csMode='name';
 var _chatUsers = [];
 var _chatDmRooms = [];
 var _offlineMode = false;
+var _guestMode = false;
+var GUEST_RESTRICTED = ['deadlines','courses','grades','files','materials','chat','calendar','notes','assistant','notifications','admin'];
 
 // ── XSS PROTECTION ──
 function escHtml(t) { return (t==null?'':String(t)).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;'); }
@@ -175,6 +177,38 @@ async function doLogin() {
     showErr('Moodle зараз не відповідає. Кешу для офлайн-входу на цьому пристрої немає.');
   }
   btn.disabled=false; btn.textContent='Увійти';
+}
+
+function enterGuestMode() {
+  _guestMode = true;
+  token = '';
+  userData = { fullname: 'Гість' };
+  group = { id: null, name: 'Гість' };
+
+  const loginScreen = document.getElementById('screen-login');
+  const appScreen = document.getElementById('screen-app');
+  loginScreen.classList.remove('active');
+  appScreen.classList.add('active');
+
+  document.getElementById('uname').textContent = 'Гість';
+  document.getElementById('uav').textContent = 'Г';
+  const urole = document.getElementById('urole');
+  if(urole) urole.textContent = 'Гість';
+  document.getElementById('gpill').textContent = '👀 Гостьовий перегляд';
+  const dashSubHome = document.getElementById('dash-sub-home');
+  if(dashSubHome) dashSubHome.textContent = 'Перегляд без входу в акаунт';
+  const dashSub = document.getElementById('dash-sub');
+  if(dashSub) dashSub.textContent = 'Перегляд без входу в акаунт';
+  const dashDlHome = document.getElementById('dash-dl-home');
+  if(dashDlHome) dashDlHome.innerHTML = '<div class="empty"><div class="emo">🔒</div><p>Увійдіть, щоб побачити дедлайни</p></div>';
+  const loginBtn = document.getElementById('guest-login-btn');
+  if(loginBtn) loginBtn.style.display = 'inline-flex';
+
+  _applyUiFontScale();
+  _applySidebarWidth();
+  _initSidebarResizer();
+  setupNav();
+  _initMovingSliders();
 }
 
 function _isTransientMoodleLoginError(data) {
@@ -5008,20 +5042,24 @@ function go(name) {
   if(prevName === name) return;
   const nextPg = document.getElementById('page-' + name);
   if(!nextPg) return;
-  const prevIdx = PAGE_ORDER.indexOf(prevName);
-  const nextIdx = PAGE_ORDER.indexOf(name);
-  const forward = nextIdx === -1 || prevIdx === -1 || nextIdx > prevIdx;
-  const enterCls = forward ? 'pg-enter-right' : 'pg-enter-left';
-  document.querySelectorAll('.page').forEach(p => {
-    p.classList.remove('active','pg-enter-right','pg-enter-left');
-  });
-  nextPg.classList.add('active');
-  requestAnimationFrame(() => {
-    requestAnimationFrame(() => {
-      nextPg.classList.add(enterCls);
-      nextPg.addEventListener('animationend', () => nextPg.classList.remove(enterCls), {once:true});
+  const isGuestLocked = _guestMode && GUEST_RESTRICTED.includes(name);
+  if(!isGuestLocked) {
+    const prevIdx = PAGE_ORDER.indexOf(prevName);
+    const nextIdx = PAGE_ORDER.indexOf(name);
+    const forward = nextIdx === -1 || prevIdx === -1 || nextIdx > prevIdx;
+    const enterCls = forward ? 'pg-enter-right' : 'pg-enter-left';
+    document.querySelectorAll('.page').forEach(p => {
+      p.classList.remove('active','pg-enter-right','pg-enter-left');
     });
-  });
+    nextPg.classList.add('active');
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        nextPg.classList.add(enterCls);
+        nextPg.addEventListener('animationend', () => nextPg.classList.remove(enterCls), {once:true});
+      });
+    });
+  }
+  showGuestLock(isGuestLocked);
   _currentPage = name;
   // Show back arrow instead of hamburger when in chat (mobile)
   const backBtn = document.getElementById('topbar-back');
@@ -5033,13 +5071,15 @@ function go(name) {
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.toggle('active',n.textContent.trim().startsWith(labels[name]||'_')));
   document.querySelectorAll('.nav-item[data-page]').forEach(function(n){ n.classList.toggle('active', n.dataset.page === name); });
   document.getElementById('topbar-title').textContent=PAGE_TITLES[name]||name;
-  if(name==='calendar') renderCalendar();
-  if(name==='chat') _clearChatBadge();
-  if(name==='assistant'||name==='notes') _loadKaTeX();
-  if(name==='notes') loadNotes();
-  if(name==='grades') loadGrades();
-  if(name==='admin') _refreshAdminLayoutOnOpen();
-  if(name==='notifications') markAllRead();
+  if(!isGuestLocked) {
+    if(name==='calendar') renderCalendar();
+    if(name==='chat') _clearChatBadge();
+    if(name==='assistant'||name==='notes') _loadKaTeX();
+    if(name==='notes') loadNotes();
+    if(name==='grades') loadGrades();
+    if(name==='admin') _refreshAdminLayoutOnOpen();
+    if(name==='notifications') markAllRead();
+  }
   _applyDynamicLayouts();
   closeSidebar();
 }
@@ -6155,12 +6195,21 @@ function doLogout(){
   _dlOverrides = {}; _dlDeleted = []; _calNotes = {};
   _dlPriorityMap = {}; _dlFocusToday = [];
   _moduleWeekManual = false; _moduleWeekStart = ''; _moduleWeekEnd = '';
+  _guestMode = false;
+  showGuestLock(false);
+  const guestLoginBtn = document.getElementById('guest-login-btn');
+  if(guestLoginBtn) guestLoginBtn.style.display = 'none';
   // Прибираємо банер при виході
   const banner = document.getElementById('offline-banner');
   if(banner) banner.remove();
   localStorage.removeItem('sh_token');localStorage.removeItem('sh_gid');localStorage.removeItem('sh_creds');
   document.getElementById('screen-app').classList.remove('active');
   document.getElementById('screen-login').classList.add('active');
+}
+
+function showGuestLock(show) {
+  const el = document.getElementById('guest-lock');
+  if(el) el.style.display = show ? 'flex' : 'none';
 }
 
 // ── AUTO LOGIN ──

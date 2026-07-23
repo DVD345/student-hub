@@ -3952,16 +3952,6 @@ function saveGrEdit(){
   else subj.items.push(entry);
   _grFireSave(); closeGrEdit(); renderGradesTable();
 }
-// stubs
-function openGrEdit(){}
-function hideGrItem(){}
-function deleteGrCustom(){}
-function openGrCourseFilter(){}
-function closeGrCourseFilter(){}
-function grSelectAll(){}
-function grSelectNone(){}
-function applyGrCourseFilter(){}
-
 
 // ── FILES ──
 function listenFiles() {
@@ -4628,8 +4618,8 @@ function renderMessages(msgs) {
     const canDel = canMod() || m.uid===String(userData.userid);
     const fileHtml = m.file
       ? (m.file.type&&m.file.type.startsWith('image/')
-          ? '<br><img src="'+m.file.data+'" style="max-width:220px;max-height:220px;border-radius:10px;display:block;margin-top:6px;cursor:pointer;box-shadow:0 2px 12px rgba(0,0,0,.3);transition:transform .15s;" onclick="openLightbox(this.src,\''+escHtml(m.file.name||'photo')+'\')" onmouseover="this.style.transform=\'scale(1.02)\'" onmouseout="this.style.transform=\'scale(1)\'">'
-          : '<br><a href="'+m.file.data+'" download="'+escHtml(m.file.name||'file')+'" style="display:inline-flex;align-items:center;gap:5px;padding:5px 9px;background:rgba(255,255,255,.07);border-radius:7px;font-size:11px;color:var(--text);text-decoration:none;margin-top:4px;">\u{1F4C4} '+escHtml(m.file.name||'Файл')+'</a>')
+          ? '<br><img src="'+escHtml(m.file.data)+'" style="max-width:220px;max-height:220px;border-radius:10px;display:block;margin-top:6px;cursor:pointer;box-shadow:0 2px 12px rgba(0,0,0,.3);transition:transform .15s;" onclick="openLightbox(this.src,\''+escHtml(m.file.name||'photo')+'\')" onmouseover="this.style.transform=\'scale(1.02)\'" onmouseout="this.style.transform=\'scale(1)\'">'
+          : '<br><a href="'+escHtml(m.file.data)+'" download="'+escHtml(m.file.name||'file')+'" style="display:inline-flex;align-items:center;gap:5px;padding:5px 9px;background:rgba(255,255,255,.07);border-radius:7px;font-size:11px;color:var(--text);text-decoration:none;margin-top:4px;">\u{1F4C4} '+escHtml(m.file.name||'Файл')+'</a>')
       : '';
     const msgText = m.text ? _highlightMentions(escHtml(m.text), userData.fullname) : '';
     const replyHtml = m.replyTo ? '<div class="msg-reply" onclick="event.stopPropagation();_scrollToMsg(\''+escHtml(m.replyTo.id||'')+'\')"><b>'+escHtml(m.replyTo.author||'')+'</b> '+escHtml((m.replyTo.text||'').slice(0,60))+'</div>' : '';
@@ -6136,7 +6126,7 @@ function renderFilesWithSearch(files,query=''){
     const isImg=['jpg','jpeg','png','gif','webp'].includes(ext);
     const previewBtn=isImg&&f.dataUrl?'<button class="btn" onclick="previewFile(this.dataset.id)" data-id="'+escHtml(f.id)+'">👁</button>':'';
     return'<div class="file-item">'+
-      (isImg&&f.dataUrl?'<img src="'+f.dataUrl+'" style="width:32px;height:32px;object-fit:cover;border-radius:7px;flex-shrink:0;cursor:pointer;" onclick="previewFile(this.dataset.id)" data-id="'+escHtml(f.id)+'">':'<div class="file-ext '+ec+'">'+escHtml(ext.toUpperCase())+'</div>')+
+      (isImg&&f.dataUrl?'<img src="'+escHtml(f.dataUrl)+'" style="width:32px;height:32px;object-fit:cover;border-radius:7px;flex-shrink:0;cursor:pointer;" onclick="previewFile(this.dataset.id)" data-id="'+escHtml(f.id)+'">':'<div class="file-ext '+ec+'">'+escHtml(ext.toUpperCase())+'</div>')+
       '<div class="file-info"><div class="file-name">'+escHtml(f.name)+'</div><div class="file-meta">'+escHtml(f.uploader||'?')+' • '+new Date(f.createdAt).toLocaleDateString('uk-UA')+' • '+escHtml(sz)+'</div></div>'+
       '<div class="file-actions">'+previewBtn+(f.dataUrl?'<button class="btn a" onclick="dlFile(this.dataset.id)" data-id="'+escHtml(f.id)+'">⬇</button>':'')+'<button class="btn d" onclick="rmFile(this.dataset.id)" data-id="'+escHtml(f.id)+'">🗑</button></div>'+
       '</div>';

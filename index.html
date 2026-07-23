@@ -16,28 +16,6 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 
-<!-- legacy course settings modal block moved to body for valid HTML
-  <div class="modal course-settings-modal">
-    <h3>Налаштування курсів</h3>
-    <div class="course-settings-section">
-      <div class="course-settings-label">Карток в одному рядку</div>
-      <div class="course-cols-options" id="course-cols-options"></div>
-    </div>
-    <div class="course-settings-section">
-      <div class="course-settings-row">
-        <div>
-          <div class="course-settings-label">Приховані курси</div>
-          <div class="course-settings-sub">Оберіть курс зі списку, щоб повернути його назад.</div>
-        </div>
-        <button class="btn" type="button" onclick="restoreAllCourses()">Повернути всі</button>
-      </div>
-      <div id="hidden-courses-list" class="hidden-courses-list"></div>
-    </div>
-    <div class="modal-actions">
-      <button class="btn" type="button" onclick="closeCoursesSettings()">Закрити</button>
-    </div>
-  </div>
-</div> -->
 <script>
 // PWA Manifest inline
 const APP_BUILD = '117';
@@ -315,39 +293,15 @@ function _loadKaTeX() {
               </div>
               </div>
               <div class="dash-font-card">
-                <div class="dash-font-card-title">РЁСЂРёС„С‚ СЃР°Р№С‚Сѓ</div>
-                <div class="dash-font-card-sub">Р—РјС–РЅС–С‚СЊ СЂРѕР·РјС–СЂ С‚РµРєСЃС‚Сѓ РЅР° РІСЃСЊРѕРјСѓ СЃР°Р№С‚С–</div>
+                <div class="dash-font-card-title">Розмір шрифту</div>
+                <div class="dash-font-card-sub">Змініть розмір тексту на всьому сайті, щоб інтерфейс було зручніше читати.</div>
                 <div class="dash-font-actions">
-                  <button class="btn" onclick="adjustUiFontScale(-1)" title="РњРµРЅС€РёР№ С€СЂРёС„С‚">Aв€’</button>
-                  <button class="btn" onclick="resetUiFontScale()" title="РЎС‚Р°РЅРґР°СЂС‚РЅРёР№ С€СЂРёС„С‚">A</button>
-                  <button class="btn" onclick="adjustUiFontScale(1)" title="Р‘С–Р»СЊС€РёР№ С€СЂРёС„С‚">A+</button>
+                  <button class="btn" onclick="adjustUiFontScale(-1)" title="Менший шрифт">A−</button>
+                  <button class="btn" onclick="resetUiFontScale()" title="Стандартний шрифт">A</button>
+                  <button class="btn" onclick="adjustUiFontScale(1)" title="Більший шрифт">A+</button>
                 </div>
               </div>
             </div>
-            <div class="dash-hero-side">
-              <div class="dash-theme-card">
-                <div class="dash-theme-title">Теми та стиль</div>
-                <div class="dash-theme-text">Оберіть будь-який стиль інтерфейсу: тему, кольори й атмосферу можна налаштувати під себе.</div>
-              </div>
-            </div>
-          </div>
-          <div class="dash-quick-grid">
-            <button class="dash-quick-card" onclick="go('deadlines');setBnav('deadlines')">
-              <span class="dash-quick-icon">⏰</span>
-              <span class="dash-quick-copy"><strong id="s-urgent-home">—</strong><span>Дедлайни</span></span>
-            </button>
-            <button class="dash-quick-card" onclick="go('grades')">
-              <span class="dash-quick-icon">🎓</span>
-              <span class="dash-quick-copy"><strong id="dash-grade-count">—</strong><span>Оцінки</span></span>
-            </button>
-            <button class="dash-quick-card" onclick="go('materials')">
-              <span class="dash-quick-icon">📝</span>
-              <span class="dash-quick-copy"><strong id="dash-mats-count">—</strong><span>Матеріали</span></span>
-            </button>
-            <button class="dash-quick-card" onclick="go('chat');setBnav('chat')">
-              <span class="dash-quick-icon">💬</span>
-              <span class="dash-quick-copy"><strong id="dash-chat-count">—</strong><span>Чати</span></span>
-            </button>
           </div>
           <div class="dash-layout">
             <div class="dash-column-main">
@@ -381,15 +335,11 @@ function _loadKaTeX() {
                   </div>
                 </div>
                 <div class="dash-theme-card dash-theme-card-side">
-                  <div class="dash-theme-title">РўРµРјРё С‚Р° СЃС‚РёР»СЊ</div>
-                  <div class="dash-theme-text">РћР±РµСЂС–С‚СЊ Р±СѓРґСЊ-СЏРєРёР№ СЃС‚РёР»СЊ С–РЅС‚РµСЂС„РµР№СЃСѓ: С‚РµРјСѓ, РєРѕР»СЊРѕСЂРё Р№ Р°С‚РјРѕСЃС„РµСЂСѓ РјРѕР¶РЅР° РЅР°Р»Р°С€С‚СѓРІР°С‚Рё РїС–Рґ СЃРµР±Рµ.</div>
+                  <div class="dash-theme-title">Теми та стиль</div>
+                  <div class="dash-theme-text">Оберіть будь-який стиль інтерфейсу: тему, кольори й атмосферу можна налаштувати під себе.</div>
                 </div>
               </div>
             </div>
-          </div>
-          <div class="dash-theme-card dash-theme-card-bottom">
-            <div class="dash-theme-title">Теми та стиль</div>
-            <div class="dash-theme-text">Оберіть будь-який стиль інтерфейсу: тему, кольори й атмосферу можна налаштувати під себе.</div>
           </div>
         </div>
         <div class="page-header">
@@ -924,22 +874,6 @@ window._loadGroupsForLogin = loadGroupsForLogin;
   </div>
 </div>
 
-<!-- Grades course filter modal -->
-<div id="modal-gr-courses" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:4000;align-items:flex-end;justify-content:center;backdrop-filter:blur(4px);" onclick="if(event.target===this)closeGrCourseFilter()">
-  <div style="background:var(--card);border:1px solid var(--border);border-radius:20px 20px 0 0;padding:20px 20px 0 20px;width:100%;max-width:600px;height:70vh;display:flex;flex-direction:column;" onclick="event.stopPropagation()">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
-      <div style="font-size:13px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;">📚 Вибір курсів</div>
-      <div style="display:flex;gap:8px;">
-        <button onclick="grSelectAll()" style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:6px 12px;color:var(--text2);font-size:12px;cursor:pointer;">Всі</button>
-        <button onclick="grSelectNone()" style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:6px 12px;color:var(--text2);font-size:12px;cursor:pointer;">Жодного</button>
-        <button onclick="closeGrCourseFilter()" style="background:none;border:none;color:var(--text2);font-size:20px;cursor:pointer;padding:0 4px;min-width:36px;">✕</button>
-      </div>
-    </div>
-    <div id="gr-course-list" style="overflow-y:auto;flex:1;display:flex;flex-direction:column;gap:6px;padding-bottom:4px;-webkit-overflow-scrolling:touch;"></div>
-    <button onclick="applyGrCourseFilter()" style="flex-shrink:0;margin:12px 0;padding:13px;width:100%;background:var(--accent);color:#000;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;padding-bottom:max(13px,calc(env(safe-area-inset-bottom,0px) + 13px));">Застосувати</button>
-  </div>
-</div>
-
 <div id="modal-course-settings" class="modal-ov" onclick="if(event.target===this) closeCoursesSettings()">
   <div class="modal course-settings-modal">
     <h3>Налаштування курсів</h3>
@@ -1009,37 +943,5 @@ window._loadGroupsForLogin = loadGroupsForLogin;
     <button onclick="saveGrEdit()" style="width:100%;margin-top:16px;background:var(--accent);color:#000;border:none;border-radius:10px;padding:13px;font-size:15px;font-weight:700;cursor:pointer;min-height:50px;">Зберегти</button>
   </div>
 </div>
-<script>
-(() => {
-  const fontCard = document.querySelector('.dash-font-card');
-  if (fontCard) {
-    const title = fontCard.querySelector('.dash-font-card-title');
-    const sub = fontCard.querySelector('.dash-font-card-sub');
-    const buttons = fontCard.querySelectorAll('.dash-font-actions .btn');
-    if (title) title.textContent = '\u0420\u043e\u0437\u043c\u0456\u0440 \u0448\u0440\u0438\u0444\u0442\u0443';
-    if (sub) sub.textContent = '\u0417\u043c\u0456\u043d\u044e\u0439\u0442\u0435 \u0440\u043e\u0437\u043c\u0456\u0440 \u0442\u0435\u043a\u0441\u0442\u0443 \u043d\u0430 \u0432\u0441\u044c\u043e\u043c\u0443 \u0441\u0430\u0439\u0442\u0456, \u0449\u043e\u0431 \u0456\u043d\u0442\u0435\u0440\u0444\u0435\u0439\u0441 \u0431\u0443\u043b\u043e \u0437\u0440\u0443\u0447\u043d\u0456\u0448\u0435 \u0447\u0438\u0442\u0430\u0442\u0438.';
-    if (buttons[0]) {
-      buttons[0].textContent = 'A-';
-      buttons[0].title = '\u041c\u0435\u043d\u0448\u0438\u0439 \u0448\u0440\u0438\u0444\u0442';
-    }
-    if (buttons[1]) {
-      buttons[1].textContent = 'A';
-      buttons[1].title = '\u0421\u0442\u0430\u043d\u0434\u0430\u0440\u0442\u043d\u0438\u0439 \u0448\u0440\u0438\u0444\u0442';
-    }
-    if (buttons[2]) {
-      buttons[2].textContent = 'A+';
-      buttons[2].title = '\u0411\u0456\u043b\u044c\u0448\u0438\u0439 \u0448\u0440\u0438\u0444\u0442';
-    }
-  }
-
-  const themeCard = document.querySelector('.dash-theme-card-side');
-  if (themeCard) {
-    const title = themeCard.querySelector('.dash-theme-title');
-    const text = themeCard.querySelector('.dash-theme-text');
-    if (title) title.textContent = '\u0422\u0435\u043c\u0438 \u0442\u0430 \u0441\u0442\u0438\u043b\u044c';
-    if (text) text.textContent = '\u041e\u0431\u0435\u0440\u0456\u0442\u044c \u0431\u0443\u0434\u044c-\u044f\u043a\u0438\u0439 \u0441\u0442\u0438\u043b\u044c \u0456\u043d\u0442\u0435\u0440\u0444\u0435\u0439\u0441\u0443: \u0442\u0435\u043c\u0443, \u043a\u043e\u043b\u044c\u043e\u0440\u0438 \u0439 \u0430\u0442\u043c\u043e\u0441\u0444\u0435\u0440\u0443 \u043c\u043e\u0436\u043d\u0430 \u043d\u0430\u043b\u0430\u0448\u0442\u0443\u0432\u0430\u0442\u0438 \u043f\u0456\u0434 \u0441\u0435\u0431\u0435.';
-  }
-})();
-</script>
 </body>
 </html>

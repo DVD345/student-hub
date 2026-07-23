@@ -289,14 +289,14 @@ a { text-decoration: none; color: inherit; }
 @keyframes brandFade { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
 .login-brand-logo {
   width: 64px; height: 64px;
+  background: linear-gradient(135deg, #f0c040, #e08020);
   border-radius: 18px;
-  overflow: hidden;
   display: flex; align-items: center; justify-content: center;
+  font-size: 30px;
   margin: 0 auto 16px;
   box-shadow: 0 8px 32px rgba(240,192,64,.35), 0 0 0 1px rgba(240,192,64,.2);
   animation: logoPulse 3s ease-in-out infinite;
 }
-.login-brand-logo img { width: 100%; height: 100%; object-fit: cover; }
 @keyframes logoPulse {
   0%,100% { box-shadow: 0 8px 32px rgba(240,192,64,.35), 0 0 0 1px rgba(240,192,64,.2); }
   50%      { box-shadow: 0 8px 48px rgba(240,192,64,.5), 0 0 0 1px rgba(240,192,64,.3); }

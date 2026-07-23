@@ -1249,10 +1249,9 @@ async function loadUserRole() {
 }
 
 function setupNav() {
-  if (canAdmin()) {
-    document.getElementById('admin-section').style.display='';
-    document.getElementById('nav-admin').style.display='';
-  }
+  const show = canAdmin() && !_guestMode;
+  document.getElementById('admin-section').style.display = show ? '' : 'none';
+  document.getElementById('nav-admin').style.display = show ? '' : 'none';
 }
 
 var SCHEDULE_BASE_URL = 'http://rasp.kart.edu.ua';

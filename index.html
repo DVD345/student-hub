@@ -18,7 +18,7 @@
 
 <script>
 // PWA Manifest inline
-const APP_BUILD = '117';
+const APP_BUILD = '118';
 (function() {
   try {
     const prevBuild = localStorage.getItem('sh_build');
@@ -62,7 +62,7 @@ document.getElementById('pwa-manifest').href = URL.createObjectURL(_mBlob);
 // Service Worker
 if('serviceWorker' in navigator) {
   const swCode = `
-const CACHE = 'sh-v117';
+const CACHE = 'sh-v118';
 const PRECACHE = ['./'];
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(PRECACHE)).then(() => self.skipWaiting()));

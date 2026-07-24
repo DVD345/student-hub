@@ -20,7 +20,7 @@
 
 <script>
 // PWA Manifest inline
-const APP_BUILD = '128';
+const APP_BUILD = '129';
 (function() {
   try {
     const prevBuild = localStorage.getItem('sh_build');
@@ -64,7 +64,7 @@ document.getElementById('pwa-manifest').href = URL.createObjectURL(_mBlob);
 // Service Worker
 if('serviceWorker' in navigator) {
   const swCode = `
-const CACHE = 'sh-v128';
+const CACHE = 'sh-v129';
 const PRECACHE = ['./'];
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(PRECACHE)).then(() => self.skipWaiting()));
@@ -656,6 +656,19 @@ function _loadKaTeX() {
             <h3>📊 Статистика</h3>
             <div id="admin-stats" class="admin-stats"><div class="loading"><div class="spinner"></div></div></div>
           </div>
+          <div class="admin-card admin-card-announcement" data-resize-key="announcement">
+            <h3>📢 Оголошення</h3>
+            <textarea id="ann-text" class="tb-input" placeholder="Текст для всіх студентів, наприклад: сайт на технічних роботах з 14:00 до 15:00" style="width:100%;min-height:70px;resize:vertical;margin-bottom:10px;font-family:'Inter',sans-serif;"></textarea>
+            <div style="display:flex;gap:8px;">
+              <button class="btn a" style="flex:1;" onclick="publishAnnouncement()">Опублікувати</button>
+              <button class="btn d" onclick="clearAnnouncement()">Зняти</button>
+            </div>
+            <div id="ann-status" style="font-size:11px;color:var(--text2);margin-top:8px;"></div>
+          </div>
+          <div class="admin-card admin-card-auditlog" data-resize-key="auditlog">
+            <h3>🕒 Журнал дій</h3>
+            <div id="admin-audit-log" class="admin-list"><div class="loading"><div class="spinner"></div></div></div>
+          </div>
         </div>
       </div>
       <div class="guest-lock" id="guest-lock">
@@ -779,7 +792,7 @@ async function loadGroupsForLogin() {
 window._loadGroupsForLogin = loadGroupsForLogin;
 </script>
 
-<script src="app.js?v=128"></script>
+<script src="app.js?v=129"></script>
 
 <div id="course-contents-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:1000;overflow-y:auto;padding:16px;backdrop-filter:blur(4px);">
   <div style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;max-width:640px;margin:0 auto;overflow:hidden;">

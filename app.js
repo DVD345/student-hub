@@ -82,6 +82,30 @@ var ROLES = { superadmin:'🔴 Супер-адмін', admin:'🟠 Адмін', 
 var ROLE_COLORS = { superadmin:'#e05050', admin:'#f0a030', moderator:'#f0c040', student:'#40d080' };
 function canAdmin() { return ['superadmin','admin'].includes(userRole); }
 function canMod() { return ['superadmin','admin','moderator'].includes(userRole); }
+
+// ── AUDIT LOG ──
+var ADMIN_ACTION_LABELS = {
+  set_role: 'Змінив(ла) роль',
+  delete_group: 'Видалив(ла) групу',
+  ban_user: 'Заблокував(ла) користувача',
+  unban_user: 'Розблокував(ла) користувача',
+  delete_message: 'Видалив(ла) повідомлення',
+  delete_file: 'Видалив(ла) файл',
+  publish_announcement: 'Опублікував(ла) оголошення',
+  clear_announcement: 'Зняв(ла) оголошення'
+};
+async function logAdminAction(action, detail) {
+  if(!window._db) return;
+  try {
+    const {collection,addDoc}=window._fb;
+    await addDoc(collection(window._db,'auditLog'), {
+      action, detail: detail||'',
+      actorId: String((userData&&userData.userid)||''),
+      actorName: (userData&&userData.fullname)||'?',
+      ts: Date.now()
+    });
+  } catch(e) {}
+}
 var _adminGroups = [];
 var _allAdminUsers = [];
 
@@ -222,6 +246,7 @@ function enterGuestMode() {
   setupNav();
   _initMovingSliders();
   renderDashboardMiniCalendar();
+  _initAnnouncementSync();
 }
 
 function _isTransientMoodleLoginError(data) {
@@ -503,9 +528,10 @@ async function initApp() {
   if(aiInp) aiInp.value = '';
 
   if(!_offlineMode && token) await loadUserInfo();
-  await loadUserRole();
+  if(await loadUserRole()) return;
   _initChatDmRoomsSync();
   _initNotificationsSync();
+  _initAnnouncementSync();
   setupNav();
   _initMovingSliders();
   await startUserSettingsSync();
@@ -1232,10 +1258,15 @@ async function loadUserInfo() {
 }
 
 async function loadUserRole() {
-  if (!window._db || !userData.userid) return;
+  if (!window._db || !userData.userid) return false;
   const { doc, getDoc, updateDoc } = window._fb;
   try {
     const snap = await getDoc(doc(window._db,'users',String(userData.userid)));
+    if (snap.exists() && snap.data().banned) {
+      doLogout();
+      showErr('Ваш акаунт заблоковано адміністратором.');
+      return true;
+    }
     if (snap.exists() && snap.data().role) {
       userRole = snap.data().role;
     } else {
@@ -1246,6 +1277,7 @@ async function loadUserRole() {
   } catch(e) { userRole = 'student'; }
   document.getElementById('urole').textContent = ROLES[userRole] || 'Студент';
   document.getElementById('uav').style.background = ROLE_COLORS[userRole] || '#f0c040';
+  return false;
 }
 
 function setupNav() {
@@ -4060,7 +4092,12 @@ function renderFiles(files) {
 async function dlFile(id) { const f=cachedFiles.find(x=>x.id===id); if(!f||!f.dataUrl)return; const a=document.createElement('a');a.href=f.dataUrl;a.download=f.name;a.click(); }
 async function rmFile(id) {
   if(!confirm('Видалити файл?'))return;
-  try { const {doc,deleteDoc}=window._fb; await deleteDoc(doc(window._db,'files',id)); }
+  try {
+    const target = Array.isArray(cachedFiles) ? cachedFiles.find(f=>f.id===id) : null;
+    const {doc,deleteDoc}=window._fb;
+    await deleteDoc(doc(window._db,'files',id));
+    if(canMod()) logAdminAction('delete_file', target ? target.name : id);
+  }
   catch(e) { alert('Помилка видалення: ' + e.message); }
 }
 
@@ -4949,15 +4986,19 @@ async function sendMsg() {
 }
 
 async function delMsg(id) {
-  if(!canMod()&&!confirm('Видалити своє повідомлення?'))return;
-  try { const {doc,deleteDoc}=window._fb; await deleteDoc(doc(window._db,'messages',id)); }
+  if(!confirm(canMod() ? 'Видалити це повідомлення?' : 'Видалити своє повідомлення?')) return;
+  try {
+    const {doc,deleteDoc}=window._fb;
+    await deleteDoc(doc(window._db,'messages',id));
+    if(canMod()) logAdminAction('delete_message', 'ID: '+id);
+  }
   catch(e){ alert('Помилка: '+e.message); }
 }
 
 // ── ADMIN ──
 function listenAdminData() {
   if(!window._db)return;
-  const {collection,query,onSnapshot,orderBy}=window._fb;
+  const {collection,query,onSnapshot,orderBy,limit}=window._fb;
   onSnapshot(query(collection(window._db,'groups'),orderBy('name')),snap=>{
     const groups=snap.docs.map(d=>({id:d.id,...d.data()}));
     _adminGroups = groups;
@@ -4971,6 +5012,23 @@ function listenAdminData() {
     filterAdminUsers(q);
     renderAdminStats();
   });
+  onSnapshot(query(collection(window._db,'auditLog'),orderBy('ts','desc'),limit(30)),snap=>{
+    const entries=snap.docs.map(d=>({id:d.id,...d.data()}));
+    renderAdminAuditLog(entries);
+  },err=>{ const el=document.getElementById('admin-audit-log'); if(el) el.innerHTML='<div class="empty"><p>Помилка</p></div>'; });
+}
+function renderAdminAuditLog(entries) {
+  const el = document.getElementById('admin-audit-log');
+  if(!el) return;
+  if(!entries.length){ el.innerHTML='<div class="empty"><p>Поки що порожньо</p></div>'; return; }
+  el.innerHTML = entries.map(function(e){
+    var label = ADMIN_ACTION_LABELS[e.action] || e.action;
+    var time = new Date(e.ts).toLocaleString('uk-UA',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+    return '<div style="padding:8px 0;border-bottom:1px solid var(--border);font-size:12px;">'+
+      '<div><b>'+escHtml(e.actorName||'?')+'</b> '+escHtml(label)+(e.detail?': '+escHtml(e.detail):'')+'</div>'+
+      '<div style="color:var(--text2);font-size:10px;margin-top:2px;">'+escHtml(time)+'</div>'+
+    '</div>';
+  }).join('');
 }
 function renderAdminStats() {
   const el = document.getElementById('admin-stats');
@@ -4990,7 +5048,28 @@ function renderAdminStats() {
     '<div class="admin-stat">'+
       '<div class="admin-stat-label">📁 <span>Файлів</span></div>'+
       '<div class="admin-stat-value">'+filesCount+'</div>'+
-    '</div>';
+    '</div>'+
+    _renderAdminGroupBreakdown();
+}
+function _renderAdminGroupBreakdown() {
+  if(!_adminGroups.length) return '';
+  var counts = {};
+  _allAdminUsers.forEach(function(u){
+    var key = u.groupId || u.groupName || '—';
+    counts[key] = (counts[key]||0) + 1;
+  });
+  var rows = _adminGroups.map(function(g){
+    return { name: g.name, count: counts[g.id] || 0 };
+  }).sort(function(a,b){ return b.count - a.count; });
+  if(!rows.length) return '';
+  return '<div style="grid-column:1/-1;margin-top:4px;">'+
+    '<div style="font-size:10px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">Студентів по групах</div>'+
+    rows.map(function(r){
+      return '<div style="display:flex;justify-content:space-between;font-size:12px;padding:4px 0;border-bottom:1px solid var(--border);">'+
+        '<span>'+escHtml(r.name)+'</span><span style="color:var(--text2);">'+r.count+'</span>'+
+      '</div>';
+    }).join('') +
+  '</div>';
 }
 function renderAdminGroups(groups) {
   const el=document.getElementById('admin-groups-list');
@@ -5012,14 +5091,79 @@ function renderAdminUsers(users) {
     '<div class="user-row">'+
     '<div class="uav" style="background:'+escHtml(ROLE_COLORS[u.role]||'#8888aa')+'">'+escHtml((u.name||'?')[0].toUpperCase())+'</div>'+
     '<div style="flex:1;min-width:0;"><div class="uname" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+escHtml(u.name||'?')+'</div>'+
-    '<div style="font-size:9px;color:var(--text2);">'+escHtml(u.groupName||'')+'</div></div>'+
+    '<div style="font-size:9px;color:var(--text2);">'+escHtml(u.groupName||'')+(u.banned?' • <span style="color:var(--accent2);font-weight:700;">заблоковано</span>':'')+'</div></div>'+
     (canAdmin()?'<select class="role-sel" data-uid="'+escHtml(u.id)+'" onchange="setRole(this.dataset.uid,this.value)">'+
       Object.keys(ROLES).map(r=>'<option value="'+escHtml(r)+'"'+(u.role===r?' selected':'')+'>'+escHtml(ROLES[r])+'</option>').join('')+
     '</select>':'')+
+    (canAdmin()?'<button class="btn'+(u.banned?' a':' d')+'" style="padding:6px 8px;font-size:11px;flex-shrink:0;" data-uid="'+escHtml(u.id)+'" data-uname="'+escHtml(u.name||'')+'" data-banned="'+(u.banned?'1':'0')+'" onclick="toggleBanUser(this.dataset.uid,this.dataset.uname,this.dataset.banned===\'1\')" title="'+(u.banned?'Розблокувати':'Заблокувати')+'">'+(u.banned?'✅':'🚫')+'</button>':'')+
     '</div>'
   ).join('');
 }
-async function setRole(uid,role){ const {doc,updateDoc}=window._fb; await updateDoc(doc(window._db,'users',uid),{role}); }
+async function setRole(uid,role){
+  const target = _allAdminUsers.find(u=>u.id===uid);
+  const {doc,updateDoc}=window._fb;
+  await updateDoc(doc(window._db,'users',uid),{role});
+  logAdminAction('set_role', (target?target.name:uid)+' → '+(ROLES[role]||role));
+}
+async function toggleBanUser(uid, uname, currentlyBanned){
+  if(!currentlyBanned && !confirm('Заблокувати '+uname+'? Ця людина більше не зможе увійти на сайт.')) return;
+  const newState = !currentlyBanned;
+  const {doc,updateDoc}=window._fb;
+  await updateDoc(doc(window._db,'users',uid),{banned:newState});
+  logAdminAction(newState?'ban_user':'unban_user', uname);
+}
+
+// ── ANNOUNCEMENTS ──
+async function publishAnnouncement() {
+  const inp = document.getElementById('ann-text');
+  const text = inp ? inp.value.trim() : '';
+  const status = document.getElementById('ann-status');
+  if(!text) { if(status) status.textContent = 'Введіть текст оголошення.'; return; }
+  const {doc,setDoc}=window._fb;
+  await setDoc(doc(window._db,'settings','announcement'), { text, active:true, publishedAt: Date.now() });
+  logAdminAction('publish_announcement', text.slice(0,80));
+  if(status) status.textContent = 'Опубліковано ✓';
+}
+async function clearAnnouncement() {
+  if(!confirm('Зняти поточне оголошення для всіх?')) return;
+  const {doc,updateDoc}=window._fb;
+  await updateDoc(doc(window._db,'settings','announcement'), { active:false });
+  logAdminAction('clear_announcement');
+  const status = document.getElementById('ann-status');
+  if(status) status.textContent = 'Знято.';
+}
+function _initAnnouncementSync() {
+  if(!window._db) return;
+  const {doc,onSnapshot}=window._fb;
+  onSnapshot(doc(window._db,'settings','announcement'), snap=>{
+    if(!snap.exists()) return;
+    const data = snap.data();
+    const inp = document.getElementById('ann-text');
+    if(inp && document.activeElement !== inp) inp.value = data.text || '';
+    if(!data.active || !data.text) { _hideAnnouncementBanner(); return; }
+    const dismissedAt = localStorage.getItem('sh_ann_dismissed');
+    if(dismissedAt && Number(dismissedAt) === data.publishedAt) return;
+    _showAnnouncementBanner(data.text, data.publishedAt);
+  });
+}
+function _showAnnouncementBanner(text, publishedAt) {
+  let banner = document.getElementById('announcement-banner');
+  if(!banner) {
+    banner = document.createElement('div');
+    banner.id = 'announcement-banner';
+    banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:9000;background:rgba(240,192,64,.95);color:#0a0a0f;font-size:12px;font-weight:600;padding:calc(env(safe-area-inset-top, 0px) + 7px) 14px 7px;text-align:center;display:flex;align-items:center;justify-content:center;gap:8px;';
+    document.body.prepend(banner);
+  }
+  banner.innerHTML = '📢 ' + escHtml(text) + ' <button onclick="_dismissAnnouncementBanner(' + publishedAt + ')" style="background:none;border:none;cursor:pointer;font-size:16px;line-height:1;margin-left:4px;">✕</button>';
+}
+function _hideAnnouncementBanner() {
+  const banner = document.getElementById('announcement-banner');
+  if(banner) banner.remove();
+}
+function _dismissAnnouncementBanner(publishedAt) {
+  localStorage.setItem('sh_ann_dismissed', String(publishedAt));
+  _hideAnnouncementBanner();
+}
 async function createGroup() {
   const name=document.getElementById('gn').value.trim();
   const faculty=document.getElementById('gf').value.trim();
@@ -5041,7 +5185,13 @@ function editGroup(id,name,faculty,course){
   document.getElementById('group-modal-btn').textContent='Зберегти';
   document.getElementById('modal-add-group').classList.add('show');
 }
-async function delGroup(id){ if(!confirm('Видалити групу?'))return; const {doc,deleteDoc}=window._fb; await deleteDoc(doc(window._db,'groups',id)); }
+async function delGroup(id){
+  if(!confirm('Видалити групу?'))return;
+  const target = _adminGroups.find(g=>g.id===id);
+  const {doc,deleteDoc}=window._fb;
+  await deleteDoc(doc(window._db,'groups',id));
+  logAdminAction('delete_group', target?target.name:id);
+}
 
 // ── NAV ──
 var PAGE_TITLES={dashboard:'Головна',deadlines:'Дедлайни',courses:'Курси',grades:'Оцінки',files:'Файли',materials:'Матеріали',chat:'Чати',admin:'Адмін-панель',calendar:'Календар',notes:'Нотатки',assistant:'Асистент',notifications:'Сповіщення'};

@@ -246,7 +246,6 @@ function enterGuestMode() {
   setupNav();
   _initMovingSliders();
   renderDashboardMiniCalendar();
-  _initAnnouncementSync();
 }
 
 function _isTransientMoodleLoginError(data) {
@@ -531,7 +530,6 @@ async function initApp() {
   if(await loadUserRole()) return;
   _initChatDmRoomsSync();
   _initNotificationsSync();
-  _initAnnouncementSync();
   setupNav();
   _initMovingSliders();
   await startUserSettingsSync();
@@ -6389,6 +6387,12 @@ function showGuestLock(show, sectionName) {
     if(content) content.scrollTop = 0;
   }
 }
+
+// ── ANNOUNCEMENT SYNC (runs on every page load, even before login) ──
+(function _startAnnouncementSyncEarly(){
+  if(!window._fb||!window._db){ setTimeout(_startAnnouncementSyncEarly,300); return; }
+  _initAnnouncementSync();
+})();
 
 // ── AUTO LOGIN ──
 const sv=localStorage.getItem('sh_token'),sgid=localStorage.getItem('sh_gid');

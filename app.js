@@ -5095,7 +5095,7 @@ function renderAdminUsers(users) {
     (canAdmin()?'<select class="role-sel" data-uid="'+escHtml(u.id)+'" onchange="setRole(this.dataset.uid,this.value)">'+
       Object.keys(ROLES).map(r=>'<option value="'+escHtml(r)+'"'+(u.role===r?' selected':'')+'>'+escHtml(ROLES[r])+'</option>').join('')+
     '</select>':'')+
-    (canAdmin()?'<button class="btn'+(u.banned?' a':' d')+'" style="padding:6px 8px;font-size:11px;flex-shrink:0;" data-uid="'+escHtml(u.id)+'" data-uname="'+escHtml(u.name||'')+'" data-banned="'+(u.banned?'1':'0')+'" onclick="toggleBanUser(this.dataset.uid,this.dataset.uname,this.dataset.banned===\'1\')" title="'+(u.banned?'Розблокувати':'Заблокувати')+'">'+(u.banned?'✅':'🚫')+'</button>':'')+
+    (canAdmin()?'<button class="btn ban-toggle-btn'+(u.banned?' a':' d')+'" style="font-size:11px;" data-uid="'+escHtml(u.id)+'" data-uname="'+escHtml(u.name||'')+'" data-banned="'+(u.banned?'1':'0')+'" onclick="toggleBanUser(this.dataset.uid,this.dataset.uname,this.dataset.banned===\'1\')" title="'+(u.banned?'Розблокувати':'Заблокувати')+'">'+(u.banned?'✅':'🚫')+'</button>':'')+
     '</div>'
   ).join('');
 }

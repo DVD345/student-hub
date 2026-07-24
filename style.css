@@ -1869,7 +1869,8 @@ body.deadlines-resizing .dl-width-resizer::before {
 .group-item .gname { flex:1; font-weight:700; word-break:break-word; line-height:1.35; }
 .group-item .gcnt { font-size:10px; color:var(--text2); word-break:break-word; margin-top:4px; line-height:1.4; }
 .group-item > div:first-child { flex:1; min-width:0; }
-.user-row { display:grid; grid-template-columns:28px minmax(0,1fr) 106px; align-items:center; gap:12px; padding:9px 0; border-bottom:1px solid var(--border); font-size:12px; }
+.user-row { display:grid; grid-template-columns:28px minmax(0,1fr) 106px 34px; align-items:center; gap:8px; padding:9px 0; border-bottom:1px solid var(--border); font-size:12px; }
+.user-row .ban-toggle-btn { padding:6px 0 !important; width:34px; }
 .user-row:last-child { border-bottom:none; }
 .user-row .uav { width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:10px; font-weight:800; color:#07070f; flex-shrink:0; }
 .user-row .uname { flex:1; font-weight:700; font-size:13px; line-height:1.25; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }

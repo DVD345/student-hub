@@ -948,9 +948,9 @@ function _setupDeadlinesToolbar() {
     '<div class="dl-settings-block">' +
       '<div class="dl-settings-subtitle">Ширина списку</div>' +
       '<div class="dl-settings-actions">' +
-        '<button class="btn" type="button" onclick="adjustDeadlinesWidth(-80)" title="Вужче">↔−</button>' +
+        '<button class="btn" type="button" onclick="adjustDeadlinesWidth(-80)" title="Вужче">−</button>' +
         '<button class="btn" type="button" onclick="resetDeadlinesWidth()" title="Стандартна ширина">Стандарт</button>' +
-        '<button class="btn" type="button" onclick="adjustDeadlinesWidth(80)" title="Ширше">↔+</button>' +
+        '<button class="btn" type="button" onclick="adjustDeadlinesWidth(80)" title="Ширше">+</button>' +
       '</div>' +
     '</div>' +
     '<div class="dl-settings-block">' +

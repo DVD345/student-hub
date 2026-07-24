@@ -940,9 +940,9 @@ function _setupDeadlinesToolbar() {
     '<div class="dl-settings-block">' +
       '<div class="dl-settings-subtitle">Розмір тексту</div>' +
       '<div class="dl-settings-actions">' +
-        '<button class="btn" type="button" onclick="adjustDeadlinesFontSize(-1)" title="Менший шрифт">A-</button>' +
-        '<button class="btn" type="button" onclick="resetDeadlinesFontSize()" title="Стандартний шрифт">A</button>' +
-        '<button class="btn" type="button" onclick="adjustDeadlinesFontSize(1)" title="Більший шрифт">A+</button>' +
+        '<button class="btn" type="button" onclick="adjustDeadlinesFontSize(-1)" title="Менший шрифт">−</button>' +
+        '<button class="btn" type="button" onclick="resetDeadlinesFontSize()" title="Стандартний шрифт">⟲</button>' +
+        '<button class="btn" type="button" onclick="adjustDeadlinesFontSize(1)" title="Більший шрифт">+</button>' +
       '</div>' +
     '</div>' +
     '<div class="dl-settings-block">' +

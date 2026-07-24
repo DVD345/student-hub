@@ -5119,9 +5119,13 @@ async function publishAnnouncement() {
   const text = inp ? inp.value.trim() : '';
   const status = document.getElementById('ann-status');
   if(!text) { if(status) status.textContent = 'Введіть текст оголошення.'; return; }
+  const durSel = document.getElementById('ann-duration');
+  const hours = durSel ? parseInt(durSel.value) : 24;
+  const publishedAt = Date.now();
+  const expiresAt = hours > 0 ? publishedAt + hours*3600000 : null;
   const {doc,setDoc}=window._fb;
-  await setDoc(doc(window._db,'settings','announcement'), { text, active:true, publishedAt: Date.now() });
-  logAdminAction('publish_announcement', text.slice(0,80));
+  await setDoc(doc(window._db,'settings','announcement'), { text, active:true, publishedAt, expiresAt });
+  logAdminAction('publish_announcement', text.slice(0,80)+(hours>0?' (на '+hours+' год.)':' (без обмеження)'));
   if(status) status.textContent = 'Опубліковано ✓';
 }
 async function clearAnnouncement() {
@@ -5141,6 +5145,7 @@ function _initAnnouncementSync() {
     const inp = document.getElementById('ann-text');
     if(inp && document.activeElement !== inp) inp.value = data.text || '';
     if(!data.active || !data.text) { _hideAnnouncementBanner(); return; }
+    if(data.expiresAt && Date.now() > data.expiresAt) { _hideAnnouncementBanner(); return; }
     const dismissedAt = localStorage.getItem('sh_ann_dismissed');
     if(dismissedAt && Number(dismissedAt) === data.publishedAt) return;
     _showAnnouncementBanner(data.text, data.publishedAt);

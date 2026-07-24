@@ -20,7 +20,7 @@
 
 <script>
 // PWA Manifest inline
-const APP_BUILD = '125';
+const APP_BUILD = '126';
 (function() {
   try {
     const prevBuild = localStorage.getItem('sh_build');
@@ -64,7 +64,7 @@ document.getElementById('pwa-manifest').href = URL.createObjectURL(_mBlob);
 // Service Worker
 if('serviceWorker' in navigator) {
   const swCode = `
-const CACHE = 'sh-v125';
+const CACHE = 'sh-v126';
 const PRECACHE = ['./'];
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(PRECACHE)).then(() => self.skipWaiting()));
@@ -301,9 +301,9 @@ function _loadKaTeX() {
                 <div class="dash-font-card-title">Розмір шрифту</div>
                 <div class="dash-font-card-sub">Змініть розмір тексту на всьому сайті, щоб інтерфейс було зручніше читати.</div>
                 <div class="dash-font-actions">
-                  <button class="btn" onclick="adjustUiFontScale(-1)" title="Менший шрифт"><span style="font-size:11px;">А</span></button>
-                  <button class="btn" onclick="resetUiFontScale()" title="Стандартний шрифт"><span style="font-size:15px;">А</span></button>
-                  <button class="btn" onclick="adjustUiFontScale(1)" title="Більший шрифт"><span style="font-size:20px;">А</span></button>
+                  <button class="btn" onclick="adjustUiFontScale(-1)" title="Менший шрифт">−</button>
+                  <button class="btn" onclick="resetUiFontScale()" title="Стандартний шрифт">⟲</button>
+                  <button class="btn" onclick="adjustUiFontScale(1)" title="Більший шрифт">+</button>
                 </div>
               </div>
             </div>
@@ -417,9 +417,9 @@ function _loadKaTeX() {
             <option value="past">Минулі</option>
           </select>
           <div class="tb-right">
-            <button class="btn" onclick="adjustDeadlinesFontSize(-1)" title="Менший шрифт"><span style="font-size:11px;">А</span></button>
-            <button class="btn" onclick="resetDeadlinesFontSize()" title="Стандартний шрифт"><span style="font-size:15px;">А</span></button>
-            <button class="btn" onclick="adjustDeadlinesFontSize(1)" title="Більший шрифт"><span style="font-size:20px;">А</span></button>
+            <button class="btn" onclick="adjustDeadlinesFontSize(-1)" title="Менший шрифт">−</button>
+            <button class="btn" onclick="resetDeadlinesFontSize()" title="Стандартний шрифт">⟲</button>
+            <button class="btn" onclick="adjustDeadlinesFontSize(1)" title="Більший шрифт">+</button>
             <button class="btn" onclick="adjustDeadlinesWidth(-80)" title="Вужче">↔️−</button>
             <button class="btn" onclick="resetDeadlinesWidth()" title="Стандартна ширина">Стандарт</button>
             <button class="btn" onclick="adjustDeadlinesWidth(80)" title="Ширше">↔️+</button>
@@ -779,7 +779,7 @@ async function loadGroupsForLogin() {
 window._loadGroupsForLogin = loadGroupsForLogin;
 </script>
 
-<script src="app.js?v=125"></script>
+<script src="app.js?v=126"></script>
 
 <div id="course-contents-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:1000;overflow-y:auto;padding:16px;backdrop-filter:blur(4px);">
   <div style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;max-width:640px;margin:0 auto;overflow:hidden;">

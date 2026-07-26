@@ -151,6 +151,8 @@ async function doLogin() {
       btn.disabled=false; btn.textContent='Увійти'; return;
     }
 
+    await _upgradeToMoodleAuth(token);
+
     const userId = siteData.userid;
     let moodleGroupName = null;
     let moodleFaculty = null;
@@ -246,6 +248,25 @@ function enterGuestMode() {
   setupNav();
   _initMovingSliders();
   renderDashboardMiniCalendar();
+}
+
+// Swap the anonymous Firebase session for one tied to the real, Moodle-verified uid.
+// Safe to fail: on any error we just stay on the anonymous session (same as before).
+async function _upgradeToMoodleAuth(moodleToken) {
+  try {
+    const resp = await fetch(MOODLE + '/mint-token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token: moodleToken })
+    });
+    const data = await resp.json();
+    if (!data || !data.token) { console.warn('mint-token did not return a token:', data); return false; }
+    if (!window._signInWithMoodleCustomToken) return false;
+    return await window._signInWithMoodleCustomToken(data.token);
+  } catch (e) {
+    console.warn('Could not upgrade to Moodle-verified Firebase auth, staying anonymous:', e);
+    return false;
+  }
 }
 
 function _isTransientMoodleLoginError(data) {
@@ -6418,6 +6439,7 @@ if(sv&&sgid){
         else{await _offlineLogin(sgid);}
         return;
       }
+      await _upgradeToMoodleAuth(sv);
       const snap=await getDoc(doc(window._db,'groups',sgid));
       if(snap.exists()){group={id:sgid,...snap.data()};await initApp();}
       else if(group.id){await initApp();}

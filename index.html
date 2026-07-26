@@ -20,7 +20,7 @@
 
 <script>
 // PWA Manifest inline
-const APP_BUILD = '133';
+const APP_BUILD = '134';
 (function() {
   try {
     const prevBuild = localStorage.getItem('sh_build');
@@ -64,7 +64,7 @@ document.getElementById('pwa-manifest').href = URL.createObjectURL(_mBlob);
 // Service Worker
 if('serviceWorker' in navigator) {
   const swCode = `
-const CACHE = 'sh-v133';
+const CACHE = 'sh-v134';
 const PRECACHE = ['./'];
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(PRECACHE)).then(() => self.skipWaiting()));
@@ -102,7 +102,7 @@ self.addEventListener('fetch', e => {
 
 <!-- ✅ IMPROVEMENT 6: font-display=swap already present, preconnect added above -->
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=133">
+<link rel="stylesheet" href="style.css?v=134">
 <style>
 /* Prevent text selection during long-press on messages */
 .msg { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
@@ -780,7 +780,7 @@ function _loadKaTeX() {
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
 import { getFirestore, collection, addDoc, deleteDoc, doc, query, where, orderBy, onSnapshot, getDocs, setDoc, getDoc, updateDoc, serverTimestamp, limit } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
-import { getAuth, signInAnonymously } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+import { getAuth, signInAnonymously, signInWithCustomToken } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
 
 const cfg = {
   apiKey:"AIzaSyAXscEMkW51sejM_yBkMcL_QyvgfAWT7sE",
@@ -813,9 +813,22 @@ signInAnonymously(auth).then(_exposeFirestore).catch((err) => {
   console.error('Anonymous auth failed, continuing without it:', err);
   _exposeFirestore();
 });
+
+// After a real Moodle login, swap the anonymous session for one tied to the
+// verified Moodle user id (token minted by the moodle-proxy Worker).
+window._signInWithMoodleCustomToken = async function(customToken) {
+  try {
+    await signInWithCustomToken(auth, customToken);
+    _exposeFirestore();
+    return true;
+  } catch (e) {
+    console.error('signInWithCustomToken failed, staying on anonymous session:', e);
+    return false;
+  }
+};
 </script>
 
-<script src="app.js?v=133"></script>
+<script src="app.js?v=134"></script>
 
 <div id="course-contents-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:1000;overflow-y:auto;padding:16px;backdrop-filter:blur(4px);">
   <div style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;max-width:640px;margin:0 auto;overflow:hidden;">

@@ -3374,6 +3374,8 @@ var _grLoaded    = false;
 var _grModFilter = 0;    // 0=all, 1=mod1, 2=mod2
 var _grGrCtx     = null;
 var _grDeletedIds= {};   // {subjId: Set of deleted moodle item ids}
+var _grSelectMode  = false;
+var _grSelectedIds = new Set();
 
 // ── storage ──
 function _grKey(){ return 'sh_gr5_'+(userData.userid||'x'); }
@@ -3529,12 +3531,14 @@ async function loadGrades(force){
             if(_grIsAttend(_grStrip(item.itemname||''))) return false;
             return true;
           });
-          if(!rawItems.length) return;
+          // Create the subject shell as soon as you're enrolled, even before Moodle posts any grade —
+          // so a new course shows up in the list right away instead of waiting for the first grade.
           var subj=_grSubjects.find(function(s){return s.moodleCourseId===course.id;});
           if(!subj){
             subj={id:'mc_'+course.id,name:course.fullname||course.shortname,moodleCourseId:course.id,items:[],_moodle:true};
             _grSubjects.push(subj);
           }
+          if(!rawItems.length) return;
           rawItems.forEach(function(item){
             var mid='m_'+item.id;
             // Skip if user explicitly deleted this Moodle item
@@ -3606,7 +3610,7 @@ function renderGradesTable(){
     var showM1=(_grModFilter===0||_grModFilter===1);
     var showM2=(_grModFilter===0||_grModFilter===2);
 
-    html+='<div class="gr-card">';
+    html+='<div class="gr-card'+(_grSelectMode&&_grSelectedIds.has(subj.id)?' gr-card-selected':'')+'" data-sid="'+escHtml(subj.id)+'">';
 
     var m1CurItems = m1.filter(function(i){return !i.isMod;});
     var m2CurItems = m2.filter(function(i){return !i.isMod;});
@@ -3645,13 +3649,16 @@ function renderGradesTable(){
     var headColor = headMax ? _grColor(headVal,headMax) : (finalMax ? _grColor(headVal,finalMax) : 'var(--text)');
 
     html+='<div class="gr-card-head">'+
-      '<div class="gr-card-name" title="'+escHtml(subj.name)+'">'+escHtml(subj.name)+'</div>'+
+      (_grSelectMode
+        ? '<label style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;cursor:pointer;"><input type="checkbox" data-sid="'+escHtml(subj.id)+'" onclick="grToggleSelect(this.dataset.sid)"'+(_grSelectedIds.has(subj.id)?' checked':'')+' style="width:18px;height:18px;flex-shrink:0;"><div class="gr-card-name" title="'+escHtml(subj.name)+'">'+escHtml(subj.name)+'</div></label>'
+        : '<div class="gr-card-name" title="'+escHtml(subj.name)+'">'+escHtml(subj.name)+'</div>')+
       '<div class="gr-head-actions">'+
         '<div class="gr-head-score" style="color:'+headColor+';">'+headStr+'</div>'+
-        (_grModFilter===0
-          ? '<button data-sid="'+escHtml(subj.id)+'" onclick="grEditFinal(this.dataset.sid)" title="Редагувати підсумкову" style="background:none;border:none;color:var(--accent);font-size:13px;cursor:pointer;padding:2px 4px;opacity:.7;min-height:28px;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=.7">✏️</button>'
-          : '')+
-        '<button class="gr-del-btn" data-sid="'+escHtml(subj.id)+'" onclick="grDeleteSubj(this.dataset.sid)">🗑</button>'+
+        (_grSelectMode ? '' :
+          ((_grModFilter===0
+            ? '<button data-sid="'+escHtml(subj.id)+'" onclick="grEditFinal(this.dataset.sid)" title="Редагувати підсумкову" style="background:none;border:none;color:var(--accent);font-size:13px;cursor:pointer;padding:2px 4px;opacity:.7;min-height:28px;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=.7">✏️</button>'
+            : '')+
+          '<button class="gr-del-btn" data-sid="'+escHtml(subj.id)+'" onclick="grDeleteSubj(this.dataset.sid)">🗑</button>'))+
       '</div>'+
     '</div>';
 
@@ -3971,6 +3978,33 @@ function grDeleteSubj(id){
   if(!confirm('Видалити предмет "'+(_grFind(id)||{name:''}).name+'"?')) return;
   _grSubjects=_grSubjects.filter(function(s){return s.id!==id;});
   _grFireSave(); renderGradesTable();
+}
+
+// ── bulk select & delete ──
+function grToggleSelectMode(){
+  _grSelectMode = !_grSelectMode;
+  _grSelectedIds.clear();
+  var btn = document.getElementById('gr-select-toggle-btn');
+  var bar = document.getElementById('gr-select-bar');
+  if(btn) btn.classList.toggle('a', _grSelectMode);
+  if(bar) bar.style.display = _grSelectMode ? 'flex' : 'none';
+  renderGradesTable();
+}
+function grToggleSelect(id){
+  if(_grSelectedIds.has(id)) _grSelectedIds.delete(id);
+  else _grSelectedIds.add(id);
+  var cnt = document.getElementById('gr-select-count');
+  if(cnt) cnt.textContent = 'Виділено: ' + _grSelectedIds.size;
+  var card = document.querySelector('.gr-card[data-sid="'+CSS.escape(id)+'"]');
+  if(card) card.classList.toggle('gr-card-selected', _grSelectedIds.has(id));
+}
+function grDeleteSelected(){
+  if(!_grSelectedIds.size){ alert('Нічого не виділено'); return; }
+  if(!confirm('Видалити обрані предмети ('+_grSelectedIds.size+')?')) return;
+  _grSubjects=_grSubjects.filter(function(s){return !_grSelectedIds.has(s.id);});
+  _grSelectedIds.clear();
+  _grFireSave();
+  grToggleSelectMode();
 }
 function grDelGrade(sid,ri){
   var subj=_grFind(sid); if(!subj) return;

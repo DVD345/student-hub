@@ -1293,10 +1293,89 @@ async function loadUserRole() {
       userRole = 'student';
       try { await updateDoc(doc(window._db,'users',String(userData.userid)), { role: 'student' }); } catch(e) {}
     }
+    if (snap.exists()) {
+      userData.nickname = snap.data().nickname || '';
+      userData.avatarUrl = snap.data().avatarUrl || '';
+    }
   } catch(e) { userRole = 'student'; }
   document.getElementById('urole').textContent = ROLES[userRole] || 'Студент';
   document.getElementById('uav').style.background = ROLE_COLORS[userRole] || '#f0c040';
+  _applyProfileDisplay();
   return false;
+}
+
+// ── PROFILE (nickname + custom avatar) ──
+function _applyProfileDisplay() {
+  var displayName = userData.nickname || userData.fullname || 'Студент';
+  var uname = document.getElementById('uname');
+  if (uname) uname.textContent = displayName;
+  var uav = document.getElementById('uav');
+  if (uav) {
+    if (userData.avatarUrl) {
+      uav.style.padding = '0';
+      uav.innerHTML = '<img src="'+escHtml(userData.avatarUrl)+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">';
+    } else if (!uav.querySelector('img')) {
+      uav.textContent = displayName[0].toUpperCase();
+    }
+  }
+}
+function openProfileModal() {
+  var preview = document.getElementById('profile-avatar-preview');
+  if (userData.avatarUrl) {
+    preview.style.padding = '0';
+    preview.innerHTML = '<img src="'+escHtml(userData.avatarUrl)+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">';
+  } else {
+    preview.innerHTML = '';
+    preview.style.padding = '';
+    preview.textContent = (userData.fullname||'?')[0].toUpperCase();
+  }
+  document.getElementById('profile-nickname').value = userData.nickname || '';
+  document.getElementById('profile-real-name').textContent = userData.fullname || '';
+  _profilePendingAvatar = null;
+  showModal('profile');
+}
+var _profilePendingAvatar = null;
+function handleProfileAvatarSelect(input) {
+  var file = input.files && input.files[0];
+  if (!file) return;
+  if (!file.type.startsWith('image/')) { alert('Оберіть зображення'); return; }
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    var img = new Image();
+    img.onload = function() {
+      var maxSize = 160;
+      var scale = Math.min(1, maxSize / Math.max(img.width, img.height));
+      var canvas = document.createElement('canvas');
+      canvas.width = Math.round(img.width * scale);
+      canvas.height = Math.round(img.height * scale);
+      var ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      _profilePendingAvatar = canvas.toDataURL('image/jpeg', 0.85);
+      var preview = document.getElementById('profile-avatar-preview');
+      preview.style.padding = '0';
+      preview.innerHTML = '<img src="'+_profilePendingAvatar+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">';
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+  input.value = '';
+}
+async function saveProfileSettings() {
+  if (!window._db || !userData.userid) return;
+  var nickname = document.getElementById('profile-nickname').value.trim();
+  var update = { nickname: nickname };
+  if (_profilePendingAvatar) update.avatarUrl = _profilePendingAvatar;
+  try {
+    const { doc, updateDoc } = window._fb;
+    await updateDoc(doc(window._db,'users',String(userData.userid)), update);
+    userData.nickname = nickname;
+    if (_profilePendingAvatar) userData.avatarUrl = _profilePendingAvatar;
+    _applyProfileDisplay();
+    _profilePendingAvatar = null;
+    closeModal('profile');
+  } catch(e) {
+    alert('Не вдалося зберегти: ' + (e.message||e));
+  }
 }
 
 function setupNav() {
@@ -5027,7 +5106,7 @@ async function sendMsg() {
   }
   const payload = {
     room:currentChatRoom, text:text||'',
-    author:userData.fullname||'?',
+    author:userData.nickname||userData.fullname||'?',
     uid:String(userData.userid),
     groupId:group.id,
     ts:Date.now(),

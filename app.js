@@ -5222,7 +5222,7 @@ function renderAdminUsers(users) {
   el.innerHTML=users.map(u=>
     '<div class="user-row">'+
     '<div class="uav" style="background:'+escHtml(ROLE_COLORS[u.role]||'#8888aa')+'">'+escHtml((u.name||'?')[0].toUpperCase())+'</div>'+
-    '<div style="flex:1;min-width:0;"><div class="uname" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+escHtml(u.name||'?')+'</div>'+
+    '<div style="flex:1;min-width:0;"><div class="uname" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+escHtml(u.name||'?')+(u.nickname?' <span style="color:var(--text2);font-weight:400;">('+escHtml(u.nickname)+')</span>':'')+'</div>'+
     '<div style="font-size:9px;color:var(--text2);">'+escHtml(u.groupName||'')+(u.banned?' • <span style="color:var(--accent2);font-weight:700;">заблоковано</span>':'')+'</div></div>'+
     (canAdmin()?'<select class="role-sel" data-uid="'+escHtml(u.id)+'" onchange="setRole(this.dataset.uid,this.value)">'+
       Object.keys(ROLES).map(r=>'<option value="'+escHtml(r)+'"'+(u.role===r?' selected':'')+'>'+escHtml(ROLES[r])+'</option>').join('')+

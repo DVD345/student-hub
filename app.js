@@ -3629,45 +3629,73 @@ function _calcRating(){
   var eligibleForBoost = (Rekr+Rz)>=82 && minExam!=null && minExam>=90 && (minZalik==null||minZalik>=75);
   return {Rekr:Rekr,Rz:Rz,Rgnd:Rgnd,Rc:Rc,examCount:exam.length,zalikCount:zalik.length,eligibleForBoost:eligibleForBoost};
 }
+function openRatingCalc(){
+  var m=document.getElementById('rating-calc-modal');
+  if(!m) return;
+  m.style.display='flex';
+  renderRatingCalc();
+}
+function closeRatingCalc(){
+  var m=document.getElementById('rating-calc-modal');
+  if(m) m.style.display='none';
+}
 function renderRatingCalc(){
   var el=document.getElementById('rating-calc');
   if(!el) return;
-  if(!_grSubjects.length){ el.innerHTML=''; return; }
+  if(!_grSubjects.length){
+    el.innerHTML='<div class="empty" style="padding:24px 0;"><div class="emo">🎓</div><p>Спершу завантажте оцінки — тоді зʼявиться калькулятор</p></div>';
+    return;
+  }
   var r=_calcRating();
   var untyped=_grSubjects.filter(function(s){return !_grExamType(s);});
-  var typeBtn=function(sid,type,label){
-    var active=_grExamType(_grFind(sid))===type;
-    return '<button onclick="grSetExamType(\''+escHtml(sid)+'\',\''+type+'\')" style="font-size:11px;padding:3px 8px;border-radius:6px;cursor:pointer;border:1px solid '+(active?'var(--accent)':'rgba(255,255,255,.12)')+';background:'+(active?'var(--accent)':'transparent')+';color:'+(active?'#fff':'var(--text2)')+';">'+label+'</button>';
+
+  var statCard=function(label,value,sub){
+    return '<div style="flex:1;min-width:120px;background:var(--bg3);border-radius:12px;padding:10px 12px;">'+
+      '<div style="font-size:11px;color:var(--text2);margin-bottom:2px;">'+label+'</div>'+
+      '<div style="font-size:18px;font-weight:800;">'+value+'</div>'+
+      (sub?'<div style="font-size:10.5px;color:var(--text2);margin-top:1px;">'+sub+'</div>':'')+
+    '</div>';
   };
+
+  var segBtn=function(sid,type,label,activeColor){
+    var active=_grExamType(_grFind(sid))===type;
+    return '<button onclick="grSetExamType(\''+escHtml(sid)+'\',\''+type+'\')" style="flex:1;font-size:12px;font-weight:600;padding:7px 4px;cursor:pointer;border:none;border-right:1px solid rgba(255,255,255,.08);background:'+(active?activeColor:'transparent')+';color:'+(active?'#fff':'var(--text2)')+';">'+label+'</button>';
+  };
+
   var rows=_grSubjects.map(function(s){
     var fg=_grComputeFinal(s);
-    return '<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.06);">'+
-      '<div style="flex:1;min-width:0;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="'+escHtml(s.name)+'">'+escHtml(s.name)+'</div>'+
-      '<div style="width:34px;text-align:center;font-size:13px;font-weight:700;color:'+(fg!=null?_grColor(fg,100):'var(--text2)')+';">'+(fg!=null?fg:'—')+'</div>'+
-      '<div style="display:flex;gap:4px;flex-shrink:0;">'+
-        typeBtn(s.id,'exam','Екз')+typeBtn(s.id,'zalik','Залік')+typeBtn(s.id,'excluded','—')+
+    var type=_grExamType(s);
+    var typeLabel=type==='exam'?'Екзамен':type==='zalik'?'Залік':type==='excluded'?'Не рахується':'Не обрано';
+    return '<div style="background:var(--bg3);border-radius:12px;overflow:hidden;margin-bottom:8px;'+(!type?'box-shadow:inset 0 0 0 1px rgba(240,192,64,.35);':'')+'">'+
+      '<div style="display:flex;align-items:center;gap:8px;padding:9px 12px 6px;">'+
+        '<div style="flex:1;min-width:0;font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="'+escHtml(s.name)+'">'+escHtml(s.name)+'</div>'+
+        '<div style="font-size:15px;font-weight:800;color:'+(fg!=null?_grColor(fg,100):'var(--text2)')+';flex-shrink:0;">'+(fg!=null?fg:'—')+'</div>'+
+      '</div>'+
+      '<div style="display:flex;align-items:center;justify-content:space-between;padding:0 12px 8px;font-size:10.5px;color:var(--text2);">'+typeLabel+'</div>'+
+      '<div style="display:flex;border-top:1px solid rgba(255,255,255,.08);border-radius:0 0 12px 12px;overflow:hidden;">'+
+        segBtn(s.id,'exam','Екзамен','var(--accent)')+segBtn(s.id,'zalik','Залік','#4a90d9')+segBtn(s.id,'excluded','Не рахувати','#555')+
       '</div>'+
     '</div>';
   }).join('');
+
   el.innerHTML =
-    '<div class="gr-card" style="margin-bottom:12px;">'+
-      '<div style="display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:8px;">'+
-        '<div style="font-weight:800;font-size:15px;">🧮 Калькулятор рейтингу</div>'+
-        '<div style="font-size:26px;font-weight:800;color:'+_grColor(r.Rc,100)+';">'+r.Rc.toFixed(2)+'</div>'+
-      '</div>'+
-      '<div style="display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--text2);margin-bottom:10px;">'+
-        '<div>Rекр (екзамени): <b style="color:var(--text);">'+r.Rekr.toFixed(2)+'</b> · '+r.examCount+' предм.</div>'+
-        '<div>Rз (заліки): <b style="color:var(--text);">'+r.Rz.toFixed(2)+'</b> · '+r.zalikCount+' предм.</div>'+
-        '<div>Rгнд (доп. бали): <b style="color:var(--text);">'+r.Rgnd.toFixed(2)+'</b></div>'+
-      '</div>'+
-      (r.eligibleForBoost ? '<div style="font-size:12px;color:var(--success);margin-bottom:10px;">✅ Прохідний рівень для підвищеної стипендії (≥82 без Rгнд, екзамени ≥90, заліки ≥75)</div>' : '')+
-      (untyped.length ? '<div style="font-size:12px;color:var(--warning);margin-bottom:10px;">⚠️ Не позначено тип для '+untyped.length+' предмет(ів) — вони не враховані в розрахунку.</div>' : '')+
-      '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">'+
-        '<label style="font-size:12px;color:var(--text2);">Rгнд (наука/спорт/громад. діяльність, сума балів):</label>'+
-        '<input type="number" min="0" value="'+(_grRatingExtra||0)+'" oninput="grSetRatingExtra(this.value)" style="width:70px;padding:4px 6px;border-radius:6px;border:1px solid rgba(255,255,255,.12);background:var(--bg3);color:var(--text);">'+
-      '</div>'+
-      '<div style="max-height:220px;overflow-y:auto;">'+rows+'</div>'+
-    '</div>';
+    '<div style="text-align:center;padding:6px 0 16px;">'+
+      '<div style="font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;">Загальний рейтинговий бал</div>'+
+      '<div style="font-size:42px;font-weight:800;line-height:1;color:'+_grColor(r.Rc,100)+';">'+r.Rc.toFixed(2)+'</div>'+
+    '</div>'+
+    '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;">'+
+      statCard('Rекр · екзамени',r.Rekr.toFixed(2),r.examCount+' предм. × 0.81')+
+      statCard('Rз · заліки',r.Rz.toFixed(2),r.zalikCount+' предм. × 0.10')+
+      statCard('Rгнд · доп. бали',r.Rgnd.toFixed(2),'макс. 9')+
+    '</div>'+
+    (r.eligibleForBoost ? '<div style="display:flex;gap:8px;align-items:flex-start;background:rgba(46,204,113,.12);border:1px solid rgba(46,204,113,.3);border-radius:10px;padding:10px 12px;font-size:12.5px;color:var(--success);margin-bottom:10px;">✅&nbsp;<span>Прохідний рівень для <b>підвищеної стипендії</b> (≥82 без Rгнд, кожен екзамен ≥90, кожен залік ≥75)</span></div>' : '')+
+    (untyped.length ? '<div style="display:flex;gap:8px;align-items:flex-start;background:rgba(240,192,64,.12);border:1px solid rgba(240,192,64,.3);border-radius:10px;padding:10px 12px;font-size:12.5px;color:var(--warning);margin-bottom:14px;">⚠️&nbsp;<span>Не обрано тип для <b>'+untyped.length+'</b> предмет(ів) нижче — вони поки не враховані в розрахунку.</span></div>' : '<div style="margin-bottom:14px;"></div>')+
+    '<div style="display:flex;align-items:center;gap:10px;background:var(--bg3);border-radius:12px;padding:10px 12px;margin-bottom:16px;">'+
+      '<label style="font-size:12.5px;color:var(--text2);flex:1;">Rгнд: сума балів за науку/спорт/громадську діяльність</label>'+
+      '<input type="number" min="0" value="'+(_grRatingExtra||0)+'" oninput="grSetRatingExtra(this.value)" style="width:70px;padding:6px 8px;border-radius:8px;border:1px solid rgba(255,255,255,.12);background:var(--bg2);color:var(--text);font-size:13px;text-align:center;">'+
+    '</div>'+
+    '<div style="font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">Предмети — оберіть тип</div>'+
+    rows;
 }
 
 // ── Moodle load ──

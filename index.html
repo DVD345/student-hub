@@ -475,6 +475,7 @@ function _loadKaTeX() {
         <div class="toolbar">
           <input class="tb-input" id="gr-q" placeholder="🔍 Пошук предмету..." oninput="renderGradesTable()">
           <div class="tb-right">
+            <button class="btn" onclick="openRatingCalc()">🧮 Рейтинг</button>
             <button class="btn" id="gr-select-toggle-btn" onclick="grToggleSelectMode()">☑️ Виділити</button>
             <button class="btn" onclick="openGrAdd()">＋ Предмет</button>
             <button class="btn a" onclick="loadGrades(true)">🔄</button>
@@ -485,8 +486,6 @@ function _loadKaTeX() {
           <button class="btn d" onclick="grDeleteSelected()">🗑 Видалити виділені</button>
           <button class="btn" onclick="grToggleSelectMode()">Скасувати</button>
         </div>
-
-        <div id="rating-calc"></div>
 
         <div id="grades-list"><div class="loading"><div class="spinner"></div>Завантаження...</div></div>
       </div>
@@ -876,6 +875,17 @@ window._authInfo = function() {
       <button onclick="document.getElementById('course-contents-modal').style.display='none'" style="background:none;border:none;color:var(--text2);font-size:20px;cursor:pointer;line-height:1;">✕</button>
     </div>
     <div id="cc-body" style="padding:16px;max-height:75vh;overflow-y:auto;"></div>
+  </div>
+</div>
+
+<!-- RATING CALCULATOR -->
+<div id="rating-calc-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:1000;overflow-y:auto;padding:16px;" onclick="if(event.target===this)closeRatingCalc()">
+  <div style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;max-width:680px;margin:0 auto;overflow:hidden;">
+    <div style="padding:16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;">
+      <div style="flex:1;font-size:15px;font-weight:700;">🧮 Калькулятор рейтингу</div>
+      <button onclick="closeRatingCalc()" style="background:none;border:none;color:var(--text2);font-size:20px;cursor:pointer;line-height:1;">✕</button>
+    </div>
+    <div id="rating-calc" style="padding:16px;max-height:75vh;overflow-y:auto;"></div>
   </div>
 </div>
 

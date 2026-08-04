@@ -3455,6 +3455,7 @@ var _grGrCtx     = null;
 var _grDeletedIds= {};   // {subjId: Set of deleted moodle item ids}
 var _grSelectMode  = false;
 var _grSelectedIds = new Set();
+var _grRatingExtra = 0;  // Rгнд input: sum of points for scientific/social/sport activity (0-100 scale, formula caps result at 9)
 
 // ── storage ──
 function _grKey(){ return 'sh_gr5_'+(userData.userid||'x'); }
@@ -3462,7 +3463,7 @@ function _grLocalSave(){
   try{
     var deletedArr={};
     Object.keys(_grDeletedIds).forEach(function(k){deletedArr[k]=[..._grDeletedIds[k]];});
-    localStorage.setItem(_grKey(), JSON.stringify({subjects:_grSubjects,deletedIds:deletedArr}));
+    localStorage.setItem(_grKey(), JSON.stringify({subjects:_grSubjects,deletedIds:deletedArr,ratingExtra:_grRatingExtra}));
   }catch(e){}
 }
 function _grLocalLoad(){
@@ -3480,6 +3481,7 @@ function _grLocalLoad(){
       _grSubjects=d.subjects;
       var di=d.deletedIds||{};
       Object.keys(di).forEach(function(k){_grDeletedIds[k]=new Set(di[k]);});
+      _grRatingExtra=parseFloat(d.ratingExtra)||0;
       _grLoaded=(_grSubjects.length>0);
     }
   }catch(e){}
@@ -3493,7 +3495,7 @@ async function _grFireSave(){
     Object.keys(_grDeletedIds).forEach(function(k){deletedArr[k]=[..._grDeletedIds[k]];});
     // Save into users/{id} with merge so other fields are preserved
     await setDoc(doc(window._db,'users',String(userData.userid)),{
-      grades:{subjects:_grSubjects,deletedIds:deletedArr,updatedAt:Date.now()}
+      grades:{subjects:_grSubjects,deletedIds:deletedArr,ratingExtra:_grRatingExtra,updatedAt:Date.now()}
     },{merge:true});
   }catch(e){ console.warn('grades save err:',e); }
 }
@@ -3509,6 +3511,7 @@ async function _grFireLoad(){
       var di=d.deletedIds||{};
       _grDeletedIds={};
       Object.keys(di).forEach(function(k){_grDeletedIds[k]=new Set(di[k]);});
+      _grRatingExtra=parseFloat(d.ratingExtra)||0;
       _grLoaded=true;
       _grLocalSave();
     }
@@ -3570,6 +3573,101 @@ function _grCurrentMax(subj,mod,autoValue){
   var saved=finals&&finals[key];
   if(saved!=null&&typeof saved==='object'&&saved.max!=null) return Math.round(parseFloat(saved.max)||0);
   return autoValue;
+}
+
+// Same "підсумкова оцінка" logic used in the grade card header — kept as a standalone
+// helper so the rating calculator shows exactly the same number the user sees per subject.
+function _grComputeFinal(subj){
+  var all=subj.items||[];
+  var m1=all.filter(function(i){return i.mod===1;});
+  var m2=all.filter(function(i){return i.mod===2;});
+  var m1CurItems=m1.filter(function(i){return !i.isMod;});
+  var m2CurItems=m2.filter(function(i){return !i.isMod;});
+  var m1ModItems=m1.filter(function(i){return i.isMod;});
+  var m2ModItems=m2.filter(function(i){return i.isMod;});
+  var m1CurFinal=_grCurrentFinal(subj,1,m1CurItems.length?Math.round(_grSumF(m1CurItems)):null);
+  var m2CurFinal=_grCurrentFinal(subj,2,m2CurItems.length?Math.round(_grSumF(m2CurItems)):null);
+  var m1Auto=(m1.length||m1CurFinal!=null)?Math.round((m1CurFinal||0)+_grSumF(m1ModItems)):null;
+  var m2Auto=(m2.length||m2CurFinal!=null)?Math.round((m2CurFinal||0)+_grSumF(m2ModItems)):null;
+  var m1Final=_grModuleFinal(subj,1,m1Auto);
+  var m2Final=_grModuleFinal(subj,2,m2Auto);
+  var autoFinal=(m1Final!=null&&m2Final!=null)?(m1Final+m2Final)/2:(m1Final!=null?m1Final:m2Final);
+  var finalGrade=subj._finalGrade!=null?subj._finalGrade:(autoFinal!=null?Math.round(autoFinal):null);
+  return finalGrade;
+}
+
+// ── RATING CALCULATOR (Rc = Rекр + Rз + Rгнд, за офіційною методикою УкрДУЗТ) ──
+function _grExamType(subj){ return subj.examType||null; }
+function grSetExamType(sid,type){
+  var subj=_grFind(sid); if(!subj) return;
+  if(subj.examType===type) delete subj.examType;
+  else subj.examType=type;
+  _grFireSave();
+  renderGradesTable();
+}
+function grSetRatingExtra(val){
+  var n=parseFloat(val);
+  _grRatingExtra=isNaN(n)?0:Math.max(0,n);
+  _grFireSave();
+  renderRatingCalc();
+}
+function _calcRating(){
+  var exam=[],zalik=[];
+  _grSubjects.forEach(function(subj){
+    var type=_grExamType(subj);
+    if(type!=='exam'&&type!=='zalik') return;
+    var fg=_grComputeFinal(subj);
+    if(fg==null) return;
+    (type==='exam'?exam:zalik).push(fg);
+  });
+  var Rekr = exam.length ? 0.81*(exam.reduce(function(a,b){return a+b;},0)/exam.length) : 0;
+  var Rz = zalik.length ? 0.1*(zalik.reduce(function(a,b){return a+b;},0)/zalik.length) : 0;
+  var Rgnd = Math.min(9, 0.09*(_grRatingExtra||0));
+  var Rc = Rekr+Rz+Rgnd;
+  var minExam = exam.length ? Math.min.apply(null,exam) : null;
+  var minZalik = zalik.length ? Math.min.apply(null,zalik) : null;
+  var eligibleForBoost = (Rekr+Rz)>=82 && minExam!=null && minExam>=90 && (minZalik==null||minZalik>=75);
+  return {Rekr:Rekr,Rz:Rz,Rgnd:Rgnd,Rc:Rc,examCount:exam.length,zalikCount:zalik.length,eligibleForBoost:eligibleForBoost};
+}
+function renderRatingCalc(){
+  var el=document.getElementById('rating-calc');
+  if(!el) return;
+  if(!_grSubjects.length){ el.innerHTML=''; return; }
+  var r=_calcRating();
+  var untyped=_grSubjects.filter(function(s){return !_grExamType(s);});
+  var typeBtn=function(sid,type,label){
+    var active=_grExamType(_grFind(sid))===type;
+    return '<button onclick="grSetExamType(\''+escHtml(sid)+'\',\''+type+'\')" style="font-size:11px;padding:3px 8px;border-radius:6px;cursor:pointer;border:1px solid '+(active?'var(--accent)':'rgba(255,255,255,.12)')+';background:'+(active?'var(--accent)':'transparent')+';color:'+(active?'#fff':'var(--text2)')+';">'+label+'</button>';
+  };
+  var rows=_grSubjects.map(function(s){
+    var fg=_grComputeFinal(s);
+    return '<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.06);">'+
+      '<div style="flex:1;min-width:0;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="'+escHtml(s.name)+'">'+escHtml(s.name)+'</div>'+
+      '<div style="width:34px;text-align:center;font-size:13px;font-weight:700;color:'+(fg!=null?_grColor(fg,100):'var(--text2)')+';">'+(fg!=null?fg:'—')+'</div>'+
+      '<div style="display:flex;gap:4px;flex-shrink:0;">'+
+        typeBtn(s.id,'exam','Екз')+typeBtn(s.id,'zalik','Залік')+typeBtn(s.id,'excluded','—')+
+      '</div>'+
+    '</div>';
+  }).join('');
+  el.innerHTML =
+    '<div class="gr-card" style="margin-bottom:12px;">'+
+      '<div style="display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:8px;">'+
+        '<div style="font-weight:800;font-size:15px;">🧮 Калькулятор рейтингу</div>'+
+        '<div style="font-size:26px;font-weight:800;color:'+_grColor(r.Rc,100)+';">'+r.Rc.toFixed(2)+'</div>'+
+      '</div>'+
+      '<div style="display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--text2);margin-bottom:10px;">'+
+        '<div>Rекр (екзамени): <b style="color:var(--text);">'+r.Rekr.toFixed(2)+'</b> · '+r.examCount+' предм.</div>'+
+        '<div>Rз (заліки): <b style="color:var(--text);">'+r.Rz.toFixed(2)+'</b> · '+r.zalikCount+' предм.</div>'+
+        '<div>Rгнд (доп. бали): <b style="color:var(--text);">'+r.Rgnd.toFixed(2)+'</b></div>'+
+      '</div>'+
+      (r.eligibleForBoost ? '<div style="font-size:12px;color:var(--success);margin-bottom:10px;">✅ Прохідний рівень для підвищеної стипендії (≥82 без Rгнд, екзамени ≥90, заліки ≥75)</div>' : '')+
+      (untyped.length ? '<div style="font-size:12px;color:var(--warning);margin-bottom:10px;">⚠️ Не позначено тип для '+untyped.length+' предмет(ів) — вони не враховані в розрахунку.</div>' : '')+
+      '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">'+
+        '<label style="font-size:12px;color:var(--text2);">Rгнд (наука/спорт/громад. діяльність, сума балів):</label>'+
+        '<input type="number" min="0" value="'+(_grRatingExtra||0)+'" oninput="grSetRatingExtra(this.value)" style="width:70px;padding:4px 6px;border-radius:6px;border:1px solid rgba(255,255,255,.12);background:var(--bg3);color:var(--text);">'+
+      '</div>'+
+      '<div style="max-height:220px;overflow-y:auto;">'+rows+'</div>'+
+    '</div>';
 }
 
 // ── Moodle load ──
@@ -3653,6 +3751,7 @@ function renderGradesTable(){
   var el=document.getElementById('grades-list');
   var sumEl=document.getElementById('grades-summary');
   if(!el) return;
+  renderRatingCalc();
   var q=(document.getElementById('gr-q')||{value:''}).value.toLowerCase().trim();
   _loadHiddenCourses();
   var hiddenCourseSet = new Set((_hiddenCourses || []).map(function(id){ return String(id); }));

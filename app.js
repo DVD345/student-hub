@@ -3456,6 +3456,7 @@ var _grDeletedIds= {};   // {subjId: Set of deleted moodle item ids}
 var _grSelectMode  = false;
 var _grSelectedIds = new Set();
 var _grRatingExtra = 0;  // Rгнд input: sum of points for scientific/social/sport activity (0-100 scale, formula caps result at 9)
+var _grExtraItems = [];  // manually entered items not synced from Moodle: курсові проекти, практика тощо. {id,name,grade,type}
 
 // ── storage ──
 function _grKey(){ return 'sh_gr5_'+(userData.userid||'x'); }
@@ -3463,7 +3464,7 @@ function _grLocalSave(){
   try{
     var deletedArr={};
     Object.keys(_grDeletedIds).forEach(function(k){deletedArr[k]=[..._grDeletedIds[k]];});
-    localStorage.setItem(_grKey(), JSON.stringify({subjects:_grSubjects,deletedIds:deletedArr,ratingExtra:_grRatingExtra}));
+    localStorage.setItem(_grKey(), JSON.stringify({subjects:_grSubjects,deletedIds:deletedArr,ratingExtra:_grRatingExtra,extraItems:_grExtraItems}));
   }catch(e){}
 }
 function _grLocalLoad(){
@@ -3482,6 +3483,7 @@ function _grLocalLoad(){
       var di=d.deletedIds||{};
       Object.keys(di).forEach(function(k){_grDeletedIds[k]=new Set(di[k]);});
       _grRatingExtra=parseFloat(d.ratingExtra)||0;
+      _grExtraItems=Array.isArray(d.extraItems)?d.extraItems:[];
       _grLoaded=(_grSubjects.length>0);
     }
   }catch(e){}
@@ -3495,7 +3497,7 @@ async function _grFireSave(){
     Object.keys(_grDeletedIds).forEach(function(k){deletedArr[k]=[..._grDeletedIds[k]];});
     // Save into users/{id} with merge so other fields are preserved
     await setDoc(doc(window._db,'users',String(userData.userid)),{
-      grades:{subjects:_grSubjects,deletedIds:deletedArr,ratingExtra:_grRatingExtra,updatedAt:Date.now()}
+      grades:{subjects:_grSubjects,deletedIds:deletedArr,ratingExtra:_grRatingExtra,extraItems:_grExtraItems,updatedAt:Date.now()}
     },{merge:true});
   }catch(e){ console.warn('grades save err:',e); }
 }
@@ -3512,6 +3514,7 @@ async function _grFireLoad(){
       _grDeletedIds={};
       Object.keys(di).forEach(function(k){_grDeletedIds[k]=new Set(di[k]);});
       _grRatingExtra=parseFloat(d.ratingExtra)||0;
+      _grExtraItems=Array.isArray(d.extraItems)?d.extraItems:[];
       _grLoaded=true;
       _grLocalSave();
     }
@@ -3611,6 +3614,25 @@ function grSetRatingExtra(val){
   _grFireSave();
   renderRatingCalc();
 }
+function grAddExtraItem(){
+  var nameEl=document.getElementById('gr-extra-name');
+  var gradeEl=document.getElementById('gr-extra-grade');
+  var typeEl=document.getElementById('gr-extra-type');
+  if(!nameEl||!gradeEl||!typeEl) return;
+  var name=nameEl.value.trim();
+  var grade=parseFloat(gradeEl.value);
+  if(!name){ alert('Вкажіть назву (курсовий проект, практика тощо)'); return; }
+  if(isNaN(grade)||grade<0||grade>100){ alert('Оцінка має бути від 0 до 100'); return; }
+  _grExtraItems.push({id:'x_'+Date.now(),name:name,grade:Math.round(grade),type:typeEl.value});
+  nameEl.value=''; gradeEl.value='';
+  _grFireSave();
+  renderRatingCalc();
+}
+function grDeleteExtraItem(id){
+  _grExtraItems=_grExtraItems.filter(function(it){return it.id!==id;});
+  _grFireSave();
+  renderRatingCalc();
+}
 function _calcRating(){
   var exam=[],zalik=[];
   _grSubjects.forEach(function(subj){
@@ -3619,6 +3641,11 @@ function _calcRating(){
     var fg=_grComputeFinal(subj);
     if(fg==null) return;
     (type==='exam'?exam:zalik).push(fg);
+  });
+  (_grExtraItems||[]).forEach(function(it){
+    var g=parseFloat(it.grade);
+    if(isNaN(g)) return;
+    (it.type==='exam'?exam:zalik).push(g);
   });
   var Rekr = exam.length ? 0.81*(exam.reduce(function(a,b){return a+b;},0)/exam.length) : 0;
   var Rz = zalik.length ? 0.1*(zalik.reduce(function(a,b){return a+b;},0)/zalik.length) : 0;
@@ -3693,6 +3720,23 @@ function renderRatingCalc(){
     '<div style="display:flex;align-items:center;gap:10px;background:var(--bg3);border-radius:12px;padding:10px 12px;margin-bottom:16px;">'+
       '<label style="font-size:12.5px;color:var(--text2);flex:1;">Rгнд: сума балів за науку/спорт/громадську діяльність</label>'+
       '<input type="number" min="0" value="'+(_grRatingExtra||0)+'" oninput="grSetRatingExtra(this.value)" style="width:70px;padding:6px 8px;border-radius:8px;border:1px solid rgba(255,255,255,.12);background:var(--bg2);color:var(--text);font-size:13px;text-align:center;">'+
+    '</div>'+
+    '<div style="font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">Курсові, практика тощо (вручну — не з Moodle)</div>'+
+    (_grExtraItems.length ? _grExtraItems.map(function(it){
+      return '<div style="display:flex;align-items:center;gap:8px;background:var(--bg3);border-radius:10px;padding:8px 10px;margin-bottom:6px;">'+
+        '<div style="flex:1;min-width:0;font-size:12.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+escHtml(it.name)+'</div>'+
+        '<div style="font-size:13px;font-weight:800;color:'+_grColor(it.grade,100)+';">'+it.grade+'</div>'+
+        '<div style="font-size:10.5px;color:var(--text2);width:56px;">'+(it.type==='exam'?'екзамен':'залік')+'</div>'+
+        '<button onclick="grDeleteExtraItem(\''+escHtml(it.id)+'\')" style="background:none;border:none;color:var(--accent2);font-size:14px;cursor:pointer;padding:2px 4px;">🗑</button>'+
+      '</div>';
+    }).join('') : '')+
+    '<div style="display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap;">'+
+      '<input id="gr-extra-name" placeholder="Напр. Курсовий проект" style="flex:1;min-width:140px;padding:7px 9px;border-radius:8px;border:1px solid rgba(255,255,255,.12);background:var(--bg3);color:var(--text);font-size:12.5px;">'+
+      '<input id="gr-extra-grade" type="number" min="0" max="100" placeholder="Бал" style="width:64px;padding:7px 9px;border-radius:8px;border:1px solid rgba(255,255,255,.12);background:var(--bg3);color:var(--text);font-size:12.5px;">'+
+      '<select id="gr-extra-type" style="padding:7px 9px;border-radius:8px;border:1px solid rgba(255,255,255,.12);background:var(--bg3);color:var(--text);font-size:12.5px;">'+
+        '<option value="exam">Екзамен</option><option value="zalik">Залік</option>'+
+      '</select>'+
+      '<button class="btn" onclick="grAddExtraItem()" style="padding:7px 12px;">＋ Додати</button>'+
     '</div>'+
     '<div style="font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">Предмети — оберіть тип</div>'+
     rows;

@@ -368,24 +368,19 @@ a { text-decoration: none; color: inherit; }
   color: var(--text2);
   line-height: 1.7;
 }
-.login-patreon {
-  background: rgba(240,192,64,.08);
-  border: 1px solid rgba(240,192,64,.2);
-  border-radius: 12px;
-  padding: 12px 14px;
-  animation: cardFade .7s .6s both;
-  width: 100%;
-  max-width: 400px;
+.login-patreon-inline {
   margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(56,208,122,.15);
   text-align: center;
 }
-.login-patreon p {
-  font-size: 11px;
+.login-patreon-inline p {
+  font-size: 10px;
   color: var(--text2);
   line-height: 1.6;
   margin-bottom: 8px;
 }
-.login-patreon a {
+.login-patreon-inline a {
   display: inline-block;
   font-size: 11px;
   font-weight: 700;

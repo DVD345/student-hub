@@ -5013,10 +5013,16 @@ function renderMessages(msgs) {
     window._lastMsgRoom = currentChatRoom;
     window._lastMsgCount = msgs.length;
   }
-  el.innerHTML=msgs.map(m=>{
+  el.innerHTML=msgs.map((m,idx)=>{
     const isMe=m.uid===String(userData.userid);
     const t=_chatTimeLabel(m.ts);
     const canDel = canMod() || m.uid===String(userData.userid);
+    // Telegram-style grouping: only show the author name / extra gap when the
+    // sender changes (or a new day starts) compared to the previous message.
+    const prevM=idx>0?msgs[idx-1]:null;
+    const sameSenderAsPrev = !!prevM && prevM.uid===m.uid;
+    const sameDayAsPrev = !!prevM && prevM.ts && m.ts && new Date(prevM.ts).toDateString()===new Date(m.ts).toDateString();
+    const isGroupStart = !(sameSenderAsPrev && sameDayAsPrev);
     const fileHtml = m.file
       ? (m.file.type&&m.file.type.startsWith('image/')
           ? '<br><img src="'+escHtml(m.file.data)+'" style="max-width:220px;max-height:220px;border-radius:10px;display:block;margin-top:6px;cursor:pointer;box-shadow:0 2px 12px rgba(0,0,0,.3);transition:transform .15s;" onclick="openLightbox(this.src,\''+escHtml(m.file.name||'photo')+'\')" onmouseover="this.style.transform=\'scale(1.02)\'" onmouseout="this.style.transform=\'scale(1)\'">'
@@ -5031,10 +5037,10 @@ function renderMessages(msgs) {
     var _lpA=_mid?' data-lp="'+_mid+'"':'';
     // Cache clean text for editing (strip trailing edit marks in case of old data)
     if(m.id) _msgTextCache[m.id] = (m.text||'').replace(/\s*\(ред\.\)\s*$/, '').trim();
-    return '<div class="msg '+(isMe?'me':'other')+'" style="position:relative" '+_lpA+' '+
+    return '<div class="msg '+(isMe?'me':'other')+'" style="position:relative;'+(isGroupStart&&idx>0?'margin-top:10px;':'')+'" '+_lpA+' '+
       'onmouseenter="this.querySelectorAll(\'.msg-del\').forEach(b=>b.style.opacity=1)" '+
       'onmouseleave="this.querySelectorAll(\'.msg-del\').forEach(b=>b.style.opacity=0)">'+
-      (!isMe?'<div class="msg-author">'+escHtml(m.author)+'</div>':'')+
+      (!isMe&&isGroupStart?'<div class="msg-author">'+escHtml(m.author)+'</div>':'')+
       '<div style="display:flex;align-items:flex-end;gap:4px;'+(isMe?'flex-direction:row-reverse':'')+'">' +
         '<div class="msg-bubble">'+replyHtml+msgText+editedMark+fileHtml+'</div>'+
         '<button class="msg-touch-menu" onclick="_openMsgMenuFromButton(this,\''+_mid+'\');event.stopPropagation();" title="Дії">⋯</button>'+

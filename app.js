@@ -5023,6 +5023,11 @@ function renderMessages(msgs) {
     const sameSenderAsPrev = !!prevM && prevM.uid===m.uid;
     const sameDayAsPrev = !!prevM && prevM.ts && m.ts && new Date(prevM.ts).toDateString()===new Date(m.ts).toDateString();
     const isGroupStart = !(sameSenderAsPrev && sameDayAsPrev);
+    // Same idea for the time label: skip it unless this is the last message
+    // in a same-sender/same-minute cluster (Telegram only shows time once per cluster).
+    const nextM=idx<msgs.length-1?msgs[idx+1]:null;
+    const nextSameMinute = !!nextM && nextM.uid===m.uid && nextM.ts && m.ts && Math.floor(nextM.ts/60000)===Math.floor(m.ts/60000);
+    const showTime = !nextSameMinute;
     const fileHtml = m.file
       ? (m.file.type&&m.file.type.startsWith('image/')
           ? '<br><img src="'+escHtml(m.file.data)+'" style="max-width:220px;max-height:220px;border-radius:10px;display:block;margin-top:6px;cursor:pointer;box-shadow:0 2px 12px rgba(0,0,0,.3);transition:transform .15s;" onclick="openLightbox(this.src,\''+escHtml(m.file.name||'photo')+'\')" onmouseover="this.style.transform=\'scale(1.02)\'" onmouseout="this.style.transform=\'scale(1)\'">'
@@ -5047,7 +5052,7 @@ function renderMessages(msgs) {
         pinBtn+delBtn+
       '</div>'+
       _renderReactions(m)+
-      '<div class="msg-time">'+t+'</div></div>';
+      (showTime?'<div class="msg-time">'+t+'</div>':'')+'</div>';
   }).join('');
   el.scrollTop=el.scrollHeight;
   // Attach touch events with passive:false (only once per container)

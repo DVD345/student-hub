@@ -4991,6 +4991,21 @@ function subscribePinned(roomId) {
   });
 }
 
+// Telegram-style timestamp: today -> just time, yesterday -> "Вчора", older -> short date (+ year if not current year)
+function _chatTimeLabel(ts){
+  if(!ts) return '';
+  const d=new Date(ts), now=new Date();
+  const dayMs=24*60*60*1000;
+  const dOnly=new Date(d.getFullYear(),d.getMonth(),d.getDate()).getTime();
+  const nowOnly=new Date(now.getFullYear(),now.getMonth(),now.getDate()).getTime();
+  const diffDays=Math.round((nowOnly-dOnly)/dayMs);
+  const time=d.toLocaleTimeString('uk-UA',{hour:'2-digit',minute:'2-digit'});
+  if(diffDays===0) return time;
+  if(diffDays===1) return 'Вчора';
+  const dateOpts=d.getFullYear()===now.getFullYear() ? {day:'numeric',month:'short'} : {day:'numeric',month:'short',year:'numeric'};
+  return d.toLocaleDateString('uk-UA',dateOpts);
+}
+
 function renderMessages(msgs) {
   const el=document.getElementById('chat-msgs');
   if(!msgs.length){el.innerHTML='<div class="empty"><div class="emo">💬</div><p>Повідомлень ще немає</p></div>';return;}
@@ -5000,7 +5015,7 @@ function renderMessages(msgs) {
   }
   el.innerHTML=msgs.map(m=>{
     const isMe=m.uid===String(userData.userid);
-    const t=m.ts?new Date(m.ts).toLocaleTimeString('uk-UA',{hour:'2-digit',minute:'2-digit'}):'';
+    const t=_chatTimeLabel(m.ts);
     const canDel = canMod() || m.uid===String(userData.userid);
     const fileHtml = m.file
       ? (m.file.type&&m.file.type.startsWith('image/')

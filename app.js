@@ -5020,7 +5020,12 @@ function _chatTimeLabel(ts){
 
 function renderMessages(msgs) {
   const el=document.getElementById('chat-msgs');
-  if(!msgs.length){el.innerHTML='<div class="empty"><div class="emo">💬</div><p>Повідомлень ще немає</p></div>';return;}
+  if(!msgs.length){
+    el.innerHTML='<div class="empty"><div class="emo">💬</div><p>Повідомлень ще немає</p></div>';
+    window._lastMsgRoom = currentChatRoom;
+    window._lastMsgCount = 0;
+    return;
+  }
   if(window._lastMsgRoom !== currentChatRoom) {
     window._lastMsgRoom = currentChatRoom;
     window._lastMsgCount = msgs.length;

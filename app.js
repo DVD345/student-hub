@@ -570,7 +570,7 @@ async function initApp() {
   // ✅ IMPROVEMENT 2: load courses and deadlines in PARALLEL
   if(!_offlineMode && token) await syncMoodle();
 
-  listenFiles(); listenMats(); setupChatRooms();
+  listenFiles(); listenMats(); setupChatRooms(); _startGlobalMessageListener(); _startIncomingDmListener();
   if (canAdmin()) listenAdminData();
   loadNotes();
   loadNotifications();
@@ -4565,11 +4565,18 @@ function _initChatDmRoomsSync() {
     if(changed) {
       setupChatRooms();
       renderDashboardSummary();
+      _startGlobalMessageListener();
     }
   });
 }
 function _dmRoomId(uidA, uidB) {
   return 'dm-' + [String(uidA), String(uidB)].sort().join('-');
+}
+function _dmOtherUid(roomId, myUid) {
+  if(!roomId || String(roomId).indexOf('dm-')!==0) return null;
+  var parts = String(roomId).slice(3).split('-');
+  var other = parts.filter(function(p){ return p && p!==String(myUid); })[0];
+  return other || null;
 }
 function _rememberDmRoom(user) {
   if(!user || !user.id) return;
@@ -5130,6 +5137,83 @@ function _clearChatBadge(){
   if(b2){b2.style.display='none';}
 }
 
+// ── Global chat listener: catches new messages in ANY of the user's rooms
+// (not just the one currently open) so pings work regardless of which page
+// you're on. openChatRoom()'s own listener only covers the room on screen.
+var _globalMsgUnsub = null;
+var _globalMsgSeenIds = null;
+function _globalMessageRoomIds() {
+  var ids = ['group-'+(group.id||''), 'faculty-'+(group.faculty||'general'), 'university'];
+  (_chatDmRooms||[]).forEach(function(r){ if(r && r.id) ids.push(r.id); });
+  var seen={}, out=[];
+  ids.forEach(function(id){ if(id && !seen[id]){ seen[id]=1; out.push(id); } });
+  return out.slice(0,30);
+}
+function _startGlobalMessageListener() {
+  if(!window._db || !window._fb || !userData || !userData.userid) return;
+  var ids = _globalMessageRoomIds();
+  if(!ids.length) return;
+  if(_globalMsgUnsub) { _globalMsgUnsub(); _globalMsgUnsub=null; }
+  var {collection, query, where, orderBy, limit, onSnapshot} = window._fb;
+  var q = query(collection(window._db,'messages'), where('room','in',ids), orderBy('ts','desc'), limit(20));
+  _globalMsgSeenIds = null;
+  _globalMsgUnsub = onSnapshot(q, function(snap){
+    var msgs = snap.docs.map(function(d){ return Object.assign({id:d.id}, d.data()); });
+    if(_globalMsgSeenIds === null) {
+      // First fire after (re)subscribing: just record what's already there, don't ping the backlog.
+      _globalMsgSeenIds = {};
+      msgs.forEach(function(m){ _globalMsgSeenIds[m.id]=1; });
+      return;
+    }
+    msgs.forEach(function(m){
+      if(_globalMsgSeenIds[m.id]) return;
+      _globalMsgSeenIds[m.id]=1;
+      if(m.uid===String(userData.userid) || !m.text) return;
+      // If this room is the one currently open on the chat page, its own
+      // onSnapshot listener already handled the ping — don't double-fire.
+      if(m.room===currentChatRoom && _currentPage==='chat') return;
+      var isDmRoom = String(m.room||'').indexOf('dm-')===0;
+      var mentioned = userData.fullname && m.text.toLowerCase().includes('@'+userData.fullname.split(' ')[0].toLowerCase());
+      if(isDmRoom||mentioned) _pingNotify(m.author, m.text, isDmRoom);
+    });
+  }, function(){});
+}
+
+// Catches a brand-new DM from someone who's never messaged you before, whose
+// room id you therefore don't have bookmarked yet (so it's not in the
+// room-list query above). Also adds it to your DM sidebar so it's visible.
+var _incomingDmUnsub = null;
+var _incomingDmSeenIds = null;
+function _startIncomingDmListener() {
+  if(!window._db || !window._fb || !userData || !userData.userid) return;
+  if(_incomingDmUnsub) { _incomingDmUnsub(); _incomingDmUnsub=null; }
+  var {collection, query, where, orderBy, limit, onSnapshot} = window._fb;
+  var q = query(collection(window._db,'messages'), where('toUid','==',String(userData.userid)), orderBy('ts','desc'), limit(20));
+  _incomingDmSeenIds = null;
+  _incomingDmUnsub = onSnapshot(q, function(snap){
+    var msgs = snap.docs.map(function(d){ return Object.assign({id:d.id}, d.data()); });
+    if(_incomingDmSeenIds === null) {
+      _incomingDmSeenIds = {};
+      msgs.forEach(function(m){ _incomingDmSeenIds[m.id]=1; });
+      return;
+    }
+    msgs.forEach(function(m){
+      if(_incomingDmSeenIds[m.id]) return;
+      _incomingDmSeenIds[m.id]=1;
+      if(_globalMsgSeenIds && _globalMsgSeenIds[m.id]) return;
+      if(m.uid===String(userData.userid) || !m.text) return;
+      if(m.room===currentChatRoom && _currentPage==='chat') return;
+      if(!_chatDmRooms.some(function(r){ return r.id===m.room; })) {
+        _chatDmRooms.unshift({ id:m.room, label:m.author||'Користувач', sub:'Особисті повідомлення', uid:String(m.uid) });
+        _chatDmRooms = _chatDmRooms.slice(0,20);
+        _saveChatDmRooms();
+        if(document.getElementById('chat-rooms')) setupChatRooms();
+      }
+      _pingNotify(m.author, m.text, true);
+    });
+  }, function(){});
+}
+
 function chatKey(e) {
   if(_mentionActive) {
     if(e.key==='Escape') { _hideMentionPopup(); return; }
@@ -5323,6 +5407,7 @@ async function sendMsg() {
     });
     clearChatFile();
   }
+  const dmOtherUid = _dmOtherUid(currentChatRoom, userData.userid);
   const payload = {
     room:currentChatRoom, text:text||'',
     author:userData.nickname||userData.fullname||'?',
@@ -5330,7 +5415,8 @@ async function sendMsg() {
     groupId:group.id,
     ts:Date.now(),
     ...(fileData?{file:fileData}:{}),
-    ...(_replyTo?{replyTo:_replyTo}:{})
+    ...(_replyTo?{replyTo:_replyTo}:{}),
+    ...(dmOtherUid?{toUid:dmOtherUid}:{})
   };
   await addDoc(collection(window._db,'messages'), payload);
   _cancelReply();

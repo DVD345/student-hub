@@ -5,6 +5,18 @@ let unsubs=[], cachedFiles=[], cachedMats=[], currentChatRoom=null, chatUnsub=nu
 let cvMode='grid', csMode='name';
 var _chatUsers = [];
 var _chatDmRooms = [];
+var _pingAudioCtx = null;
+(function _unlockPingAudio(){
+  function unlock(){
+    if(!_pingAudioCtx){
+      try{ _pingAudioCtx = new (window.AudioContext||window.webkitAudioContext)(); }catch(e){ return; }
+    }
+    if(_pingAudioCtx.state==='suspended') _pingAudioCtx.resume().catch(function(){});
+  }
+  ['pointerdown','keydown','touchstart'].forEach(function(evt){
+    document.addEventListener(evt, unlock, {passive:true});
+  });
+})();
 var _offlineMode = false;
 var _guestMode = false;
 var GUEST_RESTRICTED = ['deadlines','courses','grades','files','materials','chat','notes','assistant','notifications','admin'];
@@ -5061,10 +5073,12 @@ function renderMessages(msgs) {
     el._touchEventsAttached = true;
   }
   if(window._lastMsgCount!==undefined&&window._lastMsgRoom===currentChatRoom&&msgs.length>window._lastMsgCount){
+    var _isDmRoom = String(currentChatRoom||'').indexOf('dm-')===0;
     msgs.slice(window._lastMsgCount).forEach(function(m){
-      if(m.uid!==String(userData.userid)&&m.text&&userData.fullname&&
-         m.text.toLowerCase().includes('@'+userData.fullname.split(' ')[0].toLowerCase())){
-        _pingNotify(m.author,m.text);
+      if(m.uid===String(userData.userid)||!m.text) return;
+      var mentioned = userData.fullname && m.text.toLowerCase().includes('@'+userData.fullname.split(' ')[0].toLowerCase());
+      if(_isDmRoom||mentioned){
+        _pingNotify(m.author,m.text,_isDmRoom);
       }
     });
   }
@@ -5072,7 +5086,7 @@ function renderMessages(msgs) {
 }
 
 var _chatPingCount = 0;
-function _pingNotify(author,text){
+function _pingNotify(author,text,isDm){
   if(_currentPage!=='chat'){
     _chatPingCount++;
     var b1=document.getElementById('chat-badge');
@@ -5081,10 +5095,13 @@ function _pingNotify(author,text){
     if(b2){b2.textContent=_chatPingCount;b2.style.display='';}
   }
   if(Notification.permission==='granted'){
-    try{new Notification('🔔 '+(author||'Хтось')+' згадав вас',{body:text.slice(0,80),tag:'mention_'+Date.now()});}catch(e){}
+    var title = isDm ? ('✉️ '+(author||'Хтось')+' написав(ла) вам') : ('🔔 '+(author||'Хтось')+' згадав вас');
+    try{new Notification(title,{body:text.slice(0,80),tag:'mention_'+Date.now()});}catch(e){}
   }
   try{
-    var ctx=new(window.AudioContext||window.webkitAudioContext)();
+    if(!_pingAudioCtx) _pingAudioCtx = new (window.AudioContext||window.webkitAudioContext)();
+    var ctx=_pingAudioCtx;
+    if(ctx.state==='suspended') ctx.resume().catch(function(){});
     function beep(freq,start,dur,vol){
       var o=ctx.createOscillator(),g=ctx.createGain();
       o.connect(g);g.connect(ctx.destination);

@@ -631,6 +631,16 @@ function _setupDebouncedInputs() {
       }, 100);
     }
   });
+  // Belt-and-suspenders: iOS Safari's own toolbar auto-hiding on scroll
+  // (and apparently, on this device, sometimes the keyboard too) doesn't
+  // reliably fire either resize event. Poll the real visible height a
+  // few times a second and self-correct if it drifted from what --vh
+  // currently says, independent of any event ever firing.
+  var _lastPolledH = null;
+  setInterval(function() {
+    var h = (window.visualViewport && window.visualViewport.height) || window.innerHeight;
+    if(h !== _lastPolledH) { _lastPolledH = h; _updateVH(); }
+  }, 300);
   const dlQ = document.getElementById('dl-q');
   if(dlQ) dlQ.oninput = debounce(applyDlFilter, 200);
 

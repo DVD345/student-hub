@@ -4685,11 +4685,17 @@ function _highlightMentions(text, myName, myNickname) {
 }
 
 var _mentionActive = false, _mentionStart = 0, _mentionQuery = '';
+var _currentRoomMsgsCache = [];
 function _getChatMembers() {
-  const msgs = document.querySelectorAll('.msg-author');
-  const names = new Set();
-  msgs.forEach(m => { if(m.textContent.trim()) names.add(m.textContent.trim()); });
-  return [...names];
+  // Dedup by sender uid, keeping only their most recent author name - so
+  // someone who used to send under their real name and now has a nickname
+  // shows up once, under whatever name they're currently using.
+  var byUid = {};
+  (_currentRoomMsgsCache||[]).forEach(function(m){
+    if(!m.uid || !m.author) return;
+    if(!byUid[m.uid] || (m.ts||0) >= (byUid[m.uid].ts||0)) byUid[m.uid] = {author:m.author, ts:m.ts||0};
+  });
+  return Object.keys(byUid).map(function(uid){ return byUid[uid].author; });
 }
 
 function _showMentionPopup(query) {
@@ -5026,6 +5032,7 @@ function _chatTimeLabel(ts){
 
 function renderMessages(msgs) {
   const el=document.getElementById('chat-msgs');
+  _currentRoomMsgsCache = msgs;
   if(!msgs.length){
     el.innerHTML='<div class="empty"><div class="emo">💬</div><p>Повідомлень ще немає</p></div>';
     return;

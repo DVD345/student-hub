@@ -4676,9 +4676,10 @@ function openChatRoom(roomId, label) {
   }, err=>{ document.getElementById('chat-msgs').innerHTML='<div class="empty"><div class="emo">⚠️</div><p>Помилка завантаження чату</p></div>'; });
 }
 
-function _highlightMentions(text, myName) {
+function _highlightMentions(text, myName, myNickname) {
   return text.replace(/@([\wЀ-ӿІіЇїЄєҐґʼ'-]+(?:\s[\wЀ-ӿІіЇїЄєҐґʼ'-]+){0,2})/g, (match, name) => {
-    const isMe = myName && myName.toLowerCase().includes(name.toLowerCase());
+    const isMe = (myName && myName.toLowerCase().includes(name.toLowerCase()))
+      || (myNickname && myNickname.toLowerCase()===name.toLowerCase());
     return `<span class="mention${isMe?' me':''}">${match}</span>`;
   });
 }
@@ -5050,7 +5051,7 @@ function renderMessages(msgs) {
           ? '<br><img src="'+escHtml(m.file.data)+'" style="max-width:220px;max-height:220px;border-radius:10px;display:block;margin-top:6px;cursor:pointer;box-shadow:0 2px 12px rgba(0,0,0,.3);transition:transform .15s;" onclick="openLightbox(this.src,\''+escHtml(m.file.name||'photo')+'\')" onmouseover="this.style.transform=\'scale(1.02)\'" onmouseout="this.style.transform=\'scale(1)\'">'
           : '<br><a href="'+escHtml(m.file.data)+'" download="'+escHtml(m.file.name||'file')+'" style="display:inline-flex;align-items:center;gap:5px;padding:5px 9px;background:rgba(255,255,255,.07);border-radius:7px;font-size:11px;color:var(--text);text-decoration:none;margin-top:4px;">\u{1F4C4} '+escHtml(m.file.name||'Файл')+'</a>')
       : '';
-    const msgText = m.text ? _highlightMentions(escHtml(m.text), userData.fullname) : '';
+    const msgText = m.text ? _highlightMentions(escHtml(m.text), userData.fullname, userData.nickname) : '';
     const replyHtml = m.replyTo ? '<div class="msg-reply" onclick="event.stopPropagation();_scrollToMsg(\''+escHtml(m.replyTo.id||'')+'\')"><b>'+escHtml(m.replyTo.author||'')+'</b> '+escHtml((m.replyTo.text||'').slice(0,60))+'</div>' : '';
     const editedMark = m.edited ? ' <span class="msg-edited-mark" style="font-size:9px;opacity:.5;font-style:italic">(ред.)</span>' : '';
     const pinBtn = (canMod()&&m.id) ? '<button class="msg-del" onclick="pinMessage(\''+escHtml(m.id)+'\',\''+escHtml((m.text||'').slice(0,80)).replace(/'/g,'')+'\'  ,\''+escHtml(m.author||'')+'\');" style="background:rgba(240,192,64,.12);border:1px solid rgba(240,192,64,.25);color:var(--accent);border-radius:5px;padding:2px 5px;font-size:9px;cursor:pointer;opacity:0;transition:opacity .2s;flex-shrink:0" title="Закріпити">📌</button>' : '';
@@ -5094,13 +5095,25 @@ function renderMessages(msgs) {
 // never trigger the sound again.
 var _pingSessionStartTs = Date.now();
 var _pingedMsgIds = {};
+function _isMentioningMe(text) {
+  if(!text) return false;
+  var t = text.toLowerCase();
+  if(userData.nickname && t.includes('@'+userData.nickname.toLowerCase())) return true;
+  if(userData.fullname && t.includes('@'+userData.fullname.split(' ')[0].toLowerCase())) return true;
+  return false;
+}
+function _isReplyToMe(m) {
+  if(!m || !m.replyTo || !m.replyTo.author) return false;
+  var a = String(m.replyTo.author).trim().toLowerCase();
+  return (userData.nickname && a===userData.nickname.toLowerCase())
+    || (userData.fullname && a===userData.fullname.toLowerCase());
+}
 function _maybePing(m, isDm) {
   if(!m || !m.id || _pingedMsgIds[m.id]) return;
   _pingedMsgIds[m.id] = 1;
   if(m.uid===String(userData.userid) || !m.text) return;
   if(!m.ts || m.ts <= _pingSessionStartTs) return;
-  var mentioned = userData.fullname && m.text.toLowerCase().includes('@'+userData.fullname.split(' ')[0].toLowerCase());
-  if(isDm||mentioned) _pingNotify(m.author, m.text, isDm);
+  if(_isMentioningMe(m.text) || _isReplyToMe(m)) _pingNotify(m.author, m.text, isDm);
 }
 
 var _chatPingCount = 0;
@@ -5116,24 +5129,28 @@ function _pingNotify(author,text,isDm){
     var title = isDm ? ('✉️ '+(author||'Хтось')+' написав(ла) вам') : ('🔔 '+(author||'Хтось')+' згадав вас');
     try{new Notification(title,{body:text.slice(0,80),tag:'mention_'+Date.now()});}catch(e){}
   }
-  try{
-    if(!_pingAudioCtx) _pingAudioCtx = new (window.AudioContext||window.webkitAudioContext)();
-    var ctx=_pingAudioCtx;
-    if(ctx.state==='suspended') ctx.resume().catch(function(){});
-    function beep(freq,start,dur,vol){
-      var o=ctx.createOscillator(),g=ctx.createGain();
-      o.connect(g);g.connect(ctx.destination);
-      o.type='triangle';
-      o.frequency.setValueAtTime(freq,ctx.currentTime+start);
-      g.gain.setValueAtTime(0,ctx.currentTime+start);
-      g.gain.linearRampToValueAtTime(vol||0.12,ctx.currentTime+start+0.015);
-      g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+start+dur);
-      o.start(ctx.currentTime+start);
-      o.stop(ctx.currentTime+start+dur+0.02);
-    }
-    beep(660,0,0.11,0.11);
-    beep(880,0.08,0.16,0.09);
-  }catch(e){}
+  // Sound only matters if you'd otherwise miss the message - if you're
+  // already looking at the chat page you can see it arrive live.
+  if(_currentPage!=='chat'){
+    try{
+      if(!_pingAudioCtx) _pingAudioCtx = new (window.AudioContext||window.webkitAudioContext)();
+      var ctx=_pingAudioCtx;
+      if(ctx.state==='suspended') ctx.resume().catch(function(){});
+      function beep(freq,start,dur,vol){
+        var o=ctx.createOscillator(),g=ctx.createGain();
+        o.connect(g);g.connect(ctx.destination);
+        o.type='triangle';
+        o.frequency.setValueAtTime(freq,ctx.currentTime+start);
+        g.gain.setValueAtTime(0,ctx.currentTime+start);
+        g.gain.linearRampToValueAtTime(vol||0.12,ctx.currentTime+start+0.015);
+        g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+start+dur);
+        o.start(ctx.currentTime+start);
+        o.stop(ctx.currentTime+start+dur+0.02);
+      }
+      beep(660,0,0.11,0.11);
+      beep(880,0.08,0.16,0.09);
+    }catch(e){}
+  }
 }
 function _clearChatBadge(){
   _chatPingCount=0;
@@ -5345,7 +5362,7 @@ function _startPresence() {
       const {doc, setDoc} = window._fb;
       setDoc(doc(window._db, 'presence', String(userData.userid)), {
         uid: String(userData.userid),
-        name: userData.fullname || '?',
+        name: userData.nickname || userData.fullname || '?',
         lastSeen: Date.now(),
         room: currentChatRoom || null
       }, {merge: true});

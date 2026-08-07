@@ -576,7 +576,7 @@ a { text-decoration: none; color: inherit; }
 .icon-btn { background:none; border:none; color:var(--text2); cursor:pointer; font-size:13px; padding:5px; border-radius:6px; transition:color .2s, background .2s; flex-shrink:0; }
 .icon-btn:hover { color:var(--text); background:var(--bg3); }
 
-.main { margin-left:var(--sidebar); height:100vh; height:100dvh; height:calc(var(--vh, 1vh) * 100); flex:1; display:flex; flex-direction:column; overflow:hidden; min-height:0; }
+.main { margin-left:var(--sidebar); height:100vh; height:100dvh; flex:1; display:flex; flex-direction:column; overflow:hidden; min-height:0; }
 
 .sidebar-resizer {
   position: fixed;

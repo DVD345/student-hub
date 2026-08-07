@@ -5421,15 +5421,20 @@ function _updateReadReceiptMarks() {
   });
 }
 var _lastReadSentTs = {};
-function _markDmRead(roomId, latestTs) {
+async function _markDmRead(roomId, latestTs) {
   if(!window._db || !window._fb || !userData.userid || !latestTs) return;
   if((_lastReadSentTs[roomId]||0) >= latestTs) return;
   _lastReadSentTs[roomId] = latestTs;
   try {
-    var {doc, setDoc} = window._fb;
+    var {doc, updateDoc, setDoc} = window._fb;
+    var ref = doc(window._db,'presence',String(userData.userid));
     var patch = {};
     patch['lastRead.'+roomId] = latestTs;
-    setDoc(doc(window._db,'presence',String(userData.userid)), patch, {merge:true});
+    // updateDoc() is what actually honors dot-path keys as a nested-field
+    // write; set(...,{merge:true}) stores the key literally, dot and all.
+    // Fall back to set() only if the presence doc doesn't exist yet.
+    try { await updateDoc(ref, patch); }
+    catch(e) { await setDoc(ref, {uid:String(userData.userid), lastRead:{[roomId]:latestTs}}, {merge:true}); }
   } catch(e) {}
 }
 

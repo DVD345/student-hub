@@ -150,7 +150,7 @@ body {
 
 a { text-decoration: none; color: inherit; }
 
-.screen { display:none; height:100vh; height:100dvh; }
+.screen { display:none; position:fixed; inset:0; width:100%; height:100vh; height:100dvh; }
 .screen.active { display:flex; }
 
 /* ── LOGIN SCREEN ── */

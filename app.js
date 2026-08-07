@@ -583,19 +583,29 @@ async function initApp() {
 
 // ✅ IMPROVEMENT 3: Wire up all debounced search inputs
 function _setupDebouncedInputs() {
-  // Mobile keyboard detection — update --vh and scroll chat to bottom
+  // Mobile keyboard detection — update --vh and scroll chat to bottom.
+  // visualViewport.height is what actually shrinks when the on-screen
+  // keyboard opens (window.innerHeight/100vh/100dvh don't reliably do
+  // this, especially in an iOS "Add to Home Screen" standalone PWA),
+  // so it's the source of truth whenever it's available.
   function _updateVH() {
-    document.documentElement.style.setProperty('--vh', window.innerHeight * 0.01 + 'px');
+    var h = (window.visualViewport && window.visualViewport.height) || window.innerHeight;
+    document.documentElement.style.setProperty('--vh', h * 0.01 + 'px');
+    var bottomNav = document.getElementById('bottom-nav');
+    var keyboardOpen = h < window.innerHeight - 150;
+    document.body.classList.toggle('keyboard-open', keyboardOpen);
+    if(bottomNav) bottomNav.style.display = keyboardOpen ? 'none' : '';
+    if(keyboardOpen && _currentPage === 'chat') {
+      setTimeout(function() {
+        var msgs = document.getElementById('chat-msgs');
+        if(msgs) msgs.scrollTop = msgs.scrollHeight;
+      }, 100);
+    }
   }
   _updateVH();
+  if(window.visualViewport) window.visualViewport.addEventListener('resize', _updateVH);
   window.addEventListener('resize', function() {
     _updateVH();
-    var wasKeyboard = document.body.classList.contains('keyboard-open');
-    // If viewport shrunk by >150px — keyboard opened
-    var keyboardOpen = window.innerHeight < (window._fullHeight || window.innerHeight) - 150;
-    if(!window._fullHeight) window._fullHeight = window.innerHeight;
-    if(window.innerHeight > window._fullHeight - 50) window._fullHeight = window.innerHeight;
-    document.body.classList.toggle('keyboard-open', keyboardOpen);
     if(_currentPage === 'chat') {
       setTimeout(function() {
         var msgs = document.getElementById('chat-msgs');
@@ -5838,22 +5848,6 @@ function topbarBack() {
   go('dashboard'); setBnav('dashboard');
 }
 
-// Hide bottom nav when keyboard opens (mobile)
-(function() {
-  var bottomNav = null;
-  function getNav() { return bottomNav || (bottomNav = document.getElementById('bottom-nav')); }
-
-  if(window.visualViewport) {
-    window.visualViewport.addEventListener('resize', function() {
-      var nav = getNav(); if(!nav) return;
-      var keyboardOpen = window.visualViewport.height < window.innerHeight - 100;
-      nav.style.display = keyboardOpen ? 'none' : '';
-      if(keyboardOpen && _currentPage === 'chat') {
-        setTimeout(function(){ var m=document.getElementById('chat-msgs'); if(m) m.scrollTop=m.scrollHeight; }, 100);
-      }
-    });
-  }
-})();
 
 // Swipe right to go back (from chat to dashboard)
 (function() {

@@ -20,7 +20,7 @@
 
 <script>
 // PWA Manifest inline
-const APP_BUILD = '159';
+const APP_BUILD = '160';
 (function() {
   try {
     const prevBuild = localStorage.getItem('sh_build');
@@ -64,7 +64,7 @@ document.getElementById('pwa-manifest').href = URL.createObjectURL(_mBlob);
 // Service Worker
 if('serviceWorker' in navigator) {
   const swCode = `
-const CACHE = 'sh-v159';
+const CACHE = 'sh-v160';
 const PRECACHE = ['./'];
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(PRECACHE)).then(() => self.skipWaiting()));
@@ -105,7 +105,7 @@ self.addEventListener('fetch', e => {
 <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Syne:wght@800&family=JetBrains+Mono:wght@400;500&display=swap">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Syne:wght@800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
 <noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Syne:wght@800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"></noscript>
-<link rel="stylesheet" href="style.css?v=159">
+<link rel="stylesheet" href="style.css?v=160">
 <style>
 /* Prevent text selection during long-press on messages */
 .msg { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
@@ -547,7 +547,7 @@ function _loadKaTeX() {
               </div>
               <div style="display:flex;gap:6px;align-items:flex-end;">
                 <button onclick="document.getElementById('chat-file-input').click()" title="Додати файл/фото" style="width:38px;height:38px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);font-size:18px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;">📎</button>
-                <textarea class="chat-input" id="chat-inp" placeholder="Напишіть або вставте фото (Ctrl+V)..." rows="1" onkeydown="chatKey(event)" onpaste="handleChatPaste(event)" oninput="chatInputHandler(event)" autocomplete="off" style="flex:1;"></textarea>
+                <textarea class="chat-input" id="chat-inp" placeholder="Напишіть повідомлення..." rows="1" onkeydown="chatKey(event)" onpaste="handleChatPaste(event)" oninput="chatInputHandler(event)" autocomplete="off" style="flex:1;"></textarea>
                 <button class="btn a" onclick="sendMsg()" style="height:38px;padding:0 14px;flex-shrink:0;">→</button>
               </div>
               <input type="file" id="chat-file-input" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip" style="display:none" onchange="handleChatFile(this)">
@@ -871,7 +871,7 @@ window._authInfo = function() {
 };
 </script>
 
-<script src="app.js?v=159"></script>
+<script src="app.js?v=160"></script>
 
 <div id="course-contents-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:1000;overflow-y:auto;padding:16px;backdrop-filter:blur(4px);">
   <div style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;max-width:640px;margin:0 auto;overflow:hidden;">

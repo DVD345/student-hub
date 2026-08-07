@@ -597,6 +597,22 @@ function _setChatKeyboardOpen(open) {
     var h = (window.visualViewport && window.visualViewport.height) || window.innerHeight;
     document.documentElement.style.setProperty('--vh', h * 0.01 + 'px');
   }, 350);
+  if(open) {
+    // iOS's native "scroll focused input into view" can still fire even
+    // with .screen locked to position:fixed and .content's overflow
+    // hidden - it'll happily scroll window/documentElement/body
+    // directly, ignoring all of that. Fight it by forcing the scroll
+    // position back to 0 on every frame for the first half-second,
+    // which is longer than the native scroll+keyboard animation takes.
+    var frames = 0;
+    (function resetScroll(){
+      window.scrollTo(0,0);
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+      frames++;
+      if(frames < 40) requestAnimationFrame(resetScroll);
+    })();
+  }
 }
 
 // ✅ IMPROVEMENT 3: Wire up all debounced search inputs

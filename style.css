@@ -1738,6 +1738,8 @@ body.deadlines-resizing .dl-width-resizer::before {
 }
 
 .msg-time { font-size:9px; color:var(--text2); font-family:'JetBrains Mono',monospace; padding: 0 2px; }
+.msg-read-tick { margin-left:3px; color:var(--text2); }
+.msg-read-tick.read { color:var(--accent); }
 
 #ai-msgs .msg {
   max-width: 100%;

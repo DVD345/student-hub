@@ -5029,6 +5029,7 @@ function renderMessages(msgs) {
     el.innerHTML='<div class="empty"><div class="emo">💬</div><p>Повідомлень ще немає</p></div>';
     return;
   }
+  var _isDmRoom = String(currentChatRoom||'').indexOf('dm-')===0;
   el.innerHTML=msgs.map((m,idx)=>{
     const isMe=m.uid===String(userData.userid);
     const t=_chatTimeLabel(m.ts);
@@ -5056,9 +5057,10 @@ function renderMessages(msgs) {
     const delBtn = (canDel&&m.id) ? '<button class="msg-del" data-id="'+escHtml(m.id)+'" onclick="delMsg(this.dataset.id)" style="background:rgba(224,80,80,.15);border:1px solid rgba(224,80,80,.3);color:var(--accent2);border-radius:5px;padding:2px 5px;font-size:9px;cursor:pointer;opacity:0;transition:opacity .2s;flex-shrink:0">🗑</button>' : '';
     var _mid=escHtml(m.id||'');
     var _lpA=_mid?' data-lp="'+_mid+'"':'';
+    var readTickHtml = (isMe&&_isDmRoom) ? '<span class="msg-read-tick">✓</span>' : '';
     // Cache clean text for editing (strip trailing edit marks in case of old data)
     if(m.id) _msgTextCache[m.id] = (m.text||'').replace(/\s*\(ред\.\)\s*$/, '').trim();
-    return '<div class="msg '+(isMe?'me':'other')+'" style="position:relative;'+(isGroupStart&&idx>0?'margin-top:10px;':'')+'" '+_lpA+' '+
+    return '<div class="msg '+(isMe?'me':'other')+'" style="position:relative;'+(isGroupStart&&idx>0?'margin-top:10px;':'')+'" '+_lpA+' data-ts="'+(m.ts||0)+'" '+
       'onmouseenter="this.querySelectorAll(\'.msg-del\').forEach(b=>b.style.opacity=1)" '+
       'onmouseleave="this.querySelectorAll(\'.msg-del\').forEach(b=>b.style.opacity=0)">'+
       (!isMe&&isGroupStart?'<div class="msg-author">'+escHtml(m.author)+'</div>':'')+
@@ -5068,7 +5070,7 @@ function renderMessages(msgs) {
         pinBtn+delBtn+
       '</div>'+
       _renderReactions(m)+
-      (showTime?'<div class="msg-time">'+t+'</div>':'')+'</div>';
+      (showTime?'<div class="msg-time">'+t+readTickHtml+'</div>':'')+'</div>';
   }).join('');
   el.scrollTop=el.scrollHeight;
   // Attach touch events with passive:false (only once per container)
@@ -5076,8 +5078,14 @@ function renderMessages(msgs) {
     _attachMsgTouchEvents(el);
     el._touchEventsAttached = true;
   }
-  var _isDmRoom = String(currentChatRoom||'').indexOf('dm-')===0;
   msgs.forEach(function(m){ _maybePing(m, _isDmRoom); });
+  if(_isDmRoom) {
+    _updateReadReceiptMarks();
+    if(_currentPage==='chat') {
+      var latestTs = msgs.reduce(function(max,m){ return Math.max(max, m.ts||0); }, 0);
+      _markDmRead(currentChatRoom, latestTs);
+    }
+  }
 }
 
 // Only messages sent after this page loaded are ping-eligible, and each
@@ -5209,6 +5217,33 @@ function chatInputHandler(e) {
   } else {
     _hideMentionPopup();
   }
+  if(val.trim()) _broadcastTyping(); else _clearTypingStatus();
+}
+
+// ── Typing indicator ──
+var _typingLastSent = 0;
+var _typingClearTimer = null;
+function _broadcastTyping() {
+  if(!window._db || !window._fb || !currentChatRoom || !userData.userid) return;
+  clearTimeout(_typingClearTimer);
+  _typingClearTimer = setTimeout(_clearTypingStatus, 3000);
+  var now = Date.now();
+  if(now - _typingLastSent < 2000) return;
+  _typingLastSent = now;
+  try {
+    var {doc, setDoc} = window._fb;
+    setDoc(doc(window._db,'presence',String(userData.userid)), {
+      typing:true, typingRoom:currentChatRoom, typingAt:now
+    }, {merge:true});
+  } catch(e) {}
+}
+function _clearTypingStatus() {
+  clearTimeout(_typingClearTimer);
+  if(!window._db || !window._fb || !userData.userid) return;
+  try {
+    var {doc, setDoc} = window._fb;
+    setDoc(doc(window._db,'presence',String(userData.userid)), { typing:false }, {merge:true});
+  } catch(e) {}
 }
 function autoResizeChat(el) { el.style.height='auto'; el.style.height=Math.min(el.scrollHeight,140)+'px'; }
 
@@ -5322,10 +5357,15 @@ function _startPresence() {
 }
 
 var _presenceUnsub = null;
+var _dmOtherReadTs = 0;
 function _listenRoomPresence(roomId) {
   if(_presenceUnsub) { _presenceUnsub(); _presenceUnsub = null; }
   var cnt = document.getElementById('chat-online-count');
-  if(!roomId) { if(cnt) cnt.style.display='none'; return; }
+  var typingEl = document.getElementById('chat-typing-indicator');
+  _dmOtherReadTs = 0;
+  if(!roomId) { if(cnt) cnt.style.display='none'; if(typingEl) typingEl.style.display='none'; return; }
+  var isDmRoom = roomId.indexOf('dm-')===0;
+  var otherUid = isDmRoom ? _dmOtherUid(roomId, userData.userid) : null;
   const {collection, onSnapshot} = window._fb;
   _presenceUnsub = onSnapshot(collection(window._db, 'presence'), function(snap) {
     var online = snap.docs.filter(function(d){
@@ -5346,7 +5386,51 @@ function _listenRoomPresence(roomId) {
         d.className = 'online-dot'; el.appendChild(d);
       } else if(!nameMap[name] && dot){ dot.remove(); }
     });
+
+    if(typingEl) {
+      var typingNames = snap.docs
+        .filter(function(d){
+          if(d.id===String(userData.userid)) return false;
+          var p = d.data();
+          return p.typing && p.typingRoom===roomId && p.typingAt > Date.now()-4000;
+        })
+        .map(function(d){ return d.data().name || 'Хтось'; });
+      if(typingNames.length) {
+        typingEl.textContent = typingNames.join(', ') + (typingNames.length>1 ? ' пишуть...' : ' пише...');
+        typingEl.style.display = '';
+      } else {
+        typingEl.style.display = 'none';
+      }
+    }
+
+    if(isDmRoom && otherUid) {
+      var otherDoc = snap.docs.find(function(d){ return d.id===String(otherUid); });
+      var p = otherDoc ? otherDoc.data() : null;
+      _dmOtherReadTs = (p && p.lastRead && p.lastRead[roomId]) || 0;
+      _updateReadReceiptMarks();
+    }
   });
+}
+function _updateReadReceiptMarks() {
+  document.querySelectorAll('.msg.me[data-ts]').forEach(function(el){
+    var tick = el.querySelector('.msg-read-tick');
+    if(!tick) return;
+    var ts = Number(el.dataset.ts)||0;
+    tick.textContent = (ts && ts<=_dmOtherReadTs) ? '✓✓' : '✓';
+    tick.classList.toggle('read', ts && ts<=_dmOtherReadTs);
+  });
+}
+var _lastReadSentTs = {};
+function _markDmRead(roomId, latestTs) {
+  if(!window._db || !window._fb || !userData.userid || !latestTs) return;
+  if((_lastReadSentTs[roomId]||0) >= latestTs) return;
+  _lastReadSentTs[roomId] = latestTs;
+  try {
+    var {doc, setDoc} = window._fb;
+    var patch = {};
+    patch['lastRead.'+roomId] = latestTs;
+    setDoc(doc(window._db,'presence',String(userData.userid)), patch, {merge:true});
+  } catch(e) {}
 }
 
 window.addEventListener('resize', function() {
@@ -5361,6 +5445,7 @@ async function sendMsg() {
   const inp=document.getElementById('chat-inp');
   const text=inp.value.trim();
   if(!text&&!_chatFile)return;
+  _clearTypingStatus();
 
   if(_editingMsgId) {
     const {doc,updateDoc}=window._fb;

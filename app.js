@@ -5106,11 +5106,23 @@ function renderMessages(msgs) {
   }
 }
 
-// Only messages sent after this page loaded are ping-eligible, and each
+// Only messages newer than the watermark are ping-eligible, and each
 // message id is only ever decided once — no matter how many times a room
 // gets reopened or a listener resubscribes, old/already-seen messages
-// never trigger the sound again.
-var _pingSessionStartTs = Date.now();
+// never trigger the sound again. The watermark is persisted to
+// localStorage (not just an in-memory Date.now()) because mobile
+// browsers frequently fully discard and reload a backgrounded tab -
+// an in-memory-only watermark would reset to "now" on that reload,
+// silently swallowing anything that arrived while you were away.
+var _pingWatermark = (function(){
+  try { var saved = Number(localStorage.getItem('sh_ping_watermark')); if(saved) return saved; } catch(e) {}
+  return Date.now();
+})();
+function _bumpPingWatermark(ts) {
+  if(!ts || ts <= _pingWatermark) return;
+  _pingWatermark = ts;
+  try { localStorage.setItem('sh_ping_watermark', String(ts)); } catch(e) {}
+}
 var _pingedMsgIds = {};
 function _isMentioningMe(text) {
   if(!text) return false;
@@ -5128,8 +5140,11 @@ function _isReplyToMe(m) {
 function _maybePing(m, isDm) {
   if(!m || !m.id || _pingedMsgIds[m.id]) return;
   _pingedMsgIds[m.id] = 1;
+  if(!m.ts) return;
+  var isNew = m.ts > _pingWatermark;
+  _bumpPingWatermark(m.ts);
+  if(!isNew) return;
   if(m.uid===String(userData.userid) || !m.text) return;
-  if(!m.ts || m.ts <= _pingSessionStartTs) return;
   if(isDm || _isMentioningMe(m.text) || _isReplyToMe(m)) _pingNotify(m.author, m.text, isDm);
 }
 

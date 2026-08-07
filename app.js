@@ -5113,7 +5113,7 @@ function _maybePing(m, isDm) {
   _pingedMsgIds[m.id] = 1;
   if(m.uid===String(userData.userid) || !m.text) return;
   if(!m.ts || m.ts <= _pingSessionStartTs) return;
-  if(_isMentioningMe(m.text) || _isReplyToMe(m)) _pingNotify(m.author, m.text, isDm);
+  if(isDm || _isMentioningMe(m.text) || _isReplyToMe(m)) _pingNotify(m.author, m.text, isDm);
 }
 
 var _chatPingCount = 0;
@@ -5223,7 +5223,10 @@ function chatKey(e) {
   if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMsg();}
 }
 function chatInputHandler(e) {
-  autoResizeChat(e.target);
+  // Deferred to the next frame: forcing a synchronous reflow (scrollHeight)
+  // on every keystroke can make some mobile keyboards (Gboard's emoji
+  // panel included) drop the character that was just being composed.
+  requestAnimationFrame(function(){ autoResizeChat(e.target); });
   const val = e.target.value, pos = e.target.selectionStart;
   const before = val.slice(0, pos);
   const atMatch = before.match(/@([\wЀ-ӿІіЇїЄєҐґ]*)$/);

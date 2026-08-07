@@ -581,6 +581,24 @@ async function initApp() {
   _startPresence();
 }
 
+// Focus/blur on the chat textarea is a far more reliable "keyboard is
+// (probably) open" signal than visualViewport's resize event, which
+// doesn't fire consistently in every mobile browsing context. Re-measures
+// after a short delay to let the keyboard animation settle, so --vh and
+// the bottom nav end up correct even where the resize event never fires.
+function _setChatKeyboardOpen(open) {
+  var bottomNav = document.getElementById('bottom-nav');
+  if(bottomNav) bottomNav.style.display = open ? 'none' : '';
+  document.body.classList.toggle('keyboard-open', open);
+  if(open && _currentPage === 'chat') {
+    setTimeout(function(){ var m=document.getElementById('chat-msgs'); if(m) m.scrollTop=m.scrollHeight; }, 100);
+  }
+  setTimeout(function(){
+    var h = (window.visualViewport && window.visualViewport.height) || window.innerHeight;
+    document.documentElement.style.setProperty('--vh', h * 0.01 + 'px');
+  }, 350);
+}
+
 // ✅ IMPROVEMENT 3: Wire up all debounced search inputs
 function _setupDebouncedInputs() {
   // Mobile keyboard detection — update --vh and scroll chat to bottom.

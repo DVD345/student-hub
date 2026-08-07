@@ -20,7 +20,7 @@
 
 <script>
 // PWA Manifest inline
-const APP_BUILD = '163';
+const APP_BUILD = '164';
 (function() {
   try {
     const prevBuild = localStorage.getItem('sh_build');
@@ -64,7 +64,7 @@ document.getElementById('pwa-manifest').href = URL.createObjectURL(_mBlob);
 // Service Worker
 if('serviceWorker' in navigator) {
   const swCode = `
-const CACHE = 'sh-v163';
+const CACHE = 'sh-v164';
 const PRECACHE = ['./'];
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(PRECACHE)).then(() => self.skipWaiting()));
@@ -105,7 +105,7 @@ self.addEventListener('fetch', e => {
 <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Syne:wght@800&family=JetBrains+Mono:wght@400;500&display=swap">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Syne:wght@800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
 <noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Syne:wght@800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"></noscript>
-<link rel="stylesheet" href="style.css?v=163">
+<link rel="stylesheet" href="style.css?v=164">
 <style>
 /* Prevent text selection during long-press on messages */
 .msg { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
@@ -249,6 +249,8 @@ function _loadKaTeX() {
         </div>
         <button class="icon-btn" onclick="doLogout()">↩</button>
       </div>
+      <div id="build-badge" style="text-align:center;font-size:9px;color:var(--text2);opacity:.5;padding:4px 0 0;"></div>
+      <script>document.getElementById('build-badge').textContent = 'v' + APP_BUILD;</script>
     </div>
   </nav>
   <div class="sidebar-resizer" id="sidebar-resizer" aria-hidden="true"></div>
@@ -871,7 +873,7 @@ window._authInfo = function() {
 };
 </script>
 
-<script src="app.js?v=163"></script>
+<script src="app.js?v=164"></script>
 
 <div id="course-contents-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:1000;overflow-y:auto;padding:16px;backdrop-filter:blur(4px);">
   <div style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;max-width:640px;margin:0 auto;overflow:hidden;">

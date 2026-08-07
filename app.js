@@ -4659,8 +4659,6 @@ function startDirectChat(uid) {
 }
 function openChatRoom(roomId, label) {
   currentChatRoom=roomId;
-  window._lastMsgRoom = roomId;
-  window._lastMsgCount = undefined;
   _cancelReply(); // clear any leftover edit/reply state and input
   _listenRoomPresence(roomId);
   var titleEl = document.getElementById('chat-room-title');
@@ -5029,13 +5027,7 @@ function renderMessages(msgs) {
   const el=document.getElementById('chat-msgs');
   if(!msgs.length){
     el.innerHTML='<div class="empty"><div class="emo">💬</div><p>Повідомлень ще немає</p></div>';
-    window._lastMsgRoom = currentChatRoom;
-    window._lastMsgCount = 0;
     return;
-  }
-  if(window._lastMsgRoom !== currentChatRoom) {
-    window._lastMsgRoom = currentChatRoom;
-    window._lastMsgCount = msgs.length;
   }
   el.innerHTML=msgs.map((m,idx)=>{
     const isMe=m.uid===String(userData.userid);
@@ -5084,17 +5076,23 @@ function renderMessages(msgs) {
     _attachMsgTouchEvents(el);
     el._touchEventsAttached = true;
   }
-  if(window._lastMsgCount!==undefined&&window._lastMsgRoom===currentChatRoom&&msgs.length>window._lastMsgCount){
-    var _isDmRoom = String(currentChatRoom||'').indexOf('dm-')===0;
-    msgs.slice(window._lastMsgCount).forEach(function(m){
-      if(m.uid===String(userData.userid)||!m.text) return;
-      var mentioned = userData.fullname && m.text.toLowerCase().includes('@'+userData.fullname.split(' ')[0].toLowerCase());
-      if(_isDmRoom||mentioned){
-        _pingNotify(m.author,m.text,_isDmRoom);
-      }
-    });
-  }
-  window._lastMsgCount=msgs.length;
+  var _isDmRoom = String(currentChatRoom||'').indexOf('dm-')===0;
+  msgs.forEach(function(m){ _maybePing(m, _isDmRoom); });
+}
+
+// Only messages sent after this page loaded are ping-eligible, and each
+// message id is only ever decided once — no matter how many times a room
+// gets reopened or a listener resubscribes, old/already-seen messages
+// never trigger the sound again.
+var _pingSessionStartTs = Date.now();
+var _pingedMsgIds = {};
+function _maybePing(m, isDm) {
+  if(!m || !m.id || _pingedMsgIds[m.id]) return;
+  _pingedMsgIds[m.id] = 1;
+  if(m.uid===String(userData.userid) || !m.text) return;
+  if(!m.ts || m.ts <= _pingSessionStartTs) return;
+  var mentioned = userData.fullname && m.text.toLowerCase().includes('@'+userData.fullname.split(' ')[0].toLowerCase());
+  if(isDm||mentioned) _pingNotify(m.author, m.text, isDm);
 }
 
 var _chatPingCount = 0;
@@ -5117,16 +5115,16 @@ function _pingNotify(author,text,isDm){
     function beep(freq,start,dur,vol){
       var o=ctx.createOscillator(),g=ctx.createGain();
       o.connect(g);g.connect(ctx.destination);
-      o.type='sine';
+      o.type='triangle';
       o.frequency.setValueAtTime(freq,ctx.currentTime+start);
       g.gain.setValueAtTime(0,ctx.currentTime+start);
-      g.gain.linearRampToValueAtTime(vol||0.2,ctx.currentTime+start+0.01);
+      g.gain.linearRampToValueAtTime(vol||0.12,ctx.currentTime+start+0.015);
       g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+start+dur);
       o.start(ctx.currentTime+start);
       o.stop(ctx.currentTime+start+dur+0.02);
     }
-    beep(1568,0,0.08,0.18);
-    beep(2093,0.09,0.12,0.12);
+    beep(660,0,0.11,0.11);
+    beep(880,0.08,0.16,0.09);
   }catch(e){}
 }
 function _clearChatBadge(){
@@ -5141,7 +5139,6 @@ function _clearChatBadge(){
 // (not just the one currently open) so pings work regardless of which page
 // you're on. openChatRoom()'s own listener only covers the room on screen.
 var _globalMsgUnsub = null;
-var _globalMsgSeenIds = null;
 function _globalMessageRoomIds() {
   var ids = ['group-'+(group.id||''), 'faculty-'+(group.faculty||'general'), 'university'];
   (_chatDmRooms||[]).forEach(function(r){ if(r && r.id) ids.push(r.id); });
@@ -5156,25 +5153,9 @@ function _startGlobalMessageListener() {
   if(_globalMsgUnsub) { _globalMsgUnsub(); _globalMsgUnsub=null; }
   var {collection, query, where, orderBy, limit, onSnapshot} = window._fb;
   var q = query(collection(window._db,'messages'), where('room','in',ids), orderBy('ts','desc'), limit(20));
-  _globalMsgSeenIds = null;
   _globalMsgUnsub = onSnapshot(q, function(snap){
-    var msgs = snap.docs.map(function(d){ return Object.assign({id:d.id}, d.data()); });
-    if(_globalMsgSeenIds === null) {
-      // First fire after (re)subscribing: just record what's already there, don't ping the backlog.
-      _globalMsgSeenIds = {};
-      msgs.forEach(function(m){ _globalMsgSeenIds[m.id]=1; });
-      return;
-    }
-    msgs.forEach(function(m){
-      if(_globalMsgSeenIds[m.id]) return;
-      _globalMsgSeenIds[m.id]=1;
-      if(m.uid===String(userData.userid) || !m.text) return;
-      // If this room is the one currently open on the chat page, its own
-      // onSnapshot listener already handled the ping — don't double-fire.
-      if(m.room===currentChatRoom && _currentPage==='chat') return;
-      var isDmRoom = String(m.room||'').indexOf('dm-')===0;
-      var mentioned = userData.fullname && m.text.toLowerCase().includes('@'+userData.fullname.split(' ')[0].toLowerCase());
-      if(isDmRoom||mentioned) _pingNotify(m.author, m.text, isDmRoom);
+    snap.docs.map(function(d){ return Object.assign({id:d.id}, d.data()); }).forEach(function(m){
+      _maybePing(m, String(m.room||'').indexOf('dm-')===0);
     });
   }, function(){});
 }
@@ -5183,33 +5164,25 @@ function _startGlobalMessageListener() {
 // room id you therefore don't have bookmarked yet (so it's not in the
 // room-list query above). Also adds it to your DM sidebar so it's visible.
 var _incomingDmUnsub = null;
-var _incomingDmSeenIds = null;
+var _incomingDmProcessedIds = {};
 function _startIncomingDmListener() {
   if(!window._db || !window._fb || !userData || !userData.userid) return;
   if(_incomingDmUnsub) { _incomingDmUnsub(); _incomingDmUnsub=null; }
   var {collection, query, where, orderBy, limit, onSnapshot} = window._fb;
   var q = query(collection(window._db,'messages'), where('toUid','==',String(userData.userid)), orderBy('ts','desc'), limit(20));
-  _incomingDmSeenIds = null;
   _incomingDmUnsub = onSnapshot(q, function(snap){
     var msgs = snap.docs.map(function(d){ return Object.assign({id:d.id}, d.data()); });
-    if(_incomingDmSeenIds === null) {
-      _incomingDmSeenIds = {};
-      msgs.forEach(function(m){ _incomingDmSeenIds[m.id]=1; });
-      return;
-    }
     msgs.forEach(function(m){
-      if(_incomingDmSeenIds[m.id]) return;
-      _incomingDmSeenIds[m.id]=1;
-      if(_globalMsgSeenIds && _globalMsgSeenIds[m.id]) return;
-      if(m.uid===String(userData.userid) || !m.text) return;
-      if(m.room===currentChatRoom && _currentPage==='chat') return;
+      if(_incomingDmProcessedIds[m.id]) return;
+      _incomingDmProcessedIds[m.id] = 1;
+      if(m.uid===String(userData.userid) || !m.room) return;
       if(!_chatDmRooms.some(function(r){ return r.id===m.room; })) {
         _chatDmRooms.unshift({ id:m.room, label:m.author||'Користувач', sub:'Особисті повідомлення', uid:String(m.uid) });
         _chatDmRooms = _chatDmRooms.slice(0,20);
         _saveChatDmRooms();
         if(document.getElementById('chat-rooms')) setupChatRooms();
       }
-      _pingNotify(m.author, m.text, true);
+      _maybePing(m, true);
     });
   }, function(){});
 }

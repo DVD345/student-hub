@@ -638,6 +638,15 @@ body.deadlines-resizing {
    where the nav used to be. Collapse it down to just the safe-area
    inset (still needed on notched phones) whenever the nav is hidden. */
 body.keyboard-open .content { padding-bottom: env(safe-area-inset-bottom, 0px) !important; }
+/* iOS's own "scroll the focused input into view" behavior grabs the
+   nearest scrollable ancestor - which is .content (overflow-y:auto) -
+   and scrolls IT instead of the page, landing on some arbitrary offset
+   and leaving the composer stranded near the top with the bottom nav
+   floating in the leftover space. .chat-messages has its own internal
+   scroll for the actual message list, so .content itself never needs
+   to scroll on the chat page - lock it while the keyboard is open so
+   iOS has nothing to grab.  */
+body.keyboard-open .content { overflow:hidden !important; }
 
 .guest-topbar-btn {
   background:var(--accent); color:#000; border:none; border-radius:20px;

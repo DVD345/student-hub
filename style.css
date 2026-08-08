@@ -644,7 +644,18 @@ body.deadlines-resizing {
 }
 /* Toggled by _applyDynamicLayouts() on the mobile chat page: its card is
    meant to run flush into the nav, with no breathing gap. */
-body.chat-flush .content { padding-bottom: var(--nav-h, 84px); }
+body.mobile-chat .content { padding-bottom: var(--nav-h, 84px); }
+
+/* With the keyboard up, the visible area is roughly 440px and the chat's
+   navigation chrome was eating ~300 of it, leaving barely a message and
+   a half on screen. None of it is needed mid-typing: you are already in
+   a room, so the room switcher is dead weight, and the pinned banner is
+   one tap away once the keyboard is down. Both come straight back on
+   blur. !important because JS sets these display values inline. */
+body.mobile-chat.keyboard-open #chat-rooms { display:none !important; }
+body.mobile-chat.keyboard-open .pinned-bar { display:none !important; }
+body.mobile-chat.keyboard-open .chat-header { padding:7px 14px; }
+body.mobile-chat.keyboard-open .chat-messages { padding-top:8px; }
 
 .guest-topbar-btn {
   background:var(--accent); color:#000; border:none; border-radius:20px;

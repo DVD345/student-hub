@@ -805,7 +805,7 @@ function _applyDynamicLayouts() {
   // measured height and nothing more. Done with a class rather than an
   // inline style because the value is a var() reference, and those are
   // not reliably settable through the CSSOM.
-  document.body.classList.toggle('chat-flush', !!(isChat && mobile));
+  document.body.classList.toggle('mobile-chat', !!(isChat && mobile));
   if(!isChat || !chatWrap || !chatSidebar || !chatMain) return;
 
   if(mobile) {

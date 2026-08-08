@@ -642,6 +642,9 @@ body.deadlines-resizing {
   -webkit-overflow-scrolling: touch;
   position:relative;
 }
+/* Toggled by _applyDynamicLayouts() on the mobile chat page: its card is
+   meant to run flush into the nav, with no breathing gap. */
+body.chat-flush .content { padding-bottom: var(--nav-h, 84px); }
 
 .guest-topbar-btn {
   background:var(--accent); color:#000; border:none; border-radius:20px;

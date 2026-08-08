@@ -615,11 +615,17 @@ function _isTextEntry(el) {
   return !/^(button|submit|reset|checkbox|radio|range|color|file|image|hidden)$/i.test(el.type || 'text');
 }
 
+var _lastShellH = 0;
+
 function _syncViewport(force) {
   var vv = window.visualViewport;
   var h = (vv && vv.height) || window.innerHeight;
-  var offTop = (vv && vv.offsetTop) || 0;
   var mobile = window.innerWidth <= 899;
+
+  // While the user is pinch-zoomed every viewport number describes the
+  // zoomed view, not the layout - resizing the shell from those values
+  // would fight the gesture. Leave the last good layout in place.
+  if(vv && vv.scale && vv.scale > 1.05 && !force) return;
 
   // Baseline = the viewport with no keyboard in the way. Re-taken on
   // every sync while nothing is focused, so rotation and the Safari
@@ -628,15 +634,29 @@ function _syncViewport(force) {
   var shrank = h < _vpBaseH - 100;
   var keyboardOpen = mobile && (_kbFocused || shrank);
 
+  // visualViewport.offsetTop is ONLY trustworthy as a keyboard signal.
+  // iOS also reports one during rubber-band overscroll and pinch, and
+  // repositioning the shell from those values yanks the whole UI around
+  // under the user's finger - which is what stopped taps on the chat
+  // room chips from registering. So outside of an actually-open keyboard
+  // the offset is pinned to 0 and the shell simply fills the viewport.
+  var offTop = keyboardOpen ? Math.round((vv && vv.offsetTop) || 0) : 0;
+
   // If the viewport height did NOT shrink but the page got pushed up to
   // reveal the focused field (iOS does exactly this), then the bottom
   // `offTop` pixels of the shell are sitting behind the keyboard - so
   // drop them from the shell height instead of letting the composer
   // hide under it.
-  var shellH = Math.max(1, h - ((!shrank && offTop > 0) ? offTop : 0));
+  var shellH = Math.max(1, Math.round(h - ((keyboardOpen && !shrank) ? offTop : 0)));
+  // iOS hands back fractional, slightly drifting heights. Ignore sub-2px
+  // wobble so the shell isn't rewritten mid-gesture for nothing.
+  if(!force && Math.abs(shellH - _lastShellH) < 2) shellH = _lastShellH;
 
   var bottomNav = document.getElementById('bottom-nav');
-  if(bottomNav) bottomNav.style.display = keyboardOpen ? 'none' : '';
+  // Assign only on a real change: this runs on every poll tick, and
+  // touching .style at all invalidates the element's style in WebKit.
+  var wantDisplay = keyboardOpen ? 'none' : '';
+  if(bottomNav && bottomNav.style.display !== wantDisplay) bottomNav.style.display = wantDisplay;
   // offsetHeight is 0 while the nav is hidden - by the keyboard, by the
   // >=900px media query, or because the app shell isn't shown yet -
   // which is exactly the reservation .content should make in each of
@@ -647,11 +667,12 @@ function _syncViewport(force) {
   var sig = shellH + '|' + offTop + '|' + keyboardOpen + '|' + mobile + '|' + navH;
   if(!force && sig === _vpSig) return;
   _vpSig = sig;
+  _lastShellH = shellH;
 
   document.documentElement.style.setProperty('--nav-h', navH + 'px');
   document.documentElement.style.setProperty('--vh', shellH * 0.01 + 'px');
   // .screen is position:fixed, i.e. pinned to the LAYOUT viewport. When
-  // the visual viewport is offset from it (keyboard open) the shell has
+  // the keyboard has pushed the visible area away from it, the shell has
   // to be pushed down by the same amount to stay on screen.
   document.querySelectorAll('.screen').forEach(function(s) {
     s.style.top = offTop + 'px';
@@ -778,13 +799,13 @@ function _applyDynamicLayouts() {
   var isChat = _currentPage === 'chat' && pageChat;
   var mobile = window.innerWidth <= 899;
 
-  if(content) {
-    content.style.overflow = isChat ? 'hidden' : '';
-    // Every other page keeps a 12px breathing gap above the nav; the chat
-    // card is meant to run flush into it, so reserve exactly the nav's
-    // measured height there and nothing more.
-    content.style.paddingBottom = (isChat && mobile) ? 'var(--nav-h, 0px)' : '';
-  }
+  if(content) content.style.overflow = isChat ? 'hidden' : '';
+  // Every other page keeps a 12px breathing gap above the nav; the chat
+  // card is meant to run flush into it, so it reserves exactly the nav's
+  // measured height and nothing more. Done with a class rather than an
+  // inline style because the value is a var() reference, and those are
+  // not reliably settable through the CSSOM.
+  document.body.classList.toggle('chat-flush', !!(isChat && mobile));
   if(!isChat || !chatWrap || !chatSidebar || !chatMain) return;
 
   if(mobile) {

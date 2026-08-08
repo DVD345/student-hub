@@ -5298,15 +5298,37 @@ function _isReplyToMe(m) {
   return (userData.nickname && a===userData.nickname.toLowerCase())
     || (userData.fullname && a===userData.fullname.toLowerCase());
 }
+// window.Notification does not exist AT ALL in iOS Safari - Apple only
+// exposes it to installed ("Add to Home Screen") PWAs, and only since
+// 16.4. So `Notification.permission` is not a falsy read there, it is a
+// ReferenceError. That throw was landing in the middle of the ping
+// pipeline: the badge had already been bumped, but the notification and
+// the alert sound never happened, and the exception then unwound out of
+// the DM listener's loop, so every message after the first one in a
+// batch was dropped too. Everything that touches the API goes through
+// these two helpers now.
+function _canNotify() {
+  try { return typeof Notification !== 'undefined' && Notification.permission === 'granted'; }
+  catch(e) { return false; }
+}
+function _notify(title, opts) {
+  if(!_canNotify()) return false;
+  try { new Notification(title, opts || {}); return true; } catch(e) { return false; }
+}
+
 function _maybePing(m, isDm) {
-  if(!m || !m.id || _pingedMsgIds[m.id]) return;
-  _pingedMsgIds[m.id] = 1;
-  if(!m.ts) return;
-  var isNew = m.ts > _pingWatermark;
-  _bumpPingWatermark(m.ts);
-  if(!isNew) return;
-  if(m.uid===String(userData.userid) || !m.text) return;
-  if(isDm || _isMentioningMe(m.text) || _isReplyToMe(m)) _pingNotify(m.author, m.text, isDm);
+  // Never let one bad message take down the batch it arrived in: this
+  // runs inside snapshot handlers and inside renderMessages' loop.
+  try {
+    if(!m || !m.id || _pingedMsgIds[m.id]) return;
+    _pingedMsgIds[m.id] = 1;
+    if(!m.ts) return;
+    var isNew = m.ts > _pingWatermark;
+    _bumpPingWatermark(m.ts);
+    if(!isNew) return;
+    if(m.uid===String(userData.userid) || !m.text) return;
+    if(isDm || _isMentioningMe(m.text) || _isReplyToMe(m)) _pingNotify(m.author, m.text, isDm);
+  } catch(e) { console.error('[ping] failed for message', m && m.id, e); }
 }
 
 var _chatPingCount = 0;
@@ -5318,10 +5340,8 @@ function _pingNotify(author,text,isDm){
     if(b1){b1.textContent=_chatPingCount;b1.style.display='';}
     if(b2){b2.textContent=_chatPingCount;b2.style.display='';}
   }
-  if(Notification.permission==='granted'){
-    var title = isDm ? ('✉️ '+(author||'Хтось')+' написав(ла) вам') : ('🔔 '+(author||'Хтось')+' згадав вас');
-    try{new Notification(title,{body:text.slice(0,80),tag:'mention_'+Date.now()});}catch(e){}
-  }
+  var title = isDm ? ('✉️ '+(author||'Хтось')+' написав(ла) вам') : ('🔔 '+(author||'Хтось')+' згадав вас');
+  _notify(title, {body:text.slice(0,80), tag:'mention_'+Date.now()});
   // Sound only matters if you'd otherwise miss the message - if you're
   // already looking at the chat page you can see it arrive live.
   if(_currentPage!=='chat'){
@@ -5375,7 +5395,7 @@ function _startGlobalMessageListener() {
     snap.docs.map(function(d){ return Object.assign({id:d.id}, d.data()); }).forEach(function(m){
       _maybePing(m, String(m.room||'').indexOf('dm-')===0);
     });
-  }, function(){});
+  }, function(err){ _reportListenerFailure('фонові згадки в чатах', err); });
 }
 
 // Catches a brand-new DM from someone who's never messaged you before, whose
@@ -5402,7 +5422,34 @@ function _startIncomingDmListener() {
       }
       _maybePing(m, true);
     });
-  }, function(){});
+  }, function(err){ _reportListenerFailure('вхідні особисті повідомлення', err); });
+}
+
+// Both listeners above used to pass an empty error callback, so if the
+// subscription ever failed it failed in total silence - no pings, no
+// clue why. The most likely cause is a missing Firestore composite
+// index: both queries pair an equality filter with orderBy('ts') and
+// Firestore refuses those ('failed-precondition') until the index
+// exists, handing back an error whose message contains a one-click
+// link to create it. Surface that instead of hiding it.
+var _reportedListenerFailures = {};
+function _reportListenerFailure(what, err) {
+  var code = (err && err.code) || '';
+  console.error('[chat] listener "' + what + '" failed:', code, err && err.message);
+  // Both listeners get resubscribed whenever the DM room list changes;
+  // report each distinct failure once so it can't spam the bell.
+  if(_reportedListenerFailures[what + code]) return;
+  _reportedListenerFailures[what + code] = 1;
+  if(code === 'failed-precondition') {
+    console.error(
+      '[chat] Firestore needs a composite index for this query. ' +
+      'Open the link in the message above to create it, then reload.'
+    );
+  }
+  if(typeof addNotif === 'function') {
+    addNotif('system', '⚠️ Сповіщення не працюють',
+      'Не вдалося підписатися на ' + what + ' (' + (code || 'помилка') + '). Деталі — у консолі.');
+  }
 }
 
 function chatKey(e) {
@@ -6946,7 +6993,7 @@ function addNotif(type,title,body){
   _saveNotificationsLocal();
   _saveNotificationsCloud();
   updateBellCount(); renderNotifs();
-  if(Notification.permission==='granted') new Notification('Student Hub — '+title,{body,icon:'🎓'});
+  _notify('Student Hub — '+title,{body,icon:'🎓'});
 }
 function updateBellCount(){
   const unread=notifList.filter(n=>!n.read).length;
@@ -6995,7 +7042,7 @@ function scheduleDeadlineNotifs(){
         const msg=hours<=1?'Менше години!':'Через '+hours+' год';
         addNotif('deadline','⏰ '+d.name,msg+' — '+d.course);
         localStorage.setItem(key,'1');
-        if(Notification.permission==='granted'){try{new Notification('⏰ '+d.name,{body:msg+'\n'+d.course,tag:'dl_'+d.id,requireInteraction:hours<=2});}catch(e){}}
+        _notify('⏰ '+d.name,{body:msg+'\n'+d.course,tag:'dl_'+d.id,requireInteraction:hours<=2});
       }
     }
     if(diff>0&&diff<=24*3600){
@@ -7004,7 +7051,7 @@ function scheduleDeadlineNotifs(){
         const h2=Math.round(diff/3600);
         addNotif('deadline','🔴 '+d.name,'Залишилось '+h2+'год! — '+d.course);
         localStorage.setItem(key2,'1');
-        if(Notification.permission==='granted'){try{new Notification('🔴 Термін! '+d.name,{body:'Залишилось '+h2+' год!',tag:'dl_urgent_'+d.id,requireInteraction:true});}catch(e){}}
+        _notify('🔴 Термін! '+d.name,{body:'Залишилось '+h2+' год!',tag:'dl_urgent_'+d.id,requireInteraction:true});
       }
     }
   });

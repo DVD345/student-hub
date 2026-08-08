@@ -1508,6 +1508,24 @@ body.deadlines-resizing .dl-width-resizer::before {
 }
 /* Unread-ping count, so the room list answers "where was I pinged?"
    without opening every room. Cleared when the room is opened. */
+/* Assistant: force web search on, instead of relying on the keyword
+   sniffer to notice the question needs fresh facts. */
+.ai-web-btn {
+  width:46px; height:46px; flex-shrink:0;
+  background:var(--bg3); border:1px solid var(--border);
+  border-radius:var(--r); font-size:19px; cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+  filter:grayscale(1); opacity:.55;
+  transition:border-color .2s, opacity .2s, filter .2s, background .2s;
+}
+.ai-web-btn:hover { opacity:.85; border-color:var(--accent); }
+.ai-web-btn.on {
+  filter:none; opacity:1;
+  border-color:var(--accent);
+  background:rgba(240,192,64,.12);
+  box-shadow:0 0 0 1px rgba(240,192,64,.25);
+}
+
 .chat-room-badge {
   position:absolute; top:-6px; right:-4px;
   background:var(--accent2); color:#fff;

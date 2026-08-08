@@ -6825,41 +6825,51 @@ async function _attachAIDocument(file){
   }
 }
 
+// Which models this Groq key actually serves, probed live against the
+// proxy. Everything else the old router pointed at is gone: all four
+// vision models (llama-4-maverick, llama-4-scout, llama-3.2-*-vision)
+// answer model_not_found or model_decommissioned, so image questions
+// were failing on the primary AND the fallback and surfacing a raw API
+// error.
+//
+// The old router also sent anything that didn't trip a keyword list to
+// llama-3.1-8b-instant. That is what made the assistant look stupid: on
+// a standard braking-distance problem the 8b model reached for s = v0*t
+// and confidently returned double the right answer. Capability first
+// now, and we walk DOWN the chain only when a model is rate-limited.
+var AI_CHAIN = ['openai/gpt-oss-120b', 'llama-3.3-70b-versatile', 'llama-3.1-8b-instant'];
+// Server-side web search lives in the compound family. compound-mini is
+// the one that answers on this key - plain `groq/compound` is backed by
+// gpt-oss-120b and shares its (tight) rate limit.
+var AI_WEB_CHAIN = ['groq/compound-mini'].concat(AI_CHAIN);
+
+// gpt-oss models bill their hidden reasoning against max_tokens, so a
+// budget that looks generous for the visible answer still truncates it
+// mid-formula. These are deliberately roomy.
 function _selectAIModel(text, hasImage, hasDocument){
-  if(hasImage) {
-    return {
-      primary: 'meta-llama/llama-4-maverick-17b-128e-instruct',
-      fallback: 'meta-llama/llama-4-scout-17b-16e-instruct',
-      maxTokens: 2200
-    };
+  if(_aiWantsWeb(text)) return { chain: AI_WEB_CHAIN, maxTokens: 3000, web: true };
+  if(hasDocument)       return { chain: AI_CHAIN,     maxTokens: 4000, web: false };
+  if(hasImage)          return { chain: AI_CHAIN,     maxTokens: 3000, web: false };
+  return { chain: AI_CHAIN, maxTokens: 3500, web: false };
+}
+
+// Route to the web-search model when the question is about something no
+// static model can know. Explicit toggle wins; otherwise sniff for
+// freshness cues. Kept deliberately narrow - a false positive costs an
+// unnecessary web round-trip and a slower answer.
+function _aiWantsWeb(text){
+  if(_aiWebForced) return true;
+  var t = String(text || '').toLowerCase();
+  return /(погугл|загугл|пошука|пошукай|знайди в інтернет|в інтернеті|гугл|新闻|новин|курс (валют|долар|євро)|скільки коштує|яка ціна|погод|хто зараз|що зараз|останні|актуальн|сьогодні|вчора|цього тижня|цього року|розклад руху)/.test(t);
+}
+var _aiWebForced = false;
+function toggleAIWeb(){
+  _aiWebForced = !_aiWebForced;
+  var b = document.getElementById('ai-web-btn');
+  if(b){
+    b.classList.toggle('on', _aiWebForced);
+    b.title = _aiWebForced ? 'Пошук в інтернеті: увімкнено' : 'Пошук в інтернеті: авто';
   }
-  if(hasDocument) {
-    return {
-      primary: 'llama-3.3-70b-versatile',
-      fallback: 'llama-3.1-8b-instant',
-      maxTokens: 2800
-    };
-  }
-  var normalized = String(text || '').toLowerCase();
-  var wordCount = normalized.split(/\s+/).filter(Boolean).length;
-  var hasMath = /[0-9][0-9x?+\-*/=()]/.test(normalized) || /\b(c\+\+|python|sql|html|css|js|javascript)\b/.test(normalized);
-  var hasStudyKeywords = [
-    'rozv', 'poyasn', 'doved', 'pokrok', 'formula', 'math', 'analiz', 'plan', 'conspect', 'essay', 'lab', 'referat',
-    'розв', 'поясн', 'довед', 'покрок', 'формул', 'матем', 'анал', 'план', 'конспект', 'есе', 'лаборатор', 'реферат', 'іспит', 'екзам'
-  ].some(function(token){ return normalized.indexOf(token) !== -1; });
-  var isComplex = wordCount > 70 || normalized.length > 450 || hasMath || hasStudyKeywords;
-  if(isComplex) {
-    return {
-      primary: 'llama-3.3-70b-versatile',
-      fallback: 'llama-3.1-8b-instant',
-      maxTokens: 2600
-    };
-  }
-  return {
-    primary: 'llama-3.1-8b-instant',
-    fallback: 'llama-3.3-70b-versatile',
-    maxTokens: 1200
-  };
 }
 function setAIImage(base64,mime){
   aiDocAttachment = null;
@@ -6917,6 +6927,15 @@ async function sendAI(){
   const hasDocument=!!(aiDocAttachment && aiDocAttachment.text);
   if(aiAttachmentBusy){ alert('Зачекай, документ ще обробляється.'); return; }
   if(!text&&!hasImage&&!hasDocument)return;
+  // Every vision model this Groq key used to point at is decommissioned,
+  // so an attached image could only ever produce a raw API error. Say
+  // that plainly rather than pretending to look at it.
+  if(hasImage){
+    appendAIMsg('me',text||'[Зображення]','data:'+aiImageMime+';base64,'+aiImageBase64,null);
+    clearAIImg();
+    appendAIMsg('other','📷 Розпізнавання зображень зараз недоступне — жодна з моделей на цьому ключі більше не приймає картинки. Надішли текстом або прикріпи PDF/DOCX: їх я читаю.');
+    return;
+  }
   inp.value='';
   appendAIMsg('me',text||(hasDocument?('Файл: '+(aiDocAttachment.name||'Документ')):'?? ????'),hasImage?('data:'+aiImageMime+';base64,'+aiImageBase64):null,hasDocument?(aiDocAttachment.name||'Документ'):null);
   let userContent, historyContent;
@@ -6942,12 +6961,22 @@ async function sendAI(){
   document.getElementById('ai-send').disabled=true;
   try {
     const contextParts = _buildAIContextParts();
+    const modelPlan = _selectAIModel(text, hasImage, hasDocument);
+    // The web-capable model has a search tool. Telling it "say you're
+    // unsure about time-sensitive things" makes it decline instead of
+    // searching, so that rule is swapped for its opposite on this path.
+    const freshnessRule = modelPlan.web
+      ? "- You have a live web search tool. For anything time-sensitive (news, prices, dates, schedules, who currently holds a post) SEARCH FIRST and answer from what you found. Name the sources. Never answer such a question from memory, and never tell the user to search themselves."
+      : "- Never guess at anything time-sensitive (news, prices, schedules, who currently holds a post). Say plainly that you cannot verify it, and suggest turning on the 🌐 web-search button.";
     const systemPrompt = [
       "You are StudentHub academic assistant for university students.",
+      "Today is " + new Date().toLocaleDateString('uk-UA', {weekday:'long', year:'numeric', month:'long', day:'numeric'}) + ".",
       "RULES:",
       "- Always answer in Ukrainian.",
       "- Use site context when it is available.",
       "- Do not invent facts. If you are unsure, say so clearly.",
+      freshnessRule,
+      "- For calculations, state the formula first, then substitute the numbers, then give the result with units. Sanity-check the result before presenting it.",
       "- If the request is vague, ask one short clarifying question only when necessary.",
       "- Keep short answers concise and practical.",
       "- For difficult study questions give structured answers without unnecessary filler.",
@@ -6956,7 +6985,6 @@ async function sendAI(){
       "- Use markdown: **bold**, headings, bullet lists, and `code` when useful.",
       "- Write like a helpful student assistant, not like a bureaucratic manual."
     ].join('\n') + (contextParts.length ? '\nSite context: ' + contextParts.join('. ') : '');
-    const modelPlan = _selectAIModel(text, hasImage, hasDocument);
     const historyForAPI=aiHistory.slice(-9).map((m,i,arr)=>{
       if(i<arr.length-1&&Array.isArray(m.content)){
         const textOnly=_aiPlainText(m.content);
@@ -6965,22 +6993,41 @@ async function sendAI(){
       return typeof m.content === 'string' ? m : {role:m.role,content:_aiPlainText(m.content)||'[??????????]'};
     });
     const messages=[{role:'system',content:systemPrompt},...historyForAPI,{role:'user',content:userContent}];
-    let resp=await fetch(_getAIEndpoint(),{
-      method:'POST',
-      headers:{'Content-Type':'application/json','Authorization':'Bearer '+_getAIToken()},
-      body:JSON.stringify({model:modelPlan.primary,max_tokens:modelPlan.maxTokens,messages,temperature:0.35})
-    });
-    let data=await resp.json();
-    if(data.error){
-      resp=await fetch(_getAIEndpoint(),{
+    // Walk the chain instead of retrying once: the strongest model has
+    // the tightest rate limit, so "busy" has to degrade to a weaker
+    // model rather than turning into an error the user sees.
+    let data=null, lastError=null, usedModel=null;
+    for(const model of modelPlan.chain){
+      const r=await fetch(_getAIEndpoint(),{
         method:'POST',
         headers:{'Content-Type':'application/json','Authorization':'Bearer '+_getAIToken()},
-        body:JSON.stringify({model:modelPlan.fallback,max_tokens:modelPlan.maxTokens,messages,temperature:0.35})
+        body:JSON.stringify({model,max_tokens:modelPlan.maxTokens,messages,temperature:0.35})
       });
-      data=await resp.json();
+      const d=await r.json();
+      if(!d.error && d.choices && d.choices[0]){ data=d; usedModel=model; break; }
+      lastError=d.error||{message:'HTTP '+r.status};
+      console.warn('[ai] model '+model+' failed:', lastError.code||'', lastError.message||'');
     }
-    if(data.error){thinkingDiv.remove();appendAIMsg('other','Error: '+(data.error.message||JSON.stringify(data.error)));document.getElementById('ai-send').disabled=false;return;}
-    const reply=data.choices?.[0]?.message?.content||'Vybach, ne vdalosya otrymaty vidpovid.';
+    if(!data){
+      thinkingDiv.remove();
+      var code=(lastError&&lastError.code)||'';
+      var msg = code==='rate_limit_exceeded'
+        ? '⏳ Ліміт запитів вичерпано — усі моделі зараз зайняті. Спробуй за хвилину.'
+        : ('⚠️ Не вдалося отримати відповідь: '+((lastError&&lastError.message)||'невідома помилка'));
+      appendAIMsg('other',msg);
+      document.getElementById('ai-send').disabled=false;
+      return;
+    }
+    let reply=data.choices?.[0]?.message?.content||'';
+    if(!reply.trim()){
+      // gpt-oss puts its chain of thought in a separate `reasoning`
+      // field; if the budget ran out before any visible answer, say so
+      // instead of rendering an empty bubble.
+      reply = data.choices?.[0]?.finish_reason==='length'
+        ? '⚠️ Відповідь вийшла надто довгою і обірвалася. Спробуй звузити питання.'
+        : 'Вибач, не вдалося отримати відповідь.';
+    }
+    if(usedModel && usedModel!==modelPlan.chain[0]) console.info('[ai] answered with fallback model:', usedModel);
     aiHistory.push({role:'user',content:historyContent});
     aiHistory.push({role:'assistant',content:reply});
     thinkingDiv.remove();

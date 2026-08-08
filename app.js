@@ -6850,7 +6850,17 @@ function _loadRailKB(){
 // never matched "ПТЕ".
 var _CYR = '[а-яіїєґёА-ЯІЇЄҐЁ]';
 var RAIL_ABBR = new RegExp('(^|[^' + _CYR.slice(1,-1) + 'a-zA-Z])(пте|ісі|ірп)([^' + _CYR.slice(1,-1) + 'a-zA-Z]|$)', 'i');
-var RAIL_TOPIC = /(правил\S*\s+технічн|сигналізац|світлофор|семафор|маневров|роздільн\S*\s+пункт|автоблокуванн|блок-ділянк|стрілочн|стрілк|гальмів|башмак|локомотив|вагон|поїзд|перегін|переїзд|габарит|колійн|жезл|диспетчер|станційн|сортувальн|розпорядч|наказ\s*747|наказ\s*507|наказ\s*411)/i;
+var RAIL_TOPIC = /(правил\S*\s+технічн|сигнал|світлофор|семафор|маневров|роздільн\S*\s+пункт|автоблокуванн|блок-ділянк|стрілочн|стрілк|гальмів|башмак|локомотив|вагон|поїзд|проїзд|перегін|переїзд|габарит|колійн|жезл|диспетчер|станційн|сортувальн|розпорядч|заборонн|дозвільн|червон\S*\s*вогон|вогон|наказ\s*747|наказ\s*507|наказ\s*411)/i;
+
+// Injected on EVERY assistant turn, retrieval or not. Without it the
+// model happily expanded ПТЕ as "Правила дорожнього руху" - road traffic
+// rules - and invented a clause to match. Three lines is a cheap price
+// for never getting the identity of the act wrong.
+var RAIL_DOC_IDENTITIES =
+  'ПТЕ = Правила технічної експлуатації залізниць України (наказ Мінтрансу України від 20.12.1996 № 411, z0050-97). ' +
+  'ІСІ = Інструкція з сигналізації на залізницях України (наказ Мінтрансзв\'язку України від 23.06.2008 № 747). ' +
+  'ІРП = Інструкція з руху поїздів і маневрової роботи на залізницях України (наказ Мінтрансзв\'язку України від 31.08.2005 № 507). ' +
+  'Це залізничні акти. ПТЕ - це НЕ правила дорожнього руху.';
 function _isRailTopic(text){
   var t = String(text||'');
   return RAIL_TOPIC.test(t) || RAIL_ABBR.test(t);
@@ -7079,9 +7089,10 @@ async function sendAI(){
       "- If the user asks for a summary, plan, explanation, or study help, format it like a practical cheat sheet.",
       "- Use markdown: **bold**, headings, bullet lists, and `code` when useful.",
       "- Write like a helpful student assistant, not like a bureaucratic manual.",
+      "- Abbreviations of the course's normative acts, never to be expanded any other way: " + RAIL_DOC_IDENTITIES,
       railBlock
         ? "- The excerpts below are the VERBATIM current text of ПТЕ / ІСІ / ІРП. Answer strictly from them, quote the wording, and cite the act and clause number (e.g. «ІСІ, п. 5.4»). If the excerpts do not cover the question, say so plainly instead of recalling it from memory - your own recollection of these acts is not reliable."
-        : "- ПТЕ, ІСІ and ІРП are the railway acts this course runs on. Never quote clause numbers of them from memory; say which act likely covers it and ask the user to name the topic more precisely so the exact clause can be pulled."
+        : "- No excerpts of ПТЕ / ІСІ / ІРП are attached to this turn. You may explain the topic in general terms, but you must NOT quote or invent any clause number of these acts. Say which act covers the question and suggest the user asks about the specific term so the exact clause can be pulled."
     ].join('\n')
       + (contextParts.length ? '\nSite context: ' + contextParts.join('. ') : '')
       + railBlock;

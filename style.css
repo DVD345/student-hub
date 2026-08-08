@@ -576,7 +576,11 @@ a { text-decoration: none; color: inherit; }
 .icon-btn { background:none; border:none; color:var(--text2); cursor:pointer; font-size:13px; padding:5px; border-radius:6px; transition:color .2s, background .2s; flex-shrink:0; }
 .icon-btn:hover { color:var(--text); background:var(--bg3); }
 
-.main { margin-left:var(--sidebar); height:100vh; height:100dvh; height:calc(var(--vh, 1vh) * 100); flex:1; display:flex; flex-direction:column; overflow:hidden; min-height:0; }
+/* position:relative so the bottom nav can anchor to the bottom of THIS
+   box (the app shell) instead of to the browser viewport - the two drift
+   apart the moment the on-screen keyboard or a browser toolbar changes
+   how much of the screen is visible. */
+.main { margin-left:var(--sidebar); height:100vh; height:100dvh; height:calc(var(--vh, 1vh) * 100); flex:1; display:flex; flex-direction:column; overflow:hidden; min-height:0; position:relative; }
 
 .sidebar-resizer {
   position: fixed;
@@ -625,28 +629,19 @@ body.deadlines-resizing {
 #topbar-title { font-size:15px; font-weight:800; flex:1; letter-spacing:-.2px; }
 .topbar-menu { background:none; border:none; color:var(--text); font-size:21px; cursor:pointer; padding:4px; }
 
+/* The bottom padding reserves room for the bottom nav, which overlays
+   .content. --nav-h is the nav's MEASURED height, written by
+   _syncViewport() in app.js; it is 0 whenever the nav is hidden (>=900px,
+   or keyboard open), so the reservation disappears with it. Hard-coding
+   this number is what left a dead strip of background between the page
+   and the nav. The 84px fallback only applies for the first frame,
+   before the measurement lands. */
 .content {
-  padding: 14px 14px calc(72px + env(safe-area-inset-bottom,0px));
+  padding: 14px 14px calc(var(--nav-h, 84px) + 12px);
   flex:1; overflow-y:auto; overflow-x:hidden; min-height:0;
   -webkit-overflow-scrolling: touch;
   position:relative;
 }
-/* That bottom padding exists to reserve room for the fixed-position
-   bottom nav. When the keyboard is open the nav is hidden (JS toggles
-   body.keyboard-open), but the padding is a static CSS value so it
-   never shrinks on its own - leaving a dead reserved strip exactly
-   where the nav used to be. Collapse it down to just the safe-area
-   inset (still needed on notched phones) whenever the nav is hidden. */
-body.keyboard-open .content { padding-bottom: env(safe-area-inset-bottom, 0px) !important; }
-/* iOS's own "scroll the focused input into view" behavior grabs the
-   nearest scrollable ancestor - which is .content (overflow-y:auto) -
-   and scrolls IT instead of the page, landing on some arbitrary offset
-   and leaving the composer stranded near the top with the bottom nav
-   floating in the leftover space. .chat-messages has its own internal
-   scroll for the actual message list, so .content itself never needs
-   to scroll on the chat page - lock it while the keyboard is open so
-   iOS has nothing to grab.  */
-body.keyboard-open .content { overflow:hidden !important; }
 
 .guest-topbar-btn {
   background:var(--accent); color:#000; border:none; border-radius:20px;
@@ -1990,8 +1985,14 @@ body.deadlines-resizing .dl-width-resizer::before {
 .modal h3 { font-size:16px; font-weight:800; margin-bottom:16px; letter-spacing:-.2px; }
 .modal-actions { display:flex; gap:7px; justify-content:flex-end; margin-top:16px; }
 
+/* absolute, not fixed: it anchors to the bottom of .main (the app shell,
+   sized to the visible viewport by _syncViewport) rather than to the
+   browser viewport. Fixed positioning put it at the bottom of the LAYOUT
+   viewport, which on iOS does not move when the keyboard opens - that is
+   how it ended up floating in the middle of the screen, and how it drifted
+   away from the strip .content had reserved for it. */
 .bottom-nav {
-  display:none; position:fixed; bottom:0; left:0; right:0;
+  display:none; position:absolute; bottom:0; left:0; right:0;
   background: rgba(10,10,22,.85);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
@@ -2165,7 +2166,6 @@ body.deadlines-resizing .dl-width-resizer::before {
   .msg { max-width:90%; }
   .msg-bubble img { max-width:min(240px,72vw) !important; max-height:200px !important; }
   #lightbox-img { max-width:100vw !important; max-height:calc(100svh - 80px) !important; }
-  .content { padding-bottom: calc(88px + env(safe-area-inset-bottom, 0px)) !important; }
   .chat-input { font-size: 16px !important; }
   .admin-page-head { flex-direction:column; align-items:stretch; }
   #page-dashboard,
@@ -2310,7 +2310,7 @@ body.deadlines-resizing .dl-width-resizer::before {
 }
 
 @media(max-width:380px){
-  .content { padding:10px 10px calc(70px + env(safe-area-inset-bottom,0px)); }
+  .content { padding:10px 10px calc(var(--nav-h, 84px) + 12px); }
   .stat-val { font-size:18px; }
   .page-header h2 { font-size:19px; }
   .dl-item { padding:9px 10px; gap:7px; }

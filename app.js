@@ -581,82 +581,172 @@ async function initApp() {
   _startPresence();
 }
 
-// Focus/blur on the chat textarea is a far more reliable "keyboard is
-// (probably) open" signal than visualViewport's resize event, which
-// doesn't fire consistently in every mobile browsing context. Re-measures
-// after a short delay to let the keyboard animation settle, so --vh and
-// the bottom nav end up correct even where the resize event never fires.
-function _setChatKeyboardOpen(open) {
+// ── Viewport / on-screen-keyboard sync ────────────────────────────────
+// A single function owns every measurement that depends on how much of
+// the screen is actually visible, so the numbers can never disagree:
+//
+//   --vh     height of the app shell (.screen and .main)
+//   --nav-h  the bottom nav's REAL measured height, which .content
+//            reserves as bottom padding.
+//
+// --nav-h is why the dead strip above the nav existed: the reservation
+// used to be a hard-coded 88px + safe-area-inset while the nav is only
+// ~84px tall in total (its padding already includes the inset), so ~35px
+// of empty page was reserved for nothing. Measuring the element removes
+// the guess entirely.
+//
+// Keyboard detection deliberately does NOT compare visualViewport.height
+// against window.innerHeight. In an iOS "Add to Home Screen" standalone
+// PWA both values shrink together when the keyboard opens, so that
+// comparison is always false - the nav stayed visible, .content kept its
+// nav-sized padding, and iOS scrolled the focused composer to a random
+// offset in the leftover space. Instead we remember the viewport height
+// last seen while no text field was focused and compare against that,
+// with focus/blur as an independent second signal.
+var _kbFocused = false;
+var _vpBaseH = 0;
+var _vpSig = '';
+
+function _isTextEntry(el) {
+  if(!el) return false;
+  if(el.isContentEditable) return true;
+  if(el.tagName === 'TEXTAREA') return true;
+  if(el.tagName !== 'INPUT') return false;
+  return !/^(button|submit|reset|checkbox|radio|range|color|file|image|hidden)$/i.test(el.type || 'text');
+}
+
+function _syncViewport(force) {
+  var vv = window.visualViewport;
+  var h = (vv && vv.height) || window.innerHeight;
+  var offTop = (vv && vv.offsetTop) || 0;
+  var mobile = window.innerWidth <= 899;
+
+  // Baseline = the viewport with no keyboard in the way. Re-taken on
+  // every sync while nothing is focused, so rotation and the Safari
+  // toolbar sliding in/out update it for free.
+  if(!_kbFocused) _vpBaseH = h;
+  var shrank = h < _vpBaseH - 100;
+  var keyboardOpen = mobile && (_kbFocused || shrank);
+
+  // If the viewport height did NOT shrink but the page got pushed up to
+  // reveal the focused field (iOS does exactly this), then the bottom
+  // `offTop` pixels of the shell are sitting behind the keyboard - so
+  // drop them from the shell height instead of letting the composer
+  // hide under it.
+  var shellH = Math.max(1, h - ((!shrank && offTop > 0) ? offTop : 0));
+
   var bottomNav = document.getElementById('bottom-nav');
-  if(bottomNav) bottomNav.style.display = open ? 'none' : '';
-  document.body.classList.toggle('keyboard-open', open);
-  if(open && _currentPage === 'chat') {
-    setTimeout(function(){ var m=document.getElementById('chat-msgs'); if(m) m.scrollTop=m.scrollHeight; }, 100);
+  if(bottomNav) bottomNav.style.display = keyboardOpen ? 'none' : '';
+  // offsetHeight is 0 while the nav is hidden - by the keyboard, by the
+  // >=900px media query, or because the app shell isn't shown yet -
+  // which is exactly the reservation .content should make in each of
+  // those cases. It has to be part of the signature below, otherwise the
+  // poll never notices the nav appearing after login.
+  var navH = bottomNav ? bottomNav.offsetHeight : 0;
+
+  var sig = shellH + '|' + offTop + '|' + keyboardOpen + '|' + mobile + '|' + navH;
+  if(!force && sig === _vpSig) return;
+  _vpSig = sig;
+
+  document.documentElement.style.setProperty('--nav-h', navH + 'px');
+  document.documentElement.style.setProperty('--vh', shellH * 0.01 + 'px');
+  // .screen is position:fixed, i.e. pinned to the LAYOUT viewport. When
+  // the visual viewport is offset from it (keyboard open) the shell has
+  // to be pushed down by the same amount to stay on screen.
+  document.querySelectorAll('.screen').forEach(function(s) {
+    s.style.top = offTop + 'px';
+    s.style.bottom = 'auto';
+    s.style.height = shellH + 'px';
+  });
+
+  document.body.classList.toggle('keyboard-open', keyboardOpen);
+}
+
+function _scrollChatToBottom() {
+  if(_currentPage !== 'chat') return;
+  var m = document.getElementById('chat-msgs');
+  if(m) m.scrollTop = m.scrollHeight;
+}
+
+// Called from the chat composer's inline onfocus/onblur, and from the
+// global focusin/focusout listeners below for every other text field.
+function _setChatKeyboardOpen(open) {
+  open = !!open;
+  if(open === _kbFocused) { _syncViewport(); return; }
+  _kbFocused = open;
+  _syncViewport(true);
+  if(!open) window.scrollTo(0, 0);
+  // The keyboard animates in over ~250-400ms and the viewport metrics
+  // only settle at the end of it, so re-measure twice on the way.
+  setTimeout(function(){ _syncViewport(true); if(open) _scrollChatToBottom(); }, 180);
+  setTimeout(function(){ _syncViewport(true); if(open) _scrollChatToBottom(); }, 450);
+}
+
+function _initViewportSync() {
+  if(_initViewportSync.done) return;
+  _initViewportSync.done = true;
+
+  _syncViewport(true);
+
+  document.addEventListener('focusin', function(e) {
+    if(_isTextEntry(e.target)) _setChatKeyboardOpen(true);
+  });
+  document.addEventListener('focusout', function(e) {
+    if(!_isTextEntry(e.target)) return;
+    // Tabbing straight from one field to another must not flash the nav.
+    setTimeout(function(){ if(!_isTextEntry(document.activeElement)) _setChatKeyboardOpen(false); }, 0);
+  });
+
+  if(window.visualViewport) {
+    window.visualViewport.addEventListener('resize', function(){ _syncViewport(); });
+    window.visualViewport.addEventListener('scroll', function(){ _syncViewport(); });
   }
-  setTimeout(function(){
-    var h = (window.visualViewport && window.visualViewport.height) || window.innerHeight;
-    document.documentElement.style.setProperty('--vh', h * 0.01 + 'px');
-  }, 350);
-  if(open) {
-    // iOS's native "scroll focused input into view" can still fire even
-    // with .screen locked to position:fixed and .content's overflow
-    // hidden - it'll happily scroll window/documentElement/body
-    // directly, ignoring all of that. Fight it by forcing the scroll
-    // position back to 0 on every frame for the first half-second,
-    // which is longer than the native scroll+keyboard animation takes.
-    var frames = 0;
-    (function resetScroll(){
-      window.scrollTo(0,0);
-      document.documentElement.scrollTop = 0;
-      document.body.scrollTop = 0;
-      frames++;
-      if(frames < 40) requestAnimationFrame(resetScroll);
-    })();
+  var _wasMobile = window.innerWidth <= 899;
+  window.addEventListener('resize', function(){
+    _syncViewport();
+    _scrollChatToBottom();
+    // The chat page's layout is built imperatively per breakpoint, and
+    // .content's bottom padding differs between the two, so it has to be
+    // rebuilt when the breakpoint is actually crossed.
+    var isMobile = window.innerWidth <= 899;
+    if(isMobile !== _wasMobile) {
+      _wasMobile = isMobile;
+      try { _applyDynamicLayouts(); } catch(e) {}
+    }
+  });
+  window.addEventListener('orientationchange', function(){
+    _kbFocused = false;
+    setTimeout(function(){ _syncViewport(true); }, 250);
+  });
+
+  // The nav's height changes with the UI font scale; keep --nav-h honest.
+  var bottomNav = document.getElementById('bottom-nav');
+  if(bottomNav && window.ResizeObserver) {
+    new ResizeObserver(function(){ _syncViewport(true); }).observe(bottomNav);
   }
+
+  // Last resort: iOS does not reliably fire either resize event when its
+  // own toolbar auto-hides on scroll. Cheap poll that self-corrects if
+  // the metrics drifted from what we last wrote - _syncViewport bails
+  // out immediately when nothing changed.
+  setInterval(function(){ _syncViewport(); }, 300);
+}
+
+if(document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', _initViewportSync);
+} else {
+  _initViewportSync();
 }
 
 // ✅ IMPROVEMENT 3: Wire up all debounced search inputs
 function _setupDebouncedInputs() {
-  // Mobile keyboard detection — update --vh and scroll chat to bottom.
-  // visualViewport.height is what actually shrinks when the on-screen
-  // keyboard opens (window.innerHeight/100vh/100dvh don't reliably do
-  // this, especially in an iOS "Add to Home Screen" standalone PWA),
-  // so it's the source of truth whenever it's available.
-  function _updateVH() {
-    var h = (window.visualViewport && window.visualViewport.height) || window.innerHeight;
-    document.documentElement.style.setProperty('--vh', h * 0.01 + 'px');
-    var bottomNav = document.getElementById('bottom-nav');
-    var keyboardOpen = h < window.innerHeight - 150;
-    document.body.classList.toggle('keyboard-open', keyboardOpen);
-    if(bottomNav) bottomNav.style.display = keyboardOpen ? 'none' : '';
-    if(keyboardOpen && _currentPage === 'chat') {
-      setTimeout(function() {
-        var msgs = document.getElementById('chat-msgs');
-        if(msgs) msgs.scrollTop = msgs.scrollHeight;
-      }, 100);
-    }
-  }
-  _updateVH();
-  if(window.visualViewport) window.visualViewport.addEventListener('resize', _updateVH);
-  window.addEventListener('resize', function() {
-    _updateVH();
-    if(_currentPage === 'chat') {
-      setTimeout(function() {
-        var msgs = document.getElementById('chat-msgs');
-        if(msgs) msgs.scrollTop = msgs.scrollHeight;
-      }, 100);
-    }
-  });
-  // Belt-and-suspenders: iOS Safari's own toolbar auto-hiding on scroll
-  // (and apparently, on this device, sometimes the keyboard too) doesn't
-  // reliably fire either resize event. Poll the real visible height a
-  // few times a second and self-correct if it drifted from what --vh
-  // currently says, independent of any event ever firing.
-  var _lastPolledH = null;
-  setInterval(function() {
-    var h = (window.visualViewport && window.visualViewport.height) || window.innerHeight;
-    if(h !== _lastPolledH) { _lastPolledH = h; _updateVH(); }
-  }, 300);
+  // Viewport/keyboard tracking lives in _initViewportSync() (see above);
+  // it self-installs on DOMContentLoaded. Re-measure here because the
+  // shell has just been populated and the nav's real height is only
+  // knowable now.
+  _initViewportSync();
+  _syncViewport(true);
+
   const dlQ = document.getElementById('dl-q');
   if(dlQ) dlQ.oninput = debounce(applyDlFilter, 200);
 
@@ -688,7 +778,13 @@ function _applyDynamicLayouts() {
   var isChat = _currentPage === 'chat' && pageChat;
   var mobile = window.innerWidth <= 899;
 
-  if(content) content.style.overflow = isChat ? 'hidden' : '';
+  if(content) {
+    content.style.overflow = isChat ? 'hidden' : '';
+    // Every other page keeps a 12px breathing gap above the nav; the chat
+    // card is meant to run flush into it, so reserve exactly the nav's
+    // measured height there and nothing more.
+    content.style.paddingBottom = (isChat && mobile) ? 'var(--nav-h, 0px)' : '';
+  }
   if(!isChat || !chatWrap || !chatSidebar || !chatMain) return;
 
   if(mobile) {

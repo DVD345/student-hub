@@ -6825,6 +6825,93 @@ async function _attachAIDocument(file){
   }
 }
 
+// ── Normative railway documents ──────────────────────────────────────
+// ПТЕ, ІСІ and ІРП are the three acts the transport-management course
+// runs on. No general model knows them clause by clause, and asking one
+// to recall them produces confident invention - so the full texts ship
+// with the app (zakon.rada.gov.ua, CC BY 4.0) and the matching clauses
+// are retrieved locally and handed to the model as source material.
+// Loaded lazily: it's ~1.2MB raw, and nothing else in the app needs it.
+var _railKB = null, _railKBLoading = null;
+function _loadRailKB(){
+  if(_railKB) return Promise.resolve(_railKB);
+  if(_railKBLoading) return _railKBLoading;
+  _railKBLoading = fetch('knowledge/rail-docs.json?v=' + (typeof APP_BUILD!=='undefined'?APP_BUILD:'1'))
+    .then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
+    .then(function(d){ _railKB = d; return d; })
+    .catch(function(e){ _railKBLoading = null; console.error('[kb] rail docs failed to load:', e.message); return null; });
+  return _railKBLoading;
+}
+
+// Broad on purpose: this is a railway university, and a false positive
+// only costs one local lookup that finds nothing.
+// NB: no \w or \b anywhere below - in JS neither covers Cyrillic, so
+// `правил\w*\s+технічн` never matched "правила технічної" and `\bпте\b`
+// never matched "ПТЕ".
+var _CYR = '[а-яіїєґёА-ЯІЇЄҐЁ]';
+var RAIL_ABBR = new RegExp('(^|[^' + _CYR.slice(1,-1) + 'a-zA-Z])(пте|ісі|ірп)([^' + _CYR.slice(1,-1) + 'a-zA-Z]|$)', 'i');
+var RAIL_TOPIC = /(правил\S*\s+технічн|сигналізац|світлофор|семафор|маневров|роздільн\S*\s+пункт|автоблокуванн|блок-ділянк|стрілочн|стрілк|гальмів|башмак|локомотив|вагон|поїзд|перегін|переїзд|габарит|колійн|жезл|диспетчер|станційн|сортувальн|розпорядч|наказ\s*747|наказ\s*507|наказ\s*411)/i;
+function _isRailTopic(text){
+  var t = String(text||'');
+  return RAIL_TOPIC.test(t) || RAIL_ABBR.test(t);
+}
+
+function _railClauseLabel(c){
+  // A few reference-list lines start with a date, which the clause
+  // parser picked up as a number. Don't cite those as clauses.
+  return (c.clause && !/^\d{4}/.test(c.clause) && !/^\d{2}\.\d{2}\.\d{4}$/.test(c.clause)) ? c.clause : '';
+}
+
+function _railSearch(query, limit){
+  if(!_railKB || !_railKB.chunks) return [];
+  var q = String(query||'').toLowerCase();
+  var docFilter = null;
+  if(/пте|правил\S*\s+технічн/.test(q)) docFilter = 'ПТЕ';
+  else if(/ісі|сигналізац|світлофор|семафор/.test(q)) docFilter = 'ІСІ';
+  else if(/ірп|рух\S*\s+поїзд|маневров/.test(q)) docFilter = 'ІРП';
+  var terms = q.split(/[^0-9a-zа-яіїєґё'’-]+/i).filter(function(w){ return w.length > 3; });
+  var askedClauses = q.match(/\b\d{1,2}\.\d{1,2}(?:\.\d{1,2})?\b/g) || [];
+  if(!terms.length && !askedClauses.length) return [];
+  var scored = [];
+  _railKB.chunks.forEach(function(c){
+    var t = c.text.toLowerCase(), sec = (c.section||'').toLowerCase(), s = 0;
+    terms.forEach(function(w){
+      if(t.indexOf(w) !== -1) s += 1;
+      if(sec.indexOf(w) !== -1) s += 0.5;
+    });
+    askedClauses.forEach(function(cl){ if(c.clause === cl) s += 8; });
+    if(!s) return;
+    if(docFilter && c.doc === docFilter) s *= 1.6;
+    scored.push({c:c, s:s});
+  });
+  scored.sort(function(a,b){ return b.s - a.s; });
+  var hits = scored.slice(0, limit || 5).map(function(x){ return x.c; });
+  // "Розкажи про ІРП" names a document but shares no vocabulary with it.
+  // Fall back to that act's opening clauses, which are its scope.
+  if(!hits.length && docFilter){
+    hits = _railKB.chunks.filter(function(c){ return c.doc === docFilter; }).slice(0, 3);
+  }
+  return hits;
+}
+
+// The block handed to the model: verbatim clauses plus the exact act
+// they came from, so a citation can be checked against the real thing.
+function _railContextBlock(hits){
+  if(!hits.length || !_railKB) return '';
+  var byKey = {};
+  (_railKB.docs||[]).forEach(function(d){ byKey[d.key] = d; });
+  var body = hits.map(function(c){
+    var d = byKey[c.doc] || {};
+    var label = _railClauseLabel(c);
+    return '--- ' + c.doc + (label ? ', п. ' + label : '') + (c.section ? ' (' + c.section + ')' : '') + '\n' + c.text;
+  }).join('\n\n');
+  var refs = Object.keys(byKey).map(function(k){
+    return byKey[k].key + ' = ' + byKey[k].title + ' (' + byKey[k].meta + '), ' + byKey[k].url;
+  }).join('\n');
+  return '\n\nВИТЯГИ З ЧИННИХ НОРМАТИВНИХ АКТІВ (дослівно):\n' + body +
+         '\n\nПОВНІ НАЗВИ АКТІВ:\n' + refs;
+}
+
 // Which models this Groq key actually serves, probed live against the
 // proxy. Everything else the old router pointed at is gone: all four
 // vision models (llama-4-maverick, llama-4-scout, llama-3.2-*-vision)
@@ -6962,6 +7049,14 @@ async function sendAI(){
   try {
     const contextParts = _buildAIContextParts();
     const modelPlan = _selectAIModel(text, hasImage, hasDocument);
+    // Pull the relevant clauses of ПТЕ/ІСІ/ІРП before asking the model.
+    let railBlock = '';
+    if(_isRailTopic(text)){
+      await _loadRailKB();
+      const hits = _railSearch(text, 5);
+      railBlock = _railContextBlock(hits);
+      if(hits.length) console.info('[kb] rail clauses used:', hits.map(h => h.doc + ' ' + _railClauseLabel(h)).join(', '));
+    }
     // The web-capable model has a search tool. Telling it "say you're
     // unsure about time-sensitive things" makes it decline instead of
     // searching, so that rule is swapped for its opposite on this path.
@@ -6983,8 +7078,13 @@ async function sendAI(){
       "- If the user asks to solve a task, explain step by step.",
       "- If the user asks for a summary, plan, explanation, or study help, format it like a practical cheat sheet.",
       "- Use markdown: **bold**, headings, bullet lists, and `code` when useful.",
-      "- Write like a helpful student assistant, not like a bureaucratic manual."
-    ].join('\n') + (contextParts.length ? '\nSite context: ' + contextParts.join('. ') : '');
+      "- Write like a helpful student assistant, not like a bureaucratic manual.",
+      railBlock
+        ? "- The excerpts below are the VERBATIM current text of ПТЕ / ІСІ / ІРП. Answer strictly from them, quote the wording, and cite the act and clause number (e.g. «ІСІ, п. 5.4»). If the excerpts do not cover the question, say so plainly instead of recalling it from memory - your own recollection of these acts is not reliable."
+        : "- ПТЕ, ІСІ and ІРП are the railway acts this course runs on. Never quote clause numbers of them from memory; say which act likely covers it and ask the user to name the topic more precisely so the exact clause can be pulled."
+    ].join('\n')
+      + (contextParts.length ? '\nSite context: ' + contextParts.join('. ') : '')
+      + railBlock;
     const historyForAPI=aiHistory.slice(-9).map((m,i,arr)=>{
       if(i<arr.length-1&&Array.isArray(m.content)){
         const textOnly=_aiPlainText(m.content);

@@ -4693,6 +4693,7 @@ function setupChatRooms() {
       r.classList.toggle('active', r.dataset.roomid === currentChatRoom);
     });
   }
+  _renderRoomPingBadges(); // the list was just rebuilt from scratch
   _applyDynamicLayouts();
 }
 function _loadChatDmRooms() {
@@ -4830,6 +4831,7 @@ function startDirectChat(uid) {
 }
 function openChatRoom(roomId, label) {
   currentChatRoom=roomId;
+  _clearRoomPings(roomId); // you're looking at it now
   _cancelReply(); // clear any leftover edit/reply state and input
   _listenRoomPresence(roomId);
   var titleEl = document.getElementById('chat-room-title');
@@ -5311,9 +5313,69 @@ function _canNotify() {
   try { return typeof Notification !== 'undefined' && Notification.permission === 'granted'; }
   catch(e) { return false; }
 }
+// Returns the Notification so callers can wire up onclick, or null when
+// the API is unavailable or refused.
 function _notify(title, opts) {
-  if(!_canNotify()) return false;
-  try { new Notification(title, opts || {}); return true; } catch(e) { return false; }
+  if(!_canNotify()) return null;
+  try { return new Notification(title, opts || {}); } catch(e) { return null; }
+}
+
+// Human name for a room id. The ids are opaque ('group-7', 'dm-a-b'),
+// and a ping that only says who pinged you is not much use without it.
+function _roomLabel(roomId) {
+  var id = String(roomId || '');
+  if(!id) return 'Чат';
+  if(id === 'university') return '🎓 Університет';
+  if(id.indexOf('group-') === 0) return '👥 ' + ((typeof group !== 'undefined' && group.name) || 'Ваша група');
+  if(id.indexOf('faculty-') === 0) return '🏛 Факультет';
+  if(id.indexOf('dm-') === 0) {
+    var dm = (_chatDmRooms || []).filter(function(r){ return r && r.id === id; })[0];
+    return '👤 ' + ((dm && dm.label) || 'Особистий чат');
+  }
+  return id;
+}
+
+// Per-room unread ping counts, so the room list itself shows WHERE you
+// were pinged. Persisted for the same reason the ping watermark is:
+// mobile browsers discard backgrounded tabs, and an in-memory count
+// would silently reset to zero on the reload.
+var _roomPings = (function(){
+  try { return JSON.parse(localStorage.getItem('sh_room_pings')) || {}; } catch(e) { return {}; }
+})();
+function _saveRoomPings() {
+  try { localStorage.setItem('sh_room_pings', JSON.stringify(_roomPings)); } catch(e) {}
+}
+function _bumpRoomPing(roomId) {
+  if(!roomId) return;
+  // Don't badge the room you are already looking at - you saw it arrive.
+  if(_currentPage === 'chat' && roomId === currentChatRoom) return;
+  _roomPings[roomId] = (_roomPings[roomId] || 0) + 1;
+  _saveRoomPings();
+  _renderRoomPingBadges();
+}
+function _clearRoomPings(roomId) {
+  if(!roomId || !_roomPings[roomId]) return;
+  delete _roomPings[roomId];
+  _saveRoomPings();
+  _renderRoomPingBadges();
+}
+function _renderRoomPingBadges() {
+  document.querySelectorAll('.chat-room').forEach(function(el){
+    var n = _roomPings[el.dataset.roomid] || 0;
+    var badge = el.querySelector('.chat-room-badge');
+    if(!n) {
+      if(badge) badge.remove();
+      el.classList.remove('has-pings');
+      return;
+    }
+    if(!badge) {
+      badge = document.createElement('span');
+      badge.className = 'chat-room-badge';
+      el.appendChild(badge);
+    }
+    badge.textContent = n > 99 ? '99+' : String(n);
+    el.classList.add('has-pings');
+  });
 }
 
 function _maybePing(m, isDm) {
@@ -5327,21 +5389,43 @@ function _maybePing(m, isDm) {
     _bumpPingWatermark(m.ts);
     if(!isNew) return;
     if(m.uid===String(userData.userid) || !m.text) return;
-    if(isDm || _isMentioningMe(m.text) || _isReplyToMe(m)) _pingNotify(m.author, m.text, isDm);
+    if(isDm || _isMentioningMe(m.text) || _isReplyToMe(m)) _pingNotify(m.author, m.text, isDm, m.room);
   } catch(e) { console.error('[ping] failed for message', m && m.id, e); }
 }
 
 var _chatPingCount = 0;
-function _pingNotify(author,text,isDm){
+function _pingNotify(author,text,isDm,roomId){
+  var room = _roomLabel(roomId);
+  _bumpRoomPing(roomId);
   if(_currentPage!=='chat'){
     _chatPingCount++;
     var b1=document.getElementById('chat-badge');
     var b2=document.getElementById('bnav-chat-badge');
     if(b1){b1.textContent=_chatPingCount;b1.style.display='';}
     if(b2){b2.textContent=_chatPingCount;b2.style.display='';}
+    // The number alone doesn't say where to look; the tooltip does.
+    var where = 'Згадки: ' + Object.keys(_roomPings).map(function(id){
+      return _roomLabel(id) + ' (' + _roomPings[id] + ')';
+    }).join(', ');
+    if(b1) b1.title = where;
+    if(b2) b2.title = where;
   }
-  var title = isDm ? ('✉️ '+(author||'Хтось')+' написав(ла) вам') : ('🔔 '+(author||'Хтось')+' згадав вас');
-  _notify(title, {body:text.slice(0,80), tag:'mention_'+Date.now()});
+  // In a DM the room IS the person, so naming it twice reads badly.
+  // Anywhere else the room is the whole point of the notification.
+  var title = isDm
+    ? ('✉️ '+(author||'Хтось')+' написав(ла) вам')
+    : ('🔔 '+(author||'Хтось')+' згадав вас у ' + room);
+  var n = _notify(title, {body:text.slice(0,80), tag:'mention_'+Date.now()});
+  if(n && roomId) {
+    n.onclick = function(){
+      try {
+        window.focus();
+        go('chat'); setBnav('chat');
+        openChatRoom(roomId, room);
+      } catch(e) {}
+      try { this.close(); } catch(e) {}
+    };
+  }
   // Sound only matters if you'd otherwise miss the message - if you're
   // already looking at the chat page you can see it arrive live.
   if(_currentPage!=='chat'){

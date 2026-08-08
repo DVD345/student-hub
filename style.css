@@ -1504,7 +1504,19 @@ body.deadlines-resizing .dl-width-resizer::before {
   min-width: 110px;
   font-size: 12px; font-weight: 600;
   transition: border-color .18s, background .18s, box-shadow .18s;
+  position: relative;
 }
+/* Unread-ping count, so the room list answers "where was I pinged?"
+   without opening every room. Cleared when the room is opened. */
+.chat-room-badge {
+  position:absolute; top:-6px; right:-4px;
+  background:var(--accent2); color:#fff;
+  font-size:9px; font-weight:700; line-height:1;
+  padding:3px 5px; border-radius:10px;
+  min-width:16px; text-align:center;
+  box-shadow:0 2px 8px rgba(0,0,0,.45);
+}
+.chat-room.has-pings { border-color:var(--accent2); }
 .chat-room:hover  { border-color: var(--accent); background: rgba(240,192,64,.06); }
 .chat-room.active { border-color: var(--accent); background: rgba(240,192,64,.1); box-shadow: 0 2px 12px rgba(240,192,64,.2); }
 .chat-room-sub { font-size:10px; color:var(--text2); font-weight:400; margin-top:2px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }

@@ -270,18 +270,44 @@ function enterGuestMode() {
 // Swap the anonymous Firebase session for one tied to the real, Moodle-verified uid.
 // Safe to fail: on any error we just stay on the anonymous session (same as before).
 async function _upgradeToMoodleAuth(moodleToken) {
+  // Every outcome is logged under one prefix. While this stayed anonymous
+  // the Firebase uid was a random anonymous id, but every document the
+  // app writes is keyed by the Moodle userid - so any rule of the shape
+  // `request.auth.uid == userId` could never pass. That is one root cause
+  // behind auditLog, userSettings and grades all returning
+  // permission-denied at once. Two branches used to fail in silence.
   try {
-    const resp = await fetch(MOODLE + '/mint-token', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ token: moodleToken })
-    });
-    const data = await resp.json();
-    if (!data || !data.token) { console.warn('mint-token did not return a token:', data); return false; }
-    if (!window._signInWithMoodleCustomToken) return false;
-    return await window._signInWithMoodleCustomToken(data.token);
+    let resp;
+    try {
+      resp = await fetch(MOODLE + '/mint-token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: moodleToken })
+      });
+    } catch (netErr) {
+      console.error('[auth] mint-token unreachable (network or CORS):', netErr && netErr.message);
+      return false;
+    }
+    let data = null;
+    try { data = await resp.json(); } catch (e) { data = null; }
+    if (!resp.ok) {
+      console.error('[auth] mint-token refused: HTTP ' + resp.status, (data && (data.error || data.message)) || '');
+      return false;
+    }
+    if (!data || !data.token) {
+      console.error('[auth] mint-token returned no token:', data);
+      return false;
+    }
+    if (!window._signInWithMoodleCustomToken) {
+      console.error('[auth] Firebase auth bridge not ready — the module script has not exposed _signInWithMoodleCustomToken yet.');
+      return false;
+    }
+    const ok = await window._signInWithMoodleCustomToken(data.token);
+    if (ok) console.info('[auth] upgraded to Moodle-verified Firebase session');
+    else console.error('[auth] signInWithCustomToken did not take effect — session is still anonymous');
+    return ok;
   } catch (e) {
-    console.warn('Could not upgrade to Moodle-verified Firebase auth, staying anonymous:', e);
+    console.error('[auth] upgrade failed, staying anonymous:', (e && e.code) || '', e && e.message);
     return false;
   }
 }

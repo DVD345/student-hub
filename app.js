@@ -116,7 +116,12 @@ async function logAdminAction(action, detail) {
       actorName: (userData&&userData.fullname)||'?',
       ts: Date.now()
     });
-  } catch(e) {}
+  } catch(e) {
+    // Swallowing this meant admin actions could silently never reach the
+    // log while the panel looked fine. Failing to log must not break the
+    // action itself, but it must not be invisible either.
+    console.error('[admin] could not write auditLog entry:', (e && e.code) || '', e && e.message);
+  }
 }
 var _adminGroups = [];
 var _allAdminUsers = [];
@@ -5840,6 +5845,21 @@ async function delMsg(id) {
 }
 
 // ── ADMIN ──
+// A bare "Помилка" is unactionable - you cannot tell a permissions
+// problem from a missing index from a dropped connection. Show the code
+// Firestore actually returned, and explain the two that mean something
+// specific here.
+function _adminListError(elId, what, err){
+  var code = (err && err.code) || 'unknown';
+  console.error('[admin] "' + what + '" listener failed:', code, err && err.message);
+  var hint = '';
+  if(code === 'permission-denied') hint = 'Правила доступу Firestore не дозволяють читати цю колекцію.';
+  else if(code === 'failed-precondition') hint = 'Firestore потребує індексу для цього запиту — посилання у консолі.';
+  var el = document.getElementById(elId);
+  if(el) el.innerHTML = '<div class="empty"><p>Помилка: ' + escHtml(code) + '</p>' +
+    (hint ? '<p style="font-size:11px;color:var(--text2);margin-top:4px;">' + escHtml(hint) + '</p>' : '') + '</div>';
+}
+
 function listenAdminData() {
   if(!window._db)return;
   const {collection,query,onSnapshot,orderBy,limit}=window._fb;
@@ -5848,18 +5868,18 @@ function listenAdminData() {
     _adminGroups = groups;
     renderAdminGroups(groups);
     renderAdminStats();
-  },err=>{ document.getElementById('admin-groups-list').innerHTML='<div class="empty"><p>Помилка</p></div>'; });
+  },err=>{ _adminListError('admin-groups-list','групи',err); });
   onSnapshot(collection(window._db,'users'),snap=>{
     const users=snap.docs.map(d=>({id:d.id,...d.data()}));
     _allAdminUsers=users;
     const q=(document.getElementById('users-search')||{value:''}).value;
     filterAdminUsers(q);
     renderAdminStats();
-  });
+  },err=>{ _adminListError('admin-users-list','користувачі',err); });
   onSnapshot(query(collection(window._db,'auditLog'),orderBy('ts','desc'),limit(30)),snap=>{
     const entries=snap.docs.map(d=>({id:d.id,...d.data()}));
     renderAdminAuditLog(entries);
-  },err=>{ const el=document.getElementById('admin-audit-log'); if(el) el.innerHTML='<div class="empty"><p>Помилка</p></div>'; });
+  },err=>{ _adminListError('admin-audit-log','журнал дій',err); });
 }
 function renderAdminAuditLog(entries) {
   const el = document.getElementById('admin-audit-log');

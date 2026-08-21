@@ -540,7 +540,25 @@ var _loginRafId = null;
   resize(); initParticles(); tick();
 })();
 
+// The upgrade used to be attempted at exactly two points - fresh login
+// and the happy path of auto-login. Every other way into the app (an
+// aborted Moodle check falling through to _offlineLogin, a restored
+// cached session) skipped it entirely and left the session anonymous
+// with no trace in the console. Since every document is keyed by the
+// Moodle userid, that quietly breaks every per-user Firestore rule.
+// Check the actual session state instead of trusting the entry path.
+async function _ensureMoodleAuth() {
+  if (!token) return false;
+  try {
+    const info = window._authInfo ? window._authInfo() : null;
+    if (info && info.signedIn && info.isAnonymous === false) return true;
+  } catch (e) {}
+  console.info('[auth] session is anonymous — upgrading to the Moodle-verified one');
+  return await _upgradeToMoodleAuth(token);
+}
+
 async function initApp() {
+  await _ensureMoodleAuth();
   // ✅ IMPROVEMENT 4: cancel canvas RAF immediately
   window._loginAnimStop = true;
   if(_loginRafId) { cancelAnimationFrame(_loginRafId); _loginRafId = null; }

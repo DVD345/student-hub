@@ -547,8 +547,13 @@ var _loginRafId = null;
 // with no trace in the console. Since every document is keyed by the
 // Moodle userid, that quietly breaks every per-user Firestore rule.
 // Check the actual session state instead of trusting the entry path.
+var _offlineReason = '';
 async function _ensureMoodleAuth() {
   if (!token) return false;
+  if (_offlineReason === 'expired') {
+    console.warn('[auth] skipping upgrade — the stored Moodle token is expired; sign in again');
+    return false;
+  }
   try {
     const info = window._authInfo ? window._authInfo() : null;
     if (info && info.signedIn && info.isAnonymous === false) return true;
@@ -2606,7 +2611,10 @@ function _showOfflineBanner(msg, mode) {
     banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:9000;background:rgba(240,160,48,.95);color:#0a0a0f;font-size:12px;font-weight:600;padding:calc(env(safe-area-inset-top, 0px) + 7px) 14px 7px;text-align:center;display:flex;align-items:center;justify-content:center;gap:8px;';
     document.body.prepend(banner);
   }
-  var btnAction = mode === '_refresh'
+  // Was compared against '_refresh' while every caller passes 'refresh',
+  // so the button never once offered to re-login - it retried a sync that
+  // could not possibly succeed with a dead token.
+  var btnAction = mode === 'refresh'
     ? 'onclick="_refreshMoodleToken()"'
     : 'onclick="syncMoodle();this.parentNode.remove()"';
   banner.innerHTML = '⚡ ' + msg + ' <button ' + btnAction + ' style="background:rgba(0,0,0,.15);border:none;border-radius:4px;padding:2px 8px;cursor:pointer;font-size:11px;font-family:Inter,sans-serif;font-weight:700;">Оновити</button> <button onclick="this.parentNode.remove()" style="background:none;border:none;cursor:pointer;font-size:16px;line-height:1;margin-left:4px;">✕</button>';
@@ -7467,7 +7475,7 @@ if(sv&&sgid){
         localStorage.removeItem('sh_creds');
         // Не вдалось оновити — заходимо офлайн якщо є кеш
         if(!cachedGroup){localStorage.removeItem('sh_token');localStorage.removeItem('sh_gid');}
-        else{await _offlineLogin(sgid);}
+        else{await _offlineLogin(sgid, 'expired');}
         return;
       }
       await _upgradeToMoodleAuth(sv);
@@ -7482,17 +7490,28 @@ if(sv&&sgid){
   setTimeout(tryAutoLogin,500);
 }
 
-async function _offlineLogin(sgid){
+// `reason` distinguishes the two ways we end up here. They look the same
+// from inside but need opposite advice: if Moodle is down, waiting helps;
+// if the stored token expired, only signing in again does - and while it
+// is expired the Firebase session cannot be upgraded either, so nothing
+// the user changes will save.
+async function _offlineLogin(sgid, reason){
   const cachedGroup=localStorage.getItem('sh_cache_group');
   if(!cachedGroup)return;
   try{
     _offlineMode = true;
+    _offlineReason = reason || 'unreachable';
     group=JSON.parse(cachedGroup);
     if(window._fb&&window._db){
       try{const {doc,getDoc}=window._fb;const snap=await getDoc(doc(window._db,'groups',sgid));if(snap.exists())group={id:sgid,...snap.data()};}catch(e){}
     }
     await initApp();
-    _showOfflineBanner('Moodle недоступний — показуємо збережені дані');
+    if(_offlineReason === 'expired'){
+      _moodleFailStreak = 99; // this banner is not a "maybe it recovers" case
+      _showOfflineBanner('Сесія Moodle застаріла — збереження не працює. Увійдіть знову', 'refresh');
+    } else {
+      _showOfflineBanner('Moodle недоступний — показуємо збережені дані');
+    }
   }catch(e){}
 }
 

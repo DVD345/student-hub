@@ -1750,20 +1750,82 @@ function _installScheduleUi() {
   pageChat.insertAdjacentElement('afterend', page);
 }
 
+// The four dropdowns above are a hand-copied snapshot of the selects on
+// the university's schedule page, so a new academic year could never
+// show up on its own - 2026-2027 had been live upstream for a while
+// with no way for it to reach here. Read the real lists instead and keep
+// the built-in ones only as the offline fallback.
+function _parseScheduleSelect(html, name) {
+  var block = html.match(new RegExp('<select[^>]*name="' + name + '"[\\s\\S]*?<\\/select>', 'i'));
+  if(!block) return [];
+  var out = [], seen = {}, re = /<option[^>]*value="([^"]*)"[^>]*>([^<]*)</g, m;
+  while((m = re.exec(block[0]))) {
+    var id = m[1].trim();
+    var label = m[2].replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim();
+    if(!id || !label) continue;
+    // The site lists the same заочний year under several ids; keep the
+    // first, which is what its own dropdown resolves to.
+    var key = label.toLowerCase();
+    if(seen[key]) continue;
+    seen[key] = 1;
+    out.push({ id: id, label: label });
+  }
+  return out;
+}
+
+var _scheduleOptionsLive = false;
+async function _refreshScheduleOptions() {
+  if(_scheduleOptionsLive) return false;
+  try {
+    var resp = await fetch(SCHEDULE_PROXY_URL + '/faculty', { method: 'GET' });
+    if(!resp.ok) throw new Error('HTTP ' + resp.status);
+    var html = await resp.text();
+    var years = _parseScheduleSelect(html, 'year_id');
+    var semesters = _parseScheduleSelect(html, 'semester_id');
+    var weekTypes = _parseScheduleSelect(html, 'week_type_id');
+    var faculties = _parseScheduleSelect(html, 'faculty_id');
+    if(!years.length) throw new Error('year_id select not found');
+    SCHEDULE_YEARS = years;
+    if(semesters.length) SCHEDULE_SEMESTERS = semesters;
+    if(weekTypes.length) SCHEDULE_WEEK_TYPES = weekTypes;
+    if(faculties.length) SCHEDULE_FACULTIES = faculties;
+    _scheduleOptionsLive = true;
+    console.info('[schedule] option lists refreshed from the university site:',
+      years.length + ' years, ' + faculties.length + ' faculties');
+    return true;
+  } catch(e) {
+    console.warn('[schedule] could not refresh option lists, using the built-in ones:', e && e.message);
+    return false;
+  }
+}
+
+function _fillScheduleSelects() {
+  _fillScheduleSelect('sch-year', SCHEDULE_YEARS);
+  _fillScheduleSelect('sch-semester', SCHEDULE_SEMESTERS);
+  _fillScheduleSelect('sch-week-type', SCHEDULE_WEEK_TYPES);
+  _fillScheduleSelect('sch-faculty', SCHEDULE_FACULTIES);
+}
+
 function _initScheduleUi() {
   if(_scheduleUiReady) return;
   if(!document.getElementById('page-schedule')) return;
   _scheduleUiReady = true;
   _installScheduleGroupPicker();
 
-  _fillScheduleSelect('sch-year', SCHEDULE_YEARS);
-  _fillScheduleSelect('sch-semester', SCHEDULE_SEMESTERS);
-  _fillScheduleSelect('sch-week-type', SCHEDULE_WEEK_TYPES);
-  _fillScheduleSelect('sch-faculty', SCHEDULE_FACULTIES);
+  // Fill from the built-ins first so the form is never empty, then swap
+  // in the live lists and re-apply whatever the user had selected.
+  _fillScheduleSelects();
 
   var saved = _readScheduleFilters();
   var defaults = _getDefaultScheduleFilters();
   _applyScheduleFilters(saved || defaults);
+
+  _refreshScheduleOptions().then(function(changed){
+    if(!changed) return;
+    var current = _collectScheduleFilters();
+    _fillScheduleSelects();
+    _applyScheduleFilters(current);
+  });
 
   ['sch-year','sch-semester','sch-week-type','sch-faculty'].forEach(function(id){
     var el = document.getElementById(id);

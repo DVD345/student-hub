@@ -2535,8 +2535,7 @@ async function loadFacultySchedule(force) {
     if(!restored) {
       var root = document.getElementById('schedule-results');
       if(root) {
-        root.innerHTML = '<div class="schedule-fallback-card"><div class="schedule-fallback-emo">вљ пёЏ</div><div class="schedule-fallback-title">РќРµ РІРґР°Р»РѕСЃСЏ РїС–РґС‚СЏРіРЅСѓС‚Рё СЂРѕР·РєР»Р°Рґ Р°РІС‚РѕРјР°С‚РёС‡РЅРѕ</div><p class="schedule-fallback-copy">РЎР°Р№С‚ СЂРѕР·РєР»Р°РґСѓ С‚РёРјС‡Р°СЃРѕРІРѕ РЅРµ РІС–РґРїРѕРІС–РІ Р°Р±Рѕ Р·Р°Р±Р»РѕРєСѓРІР°РІ РєСЂРѕСЃРґРѕРјРµРЅРЅРёР№ Р·Р°РїРёС‚. РњРѕР¶РЅР° С€РІРёРґРєРѕ РїРµСЂРµР№С‚Рё РЅР° РѕС„С–С†С–Р№РЅРёР№ СЃР°Р№С‚ Р°Р±Рѕ СЃРїСЂРѕР±СѓРІР°С‚Рё С‰Рµ СЂР°Р·.</p><div class="schedule-fallback-actions"><button class="btn a" type="button" onclick="openScheduleSource()">Р’С–РґРєСЂРёС‚Рё СЃР°Р№С‚ СѓРЅС–РІРµСЂСѓ в†—</button><button class="btn" type="button" onclick="loadFacultySchedule(true)">РЎРїСЂРѕР±СѓРІР°С‚Рё С‰Рµ СЂР°Р·</button></div></div>';
-        root.innerHTML = '<div class="empty"><div class="emo">⚠️</div><p>Не вдалося завантажити розклад. Спробуй ще раз або відкрий сайт універу.</p></div>';
+        root.innerHTML = '<div class="schedule-fallback-card"><div class="schedule-fallback-emo">⚠️</div><div class="schedule-fallback-title">Не вдалося підтягнути розклад автоматично</div><p class="schedule-fallback-copy">Сайт розкладу тимчасово не відповів або заблокував кросдоменний запит. Можна швидко перейти на офіційний сайт або спробувати ще раз.</p><div class="schedule-fallback-actions"><button class="btn a" type="button" onclick="openScheduleSource()">Відкрити сайт універу ↗</button><button class="btn" type="button" onclick="loadFacultySchedule(true)">Спробувати ще раз</button></div></div>';
       }
       _setScheduleStatus('Сайт розкладу не відповів або заблокував запит. Кешу теж немає.', 'error');
     }

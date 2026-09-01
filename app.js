@@ -2756,6 +2756,20 @@ async function loadSubmissionStatuses() {
   scheduleRender();
 }
 
+// Moodle serves course files from webservice/pluginfile.php, which refuses
+// to hand anything over without a token. The token used to be appended
+// with a hard-coded '?', but fileurl almost always already carries a query
+// string - usually ?forcedownload=1 - so the result was
+// "...?forcedownload=1?token=xxx". Moodle then reads the second '?' as part
+// of the first parameter's value, sees no token at all, and answers
+// missingparam. Pick the separator from the URL instead.
+function _moodleFileUrl(fileurl) {
+  if(!fileurl) return null;
+  if(!token) return fileurl;
+  if(/[?&]token=/.test(fileurl)) return fileurl;
+  return fileurl + (fileurl.indexOf('?') === -1 ? '?' : '&') + 'token=' + encodeURIComponent(token);
+}
+
 async function openCourseContents(courseId, btn) {
   const courseName = btn ? btn.closest('.course-card').querySelector('.c-name').textContent : 'Курс';
   const modal = document.getElementById('course-contents-modal');
@@ -2773,7 +2787,7 @@ async function openCourseContents(courseId, btn) {
     body.innerHTML = nonEmpty.map(s => {
       const mods = s.modules.filter(m=>m.modname!=='label').map(m => {
         const ico = modIco[m.modname] || '📌';
-        const fileUrl = m.contents && m.contents[0] ? m.contents[0].fileurl + '?token=' + token : null;
+        const fileUrl = m.contents && m.contents[0] ? _moodleFileUrl(m.contents[0].fileurl) : null;
         const link = fileUrl || m.url || 'https://do.kart.edu.ua/mod/'+m.modname+'/view.php?id='+m.id;
         const sz = m.contents && m.contents[0] && m.contents[0].filesize > 1024
           ? ' <span style="color:var(--text2);font-size:10px;">' + Math.round(m.contents[0].filesize/1024) + ' КБ</span>' : '';

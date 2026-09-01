@@ -104,7 +104,19 @@ var ADMIN_ACTION_LABELS = {
   delete_message: 'Видалив(ла) повідомлення',
   delete_file: 'Видалив(ла) файл',
   publish_announcement: 'Опублікував(ла) оголошення',
-  clear_announcement: 'Зняв(ла) оголошення'
+  clear_announcement: 'Зняв(ла) оголошення',
+  login: 'Зайшов(ла) на сайт',
+  upload_file: 'Завантажив(ла) файл',
+  add_material: 'Додав(ла) матеріал',
+  create_group: 'Створив(ла) групу'
+};
+// Icons make the log skimmable once logins are mixed in with the rarer
+// administrative actions.
+var ADMIN_ACTION_ICONS = {
+  set_role: '🎚', delete_group: '🗑', ban_user: '🚫', unban_user: '✅',
+  delete_message: '🗑', delete_file: '🗑', publish_announcement: '📣',
+  clear_announcement: '📴', login: '🔑', upload_file: '📁',
+  add_material: '📝', create_group: '🏫'
 };
 async function logAdminAction(action, detail) {
   if(!window._db) return;
@@ -562,8 +574,21 @@ async function _ensureMoodleAuth() {
   return await _upgradeToMoodleAuth(token);
 }
 
+// One entry per browser session, not per page load: initApp runs again on
+// every reload and on the cached-session path, and a line per refresh
+// would bury everything else in the log.
+function _logLoginOnce() {
+  try {
+    if(sessionStorage.getItem('sh_login_logged')) return;
+    sessionStorage.setItem('sh_login_logged', '1');
+  } catch(e) { return; }
+  var where = (typeof group !== 'undefined' && group && group.name) ? group.name : '';
+  logAdminAction('login', where);
+}
+
 async function initApp() {
   await _ensureMoodleAuth();
+  _logLoginOnce();
   // ✅ IMPROVEMENT 4: cancel canvas RAF immediately
   window._loginAnimStop = true;
   if(_loginRafId) { cancelAnimationFrame(_loginRafId); _loginRafId = null; }
@@ -4685,6 +4710,7 @@ async function uploadFile(file) {
         uploader:userData.fullname||'Студент',
         createdAt:Date.now(), dataUrl:e.target.result
       });
+      logAdminAction('upload_file', file.name);
     } catch(err){ alert('Помилка завантаження: ' + err.message); }
     uz.innerHTML='<div class="ui">📤</div><p><strong>Натисніть або перетягніть</strong></p><p style="font-size:10px;margin-top:2px;">до 700КБ</p>';
   };
@@ -4784,6 +4810,7 @@ async function addMat() {
   if(!name)return;
   const {collection,addDoc}=window._fb;
   await addDoc(collection(window._db,'materials'),{groupId:group.id,groupName:group.name,name,subject,desc,uploader:userData.fullname||'?',createdAt:Date.now()});
+  logAdminAction('add_material', subject ? name + ' (' + subject + ')' : name);
   closeModal('add-mat');
   ['mn','ms','md'].forEach(id=>document.getElementById(id).value='');
 }
@@ -6003,7 +6030,9 @@ function listenAdminData() {
     filterAdminUsers(q);
     renderAdminStats();
   },err=>{ _adminListError('admin-users-list','користувачі',err); });
-  onSnapshot(query(collection(window._db,'auditLog'),orderBy('ts','desc'),limit(30)),snap=>{
+  // Raised from 30: logins are far more frequent than administrative
+  // actions and would otherwise push everything else out of the window.
+  onSnapshot(query(collection(window._db,'auditLog'),orderBy('ts','desc'),limit(80)),snap=>{
     const entries=snap.docs.map(d=>({id:d.id,...d.data()}));
     renderAdminAuditLog(entries);
   },err=>{ _adminListError('admin-audit-log','журнал дій',err); });
@@ -6014,10 +6043,14 @@ function renderAdminAuditLog(entries) {
   if(!entries.length){ el.innerHTML='<div class="empty"><p>Поки що порожньо</p></div>'; return; }
   el.innerHTML = entries.map(function(e){
     var label = ADMIN_ACTION_LABELS[e.action] || e.action;
+    var ico = ADMIN_ACTION_ICONS[e.action] || '•';
     var time = new Date(e.ts).toLocaleString('uk-UA',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
-    return '<div style="padding:8px 0;border-bottom:1px solid var(--border);font-size:12px;">'+
-      '<div><b>'+escHtml(e.actorName||'?')+'</b> '+escHtml(label)+(e.detail?': '+escHtml(e.detail):'')+'</div>'+
-      '<div style="color:var(--text2);font-size:10px;margin-top:2px;">'+escHtml(time)+'</div>'+
+    return '<div style="display:flex;gap:8px;padding:8px 0;border-bottom:1px solid var(--border);font-size:12px;">'+
+      '<span style="flex-shrink:0;font-size:13px;line-height:1.4;">'+ico+'</span>'+
+      '<div style="min-width:0;flex:1;">'+
+        '<div style="word-break:break-word;"><b>'+escHtml(e.actorName||'?')+'</b> '+escHtml(label)+(e.detail?': '+escHtml(e.detail):'')+'</div>'+
+        '<div style="color:var(--text2);font-size:10px;margin-top:2px;">'+escHtml(time)+'</div>'+
+      '</div>'+
     '</div>';
   }).join('');
 }

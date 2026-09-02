@@ -118,14 +118,19 @@ var ADMIN_ACTION_ICONS = {
   clear_announcement: '📴', login: '🔑', upload_file: '📁',
   add_material: '📝', create_group: '🏫'
 };
+function _rememberedUser(key) {
+  try { return localStorage.getItem(key) || ''; } catch(e) { return ''; }
+}
 async function logAdminAction(action, detail) {
   if(!window._db) return;
   try {
     const {collection,addDoc}=window._fb;
     await addDoc(collection(window._db,'auditLog'), {
       action, detail: detail||'',
-      actorId: String((userData&&userData.userid)||''),
-      actorName: (userData&&userData.fullname)||'?',
+      actorId: String((userData&&userData.userid)||_rememberedUser('sh_uid')||''),
+      // Falls back to the remembered name so a degraded start does not
+      // write an anonymous "?" into the log.
+      actorName: (userData&&userData.fullname)||_rememberedUser('sh_name')||'?',
       ts: Date.now()
     });
   } catch(e) {
@@ -691,7 +696,6 @@ function _logLoginOnce() {
 
 async function initApp() {
   await _ensureMoodleAuth();
-  _logLoginOnce();
   // ✅ IMPROVEMENT 4: cancel canvas RAF immediately
   window._loginAnimStop = true;
   if(_loginRafId) { cancelAnimationFrame(_loginRafId); _loginRafId = null; }
@@ -743,6 +747,9 @@ async function initApp() {
 
   if(!_offlineMode && token) await loadUserInfo();
   if(await loadUserRole()) return;
+  // Only now is the name known. Logging the login any earlier - as it was
+  // - recorded it as "?", because loadUserInfo is what fills userData.
+  _logLoginOnce();
   _initChatDmRoomsSync();
   _initNotificationsSync();
   setupNav();
@@ -1068,7 +1075,10 @@ function _defaultAdminCardLayout(card, gridWidth) {
   var key = card && card.dataset ? card.dataset.resizeKey : '';
   var width = Math.max(960, gridWidth || (_getAdminGrid() ? _getAdminGrid().clientWidth : 1400) || 1400);
   var groupsW = Math.max(320, Math.min(360, Math.round(width * 0.24)));
-  var statsW = Math.max(230, Math.min(270, Math.round(width * 0.18)));
+  // The right-hand column carries both the stats and the audit log, and
+  // at 270px log entries like "Змінив(ла) роль: … → Адмін" broke across
+  // three lines. Wider column, same arrangement.
+  var statsW = Math.max(260, Math.min(340, Math.round(width * 0.21)));
   var usersW = Math.max(520, width - groupsW - statsW - 80);
   if(key === 'groups') return { x: 20, y: 20, w: groupsW, h: 430 };
   if(key === 'users') return { x: groupsW + 40, y: 20, w: usersW, h: 560 };
@@ -1620,7 +1630,10 @@ async function loadUserInfo() {
     userData = d;
     // Remembered so loadUserRole still has an id to read on a later
     // offline start, when this function never runs.
-    try { if(d.userid != null) localStorage.setItem('sh_uid', String(d.userid)); } catch(e) {}
+    try {
+      if(d.userid != null) localStorage.setItem('sh_uid', String(d.userid));
+      if(d.fullname) localStorage.setItem('sh_name', d.fullname);
+    } catch(e) {}
     const name = d.fullname || 'Студент';
     document.getElementById('uname').textContent = name;
     const avatarUrl = d.userpictureurl || null;
@@ -7714,7 +7727,7 @@ function doLogout(){
   unsubs=[];token='';userData={};allDl=[];courses=[];group={};userRole='student';cachedFiles=[];cachedMats=[];
   // The remembered id and role must not outlive the account that owns
   // them, or the next person to sign in on this device inherits them.
-  try { localStorage.removeItem('sh_uid'); localStorage.removeItem('sh_role'); } catch(e) {}
+  try { localStorage.removeItem('sh_uid'); localStorage.removeItem('sh_role'); localStorage.removeItem('sh_name'); } catch(e) {}
   try { sessionStorage.removeItem('sh_login_logged'); } catch(e) {}
   _notesLoaded = false;
   _dlOverrides = {}; _dlDeleted = []; _calNotes = {};

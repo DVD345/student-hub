@@ -185,15 +185,22 @@ async function doLogin() {
     const userId = siteData.userid;
     let moodleGroupName = null;
     let moodleFaculty = null;
+    // The cohort id is the only stable handle Moodle gives us. Names get
+    // retyped and reformatted, and every variation used to become another
+    // group; the id does not change, so everyone in one Moodle cohort
+    // lands in one group here regardless of how it is written.
+    let moodleCohortId = null;
 
     try {
       const cohorts = await moodleCall('core_cohort_get_user_cohorts', { userid: userId });
       if(Array.isArray(cohorts) && cohorts.length) {
         moodleGroupName = cohorts[0].name || cohorts[0].idnumber;
+        moodleCohortId = cohorts[0].id != null ? String(cohorts[0].id) : null;
         moodleFaculty = cohorts[0].description || cohorts[0].theme || null;
         if(moodleFaculty) moodleFaculty = moodleFaculty.replace(/<[^>]*>/g,'').trim() || null;
+        console.info('[group] Moodle cohort: "' + moodleGroupName + '" (id ' + moodleCohortId + ')');
       }
-    } catch(e) {}
+    } catch(e) { console.warn('[group] could not read Moodle cohorts:', e && e.message); }
 
     if(!moodleGroupName) {
       try {
@@ -231,7 +238,7 @@ async function doLogin() {
     }
 
     btn.textContent='Синхронізація...';
-    group = await findOrCreateGroup(moodleGroupName, moodleFaculty);
+    group = await findOrCreateGroup(moodleGroupName, moodleFaculty, moodleCohortId);
     localStorage.setItem('sh_token', token);
     localStorage.removeItem('sh_creds');
     localStorage.setItem('sh_gid', group.id);
@@ -365,12 +372,54 @@ async function _tryCachedLogin(username) {
   }
 }
 
-async function findOrCreateGroup(name, faculty) {
-  const { collection, getDocs, addDoc } = window._fb;
+// Matching used to be an exact compare after lowercase+trim, so the same
+// group written slightly differently became a second group - and a
+// duplicate splits the year in two: files, chat and materials are scoped
+// by group id, so the two halves stop seeing each other. The groups
+// already in the database show exactly this drift: "102-ВРС-Д23",
+// "102-ВРС-д25", "Група 103-ОПУТ-Д24".
+// Normalisation is for comparison only; whatever the user or Moodle
+// actually wrote is what gets stored.
+function _normalizeGroupName(name) {
+  var s = String(name || '').toLowerCase();
+  s = s.replace(/[‐-―−]/g, '-');            // – — ‒ … → -
+  s = s.replace(/^\s*(?:група|группа|гр\.?)\s+/, '');      // a leading "Група "
+  // Latin lookalikes typed instead of Cyrillic (BPC-24 vs ВРС-24)
+  var look = { a:'а', b:'в', c:'с', e:'е', h:'н', i:'і', k:'к',
+               m:'м', o:'о', p:'р', t:'т', x:'х', y:'у' };
+  s = s.replace(/[abcehikmoptxy]/g, function(ch){ return look[ch] || ch; });
+  s = s.replace(/\s+/g, '-');                              // "103 ОПУТ Д24" == "103-ОПУТ-Д24"
+  // Latin letters with no Cyrillic lookalike are kept rather than
+  // dropped: deleting them would make unrelated names collide.
+  s = s.replace(/[^0-9a-zа-яіїєґ-]/g, '');                 // dots, quotes, brackets
+  return s.replace(/-+/g, '-').replace(/^-|-$/g, '');
+}
+
+async function findOrCreateGroup(name, faculty, cohortId) {
+  const { collection, getDocs, addDoc, doc, setDoc } = window._fb;
   const snap = await getDocs(collection(window._db, 'groups'));
-  const existing = snap.docs.map(d=>({id:d.id,...d.data()}))
-    .find(g => (g.name||'').toLowerCase().trim() === name.toLowerCase().trim());
-  if(existing) return existing;
+  const all = snap.docs.map(d=>({id:d.id,...d.data()}));
+  const wanted = _normalizeGroupName(name);
+  // Cohort id first - it survives renames. Falls back to the name for
+  // groups created before the id was recorded, or when Moodle gave none.
+  const existing =
+    (cohortId ? all.find(g => g.cohortId != null && String(g.cohortId) === String(cohortId)) : null)
+    || all.find(g => (g.name||'').toLowerCase().trim() === name.toLowerCase().trim())
+    || (wanted ? all.find(g => _normalizeGroupName(g.name) === wanted) : null);
+  if(existing) {
+    if((existing.name||'').trim() !== String(name).trim()) {
+      console.info('[group] "' + name + '" matched the existing "' + existing.name + '" — not creating a duplicate');
+    }
+    // Backfill the id so the next login matches on it rather than on the
+    // name, and the group stops depending on spelling entirely.
+    if(cohortId && existing.cohortId == null) {
+      try {
+        await setDoc(doc(window._db,'groups',existing.id), { cohortId: String(cohortId) }, { merge: true });
+        console.info('[group] linked "' + existing.name + '" to Moodle cohort ' + cohortId);
+      } catch(e) { console.warn('[group] could not link the cohort id:', (e && e.code) || '', e && e.message); }
+    }
+    return existing;
+  }
 
   const now2 = new Date();
   const acadYear = now2.getMonth() >= 7 ? now2.getFullYear() : now2.getFullYear() - 1;
@@ -384,10 +433,12 @@ async function findOrCreateGroup(name, faculty) {
   }
   const newDoc = await addDoc(collection(window._db,'groups'), {
     name, faculty: faculty || '', course, entryYear, manualCourse,
+    cohortId: cohortId != null ? String(cohortId) : null,
     createdAt: Date.now(), autoCreated: true
   });
+  console.info('[group] created "' + name + '"' + (cohortId ? ' for Moodle cohort ' + cohortId : ' (no Moodle cohort)'));
   if(window._loadGroupsForLogin) window._loadGroupsForLogin();
-  return { id: newDoc.id, name, faculty: faculty||'', course, entryYear };
+  return { id: newDoc.id, name, faculty: faculty||'', course, entryYear, cohortId: cohortId != null ? String(cohortId) : null };
 }
 
 async function showGroupFallback(tok, siteData) {

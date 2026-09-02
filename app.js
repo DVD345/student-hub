@@ -514,8 +514,13 @@ async function showGroupFallback(tok, siteData) {
       try {
         if(gid === '__new__') {
           const name = nameInp.value.trim().replace(/\s+/g,' ');
-          if(name.length < 3 || name.length > 40) {
-            showErr('Введіть назву групи, як вона записана в універі');
+          // Now that students may create groups themselves, the shape is
+          // checked before anything reaches the database: a real group is
+          // something like 103-ОПУТ-Д24 - digits for the number and the
+          // year, letters for the speciality. This stops most of the
+          // junk without being clever about it.
+          if(name.length < 3 || name.length > 40 || !/\d/.test(name) || (name.match(/[а-яіїєґa-z]/gi) || []).length < 2) {
+            showErr('Назва не схожа на групу. Введіть її так, як в універі — наприклад 103-ОПУТ-Д24');
             reset(); nameInp.focus(); return;
           }
           // findOrCreateGroup matches an existing name first, so two

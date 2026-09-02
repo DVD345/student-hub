@@ -1618,6 +1618,9 @@ async function loadUserInfo() {
     const d = await moodleCall('core_webservice_get_site_info');
     if(!d) return;
     userData = d;
+    // Remembered so loadUserRole still has an id to read on a later
+    // offline start, when this function never runs.
+    try { if(d.userid != null) localStorage.setItem('sh_uid', String(d.userid)); } catch(e) {}
     const name = d.fullname || 'Студент';
     document.getElementById('uname').textContent = name;
     const avatarUrl = d.userpictureurl || null;
@@ -1655,9 +1658,38 @@ async function loadUserInfo() {
 // whenever the field looked falsy, which destroys an admin role set by
 // hand. It now only fills the field in when it is genuinely absent, and
 // never touches a document whose role it could not read.
+// initApp skips loadUserInfo() whenever the session is offline or the
+// Moodle token is empty, and that is where userData.userid comes from -
+// so every degraded entry used to arrive here with no id, bail out on the
+// first line and silently leave an administrator as a student. The id is
+// remembered from the last successful login so the role can still be read
+// from Firestore, which does not depend on Moodle being reachable.
 async function loadUserRole() {
+  if (!userData.userid) {
+    try {
+      const remembered = localStorage.getItem('sh_uid');
+      if (remembered) {
+        userData.userid = remembered;
+        console.info('[role] no Moodle userid this session — using the remembered ' + remembered);
+      }
+    } catch(e) {}
+  }
   if (!window._db || !userData.userid) {
-    console.warn('[role] no Firestore or no Moodle userid yet — staying student');
+    // Fall back to the last role we actually resolved rather than
+    // demoting. This only drives what the UI offers; Firestore rules
+    // remain the real gate on anything privileged.
+    try {
+      const cached = localStorage.getItem('sh_role');
+      if (cached && ROLES[cached]) {
+        userRole = cached;
+        console.warn('[role] cannot reach Firestore — keeping the last known role "' + cached + '"');
+        document.getElementById('urole').textContent = ROLES[userRole] || 'Студент';
+        document.getElementById('uav').style.background = ROLE_COLORS[userRole] || '#f0c040';
+        _applyProfileDisplay();
+        return false;
+      }
+    } catch(e) {}
+    console.warn('[role] no Firestore and no remembered userid — staying student');
     return false;
   }
   const uid = String(userData.userid);
@@ -1694,9 +1726,15 @@ async function loadUserRole() {
       userData.avatarUrl = data.avatarUrl || '';
     }
   } catch(e) {
-    userRole = 'student';
-    console.error('[role] could not read users/' + uid + ':', (e && e.code) || '', e && e.message);
+    // A failed read is not evidence of a lower role, so keep the last one
+    // we actually resolved instead of dropping to student.
+    var lastKnown = null;
+    try { lastKnown = localStorage.getItem('sh_role'); } catch(e2) {}
+    userRole = (lastKnown && ROLES[lastKnown]) ? lastKnown : 'student';
+    console.error('[role] could not read users/' + uid + ':', (e && e.code) || '', e && e.message,
+      lastKnown ? '— keeping the last known role "' + lastKnown + '"' : '');
   }
+  try { localStorage.setItem('sh_role', userRole); } catch(e) {}
   document.getElementById('urole').textContent = ROLES[userRole] || 'Студент';
   document.getElementById('uav').style.background = ROLE_COLORS[userRole] || '#f0c040';
   _applyProfileDisplay();
@@ -7674,6 +7712,10 @@ function doLogout(){
   if(_presenceUnsub)_presenceUnsub();
   if(_pinnedUnsub)_pinnedUnsub();
   unsubs=[];token='';userData={};allDl=[];courses=[];group={};userRole='student';cachedFiles=[];cachedMats=[];
+  // The remembered id and role must not outlive the account that owns
+  // them, or the next person to sign in on this device inherits them.
+  try { localStorage.removeItem('sh_uid'); localStorage.removeItem('sh_role'); } catch(e) {}
+  try { sessionStorage.removeItem('sh_login_logged'); } catch(e) {}
   _notesLoaded = false;
   _dlOverrides = {}; _dlDeleted = []; _calNotes = {};
   _dlPriorityMap = {}; _dlFocusToday = [];

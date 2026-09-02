@@ -1956,16 +1956,21 @@ body.deadlines-resizing .dl-width-resizer::before {
 .role-sel { background:var(--bg3); border:1px solid var(--border); border-radius:8px; padding:5px 9px; color:var(--text); font-family:'Inter',sans-serif; font-size:10px; outline:none; min-width:106px; width:106px; }
 .admin-card-users { min-width:0; }
 .admin-card-users .admin-users-list { flex:1 1 auto; min-height:0; }
-/* The audit log grew past the card and got cut off by .admin-card's
-   overflow:hidden, with no way to reach older entries. Same treatment
-   the users list already had: take the leftover height and scroll. */
-.admin-card-auditlog #admin-audit-log {
+/* Every list inside a resizable admin card needs its own scroll: the card
+   has overflow:hidden, so anything taller than it was simply cut off with
+   no way to reach the rest. Only the users list had this. */
+.admin-card-auditlog #admin-audit-log,
+.admin-card-groups #admin-groups-list,
+.admin-card-stats #admin-stats {
   flex:1 1 auto;
   min-height:0;
   max-height:100%;
   overflow-y:auto;
   scrollbar-width:thin;
 }
+/* A grid stretches its rows to equal height; the stats tiles must not be
+   stretched with it or they stop scrolling as one block. */
+.admin-card-stats #admin-stats { align-content:start; }
 .admin-card-users .tb-input { min-height:42px; flex:none; width:100%; max-width:none; min-width:0; }
 .admin-resize-handle { position:absolute; z-index:5; }
 .admin-resize-handle[data-dir="e"],

@@ -1073,7 +1073,14 @@ function _defaultAdminCardLayout(card, gridWidth) {
   if(key === 'groups') return { x: 20, y: 20, w: groupsW, h: 430 };
   if(key === 'users') return { x: groupsW + 40, y: 20, w: usersW, h: 560 };
   if(key === 'stats') return { x: groupsW + usersW + 60, y: 20, w: statsW, h: 300 };
-  return { x: 20, y: 20, w: 320, h: 260 };
+  // Announcements and the audit log had no case of their own and fell
+  // through to the same {x:20,y:20} as the groups card, so all three
+  // landed on top of each other in the default desktop layout. Give them
+  // the places they are meant to occupy: announcements under groups, the
+  // log under the stats column.
+  if(key === 'announcement') return { x: 20, y: 470, w: groupsW, h: 320 };
+  if(key === 'auditlog') return { x: groupsW + usersW + 60, y: 340, w: statsW, h: 440 };
+  return { x: 20, y: 810, w: 320, h: 260 };
 }
 function _restoreAdminCardLayout(card) {
   var storageKey = _adminResizeStorageKey(card);
@@ -7732,8 +7739,19 @@ if(sv&&sgid){
       await _upgradeToMoodleAuth(sv);
       const snap=await getDoc(doc(window._db,'groups',sgid));
       if(snap.exists()){group={id:sgid,...snap.data()};await initApp();}
-      else if(group.id){await initApp();}
-      else{localStorage.removeItem('sh_token');localStorage.removeItem('sh_gid');}
+      else {
+        // The stored group id points at a group that no longer exists -
+        // it was deleted, or it was a duplicate that got merged away.
+        // Carrying on from the cached copy leaves the account attached to
+        // a group nobody else is in, showing a name the group list does
+        // not contain. Drop the stale ids so the next login re-detects
+        // from Moodle instead.
+        console.warn('[group] stored group ' + sgid + ' no longer exists — clearing it so the next login re-detects');
+        localStorage.removeItem('sh_gid');
+        localStorage.removeItem('sh_cache_group');
+        localStorage.removeItem('sh_token');
+        showErr('Вашу групу було видалено або об\'єднано. Увійдіть знову — групу буде визначено з Moodle.');
+      }
     }catch(e){
       if(group.id||cachedGroup)await _offlineLogin(sgid);
     }

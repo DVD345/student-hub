@@ -524,8 +524,17 @@ async function showGroupFallback(tok, siteData) {
         group = { id: gid, ...gSnap.data() };
         await finish(gid);
       } catch(e) {
-        console.error('[login] group fallback failed:', e);
-        showErr('Не вдалося увійти: ' + (e && e.message ? e.message : 'помилка'));
+        console.error('[login] group fallback failed:', (e && e.code) || '', e);
+        // Creating the group is the step Firestore rules are most likely
+        // to refuse, and the raw English message told the student nothing
+        // they could act on.
+        if(e && e.code === 'permission-denied') {
+          showErr('Створити групу не вдалося — це заборонено налаштуваннями бази. ' +
+                  'Попросіть адміністратора додати групу «' + nameInp.value.trim() + '», ' +
+                  'після цього вона зʼявиться у списку вище.');
+        } else {
+          showErr('Не вдалося увійти: ' + (e && e.message ? e.message : 'помилка'));
+        }
         reset();
       }
     };

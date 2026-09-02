@@ -694,7 +694,28 @@ function _logLoginOnce() {
   logAdminAction('login', where);
 }
 
+// Five different paths call initApp, and more than one can fire in a
+// single load - the console showed the role being read twice. Every run
+// re-subscribes chat, notifications, presence and admin listeners, so
+// overlapping runs pile up duplicates. Collapse anything that starts
+// while a run is still in flight onto that run.
+var _initAppInFlight = null;
+var _initAppRuns = 0;
 async function initApp() {
+  if(_initAppInFlight) {
+    console.warn('[init] initApp called again while the previous run is still going — reusing it');
+    return _initAppInFlight;
+  }
+  _initAppInFlight = (async function(){
+    try { await _initAppOnce(); }
+    finally { _initAppInFlight = null; }
+  })();
+  return _initAppInFlight;
+}
+
+async function _initAppOnce() {
+  _initAppRuns++;
+  if(_initAppRuns > 1) console.info('[init] initApp run #' + _initAppRuns);
   await _ensureMoodleAuth();
   // ✅ IMPROVEMENT 4: cancel canvas RAF immediately
   window._loginAnimStop = true;
@@ -1725,16 +1746,16 @@ async function loadUserRole() {
         userRole = raw.trim();
         console.info('[role] users/' + uid + ' → ' + userRole);
       } else {
+        // Treated as a student, but nothing is written back. This used to
+        // initialise the field to 'student', and that is what kept erasing
+        // a hand-set role: loadUserRole runs more than once per session,
+        // and a pass that read the document before the field was there
+        // would persist 'student' over it moments later. A missing role
+        // simply means student; only an administrator writes this field.
         userRole = 'student';
         console.warn('[role] users/' + uid + ' has no usable role field (got ' +
-          JSON.stringify(raw) + ') — defaulting to student. Valid values: ' + Object.keys(ROLES).join(', '));
-        // Only create the field when it is truly missing. An unrecognised
-        // value is left alone rather than overwritten, so a typo can be
-        // corrected in the console instead of being erased on next login.
-        if (raw === undefined) {
-          try { await updateDoc(doc(window._db,'users',uid), { role: 'student' }); }
-          catch(e) { console.warn('[role] could not initialise the role field:', (e && e.code) || '', e && e.message); }
-        }
+          JSON.stringify(raw) + ') — treating as student, not writing anything. Valid values: ' +
+          Object.keys(ROLES).join(', '));
       }
       userData.nickname = data.nickname || '';
       userData.avatarUrl = data.avatarUrl || '';
@@ -6258,7 +6279,21 @@ function _adminListError(elId, what, err){
   var code = (err && err.code) || 'unknown';
   console.error('[admin] "' + what + '" listener failed:', code, err && err.message);
   var hint = '';
-  if(code === 'permission-denied') hint = 'Правила доступу Firestore не дозволяють читати цю колекцію.';
+  if(code === 'permission-denied') {
+    // Blaming the rules is only right when the session is actually the
+    // one they are written for. An anonymous session, or a user document
+    // without a role, fails the very same check for a different reason.
+    var info = null;
+    try { info = window._authInfo ? window._authInfo() : null; } catch(e) {}
+    if(info && info.isAnonymous) {
+      hint = 'Сесія Firebase анонімна — правила не бачать, що ви адміністратор. Вийдіть і увійдіть знову.';
+    } else if(userRole !== 'superadmin' && userRole !== 'admin') {
+      hint = 'Поточна роль «' + (ROLES[userRole] || userRole) + '» не дає доступу до цієї колекції.';
+    } else {
+      hint = 'Правила доступу Firestore не дозволяють читати цю колекцію. Перевірте, що поле role у вашому документі users/' +
+        ((userData && userData.userid) || '?') + ' на місці — правило читає саме його.';
+    }
+  }
   else if(code === 'failed-precondition') hint = 'Firestore потребує індексу для цього запиту — посилання у консолі.';
   var el = document.getElementById(elId);
   if(el) el.innerHTML = '<div class="empty"><p>Помилка: ' + escHtml(code) + '</p>' +

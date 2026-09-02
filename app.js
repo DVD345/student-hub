@@ -151,6 +151,12 @@ async function doLogin() {
   const err = document.getElementById('lerr');
   err.style.display='none';
   if (!username||!password) { showErr('Введіть логін та пароль'); return; }
+  // Whoever used this browser last may have closed the tab instead of
+  // signing out. Drop their identity before a different account signs in,
+  // so nothing of theirs can be inherited.
+  try { ['sh_uid','sh_role','sh_role_uid','sh_name'].forEach(function(k){ localStorage.removeItem(k); }); } catch(e) {}
+  try { sessionStorage.removeItem('sh_login_logged'); } catch(e) {}
+  userRole = 'student';
   btn.disabled=true; btn.textContent='Входимо...';
   let loginTimeout = null;
   try {
@@ -1708,32 +1714,34 @@ async function loadUserInfo() {
 // first line and silently leave an administrator as a student. The id is
 // remembered from the last successful login so the role can still be read
 // from Firestore, which does not depend on Moodle being reachable.
+// The remembered role is tied to the account it belongs to, never to the
+// device. An earlier version of this remembered only the role and, worse,
+// adopted a remembered Moodle id when the current session had none - so
+// on a shared browser the next person to sign in inherited whoever last
+// used it, superadmin included. A cached role is now only ever applied to
+// the same user id that produced it, and an unknown id gets student.
+function _cachedRoleFor(uid) {
+  try {
+    if (!uid) return null;
+    if (localStorage.getItem('sh_role_uid') !== String(uid)) return null;
+    const cached = localStorage.getItem('sh_role');
+    return (cached && ROLES[cached]) ? cached : null;
+  } catch(e) { return null; }
+}
+
 async function loadUserRole() {
-  if (!userData.userid) {
-    try {
-      const remembered = localStorage.getItem('sh_uid');
-      if (remembered) {
-        userData.userid = remembered;
-        console.info('[role] no Moodle userid this session — using the remembered ' + remembered);
-      }
-    } catch(e) {}
-  }
   if (!window._db || !userData.userid) {
-    // Fall back to the last role we actually resolved rather than
-    // demoting. This only drives what the UI offers; Firestore rules
-    // remain the real gate on anything privileged.
-    try {
-      const cached = localStorage.getItem('sh_role');
-      if (cached && ROLES[cached]) {
-        userRole = cached;
-        console.warn('[role] cannot reach Firestore — keeping the last known role "' + cached + '"');
-        document.getElementById('urole').textContent = ROLES[userRole] || 'Студент';
-        document.getElementById('uav').style.background = ROLE_COLORS[userRole] || '#f0c040';
-        _applyProfileDisplay();
-        return false;
-      }
-    } catch(e) {}
-    console.warn('[role] no Firestore and no remembered userid — staying student');
+    const cached = _cachedRoleFor(userData.userid);
+    if (cached) {
+      userRole = cached;
+      console.warn('[role] cannot reach Firestore — keeping this account\'s last known role "' + cached + '"');
+    } else {
+      userRole = 'student';
+      console.warn('[role] no Firestore or no userid, and no cached role for this account — student');
+    }
+    document.getElementById('urole').textContent = ROLES[userRole] || 'Студент';
+    document.getElementById('uav').style.background = ROLE_COLORS[userRole] || '#f0c040';
+    _applyProfileDisplay();
     return false;
   }
   const uid = String(userData.userid);
@@ -1773,12 +1781,17 @@ async function loadUserRole() {
     // A failed read is not evidence of a lower role, so keep the last one
     // we actually resolved instead of dropping to student.
     var lastKnown = null;
-    try { lastKnown = localStorage.getItem('sh_role'); } catch(e2) {}
-    userRole = (lastKnown && ROLES[lastKnown]) ? lastKnown : 'student';
+    lastKnown = _cachedRoleFor(uid);
+    userRole = lastKnown || 'student';
     console.error('[role] could not read users/' + uid + ':', (e && e.code) || '', e && e.message,
-      lastKnown ? '— keeping the last known role "' + lastKnown + '"' : '');
+      lastKnown ? '— keeping this account\'s last known role "' + lastKnown + '"' : '');
   }
-  try { localStorage.setItem('sh_role', userRole); } catch(e) {}
+  // Stored with the id it belongs to, so it can never be handed to a
+  // different account on the same device.
+  try {
+    localStorage.setItem('sh_role', userRole);
+    localStorage.setItem('sh_role_uid', uid);
+  } catch(e) {}
   document.getElementById('urole').textContent = ROLES[userRole] || 'Студент';
   document.getElementById('uav').style.background = ROLE_COLORS[userRole] || '#f0c040';
   _applyProfileDisplay();
@@ -7822,7 +7835,7 @@ function doLogout(){
   unsubs=[];token='';userData={};allDl=[];courses=[];group={};userRole='student';cachedFiles=[];cachedMats=[];
   // The remembered id and role must not outlive the account that owns
   // them, or the next person to sign in on this device inherits them.
-  try { localStorage.removeItem('sh_uid'); localStorage.removeItem('sh_role'); localStorage.removeItem('sh_name'); } catch(e) {}
+  try { ['sh_uid','sh_role','sh_role_uid','sh_name'].forEach(function(k){ localStorage.removeItem(k); }); } catch(e) {}
   try { sessionStorage.removeItem('sh_login_logged'); } catch(e) {}
   _notesLoaded = false;
   _dlOverrides = {}; _dlDeleted = []; _calNotes = {};

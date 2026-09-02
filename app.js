@@ -768,6 +768,7 @@ async function initApp() {
   scheduleDeadlineNotifs();
   updateBellCount();
   _startPresence();
+  _startOnlineWidget();
 }
 
 // ── Viewport / on-screen-keyboard sync ────────────────────────────────
@@ -6060,6 +6061,55 @@ function _startPresence() {
   _presenceInterval = setInterval(beat, 30000);
 }
 
+// Presence was already written by everyone every 30s but only ever read
+// on the chat page. The dashboard reads the same collection - no extra
+// writes - so the group can see who is around before asking in chat.
+var PRESENCE_FRESH_MS = 90000;   // same window the chat page treats as online
+var _onlineUnsub = null;
+function _startOnlineWidget() {
+  var card = document.getElementById('online-card');
+  if(!card || !window._db || !window._fb) return;
+  if(_guestMode) { card.style.display = 'none'; return; }
+  if(_onlineUnsub) { _onlineUnsub(); _onlineUnsub = null; }
+  var { collection, onSnapshot } = window._fb;
+  _onlineUnsub = onSnapshot(collection(window._db, 'presence'), function(snap){
+    var cutoff = Date.now() - PRESENCE_FRESH_MS;
+    var me = String(userData && userData.userid || '');
+    var people = snap.docs.map(function(d){ return d.data(); })
+      .filter(function(p){ return p && p.lastSeen > cutoff && p.name; })
+      .sort(function(a,b){
+        // Yourself first, then most recently active.
+        if(String(a.uid) === me) return -1;
+        if(String(b.uid) === me) return 1;
+        return (b.lastSeen||0) - (a.lastSeen||0);
+      });
+    _renderOnlineWidget(people, me);
+  }, function(err){
+    console.warn('[presence] online widget listener failed:', (err && err.code) || '', err && err.message);
+    card.style.display = 'none';
+  });
+}
+function _renderOnlineWidget(people, me) {
+  var card = document.getElementById('online-card');
+  var list = document.getElementById('online-list');
+  var count = document.getElementById('online-count');
+  if(!card || !list) return;
+  card.style.display = '';
+  if(count) count.textContent = people.length;
+  if(!people.length) {
+    list.innerHTML = '<div class="online-empty">Зараз нікого немає</div>';
+    return;
+  }
+  list.innerHTML = people.map(function(p){
+    var name = String(p.name || '?');
+    var isMe = String(p.uid) === me;
+    return '<div class="online-person"' + (isMe ? ' data-me="1"' : '') + '>' +
+      '<span class="online-av">' + escHtml(name.trim().charAt(0).toUpperCase() || '?') + '</span>' +
+      '<span class="online-name">' + escHtml(name) + (isMe ? ' <span class="online-you">(ви)</span>' : '') + '</span>' +
+    '</div>';
+  }).join('');
+}
+
 var _presenceUnsub = null;
 var _dmOtherReadTs = 0;
 function _listenRoomPresence(roomId) {
@@ -7723,6 +7773,7 @@ function doLogout(){
   if(_userSettingsUnsub)_userSettingsUnsub();
   if(_presenceInterval)clearInterval(_presenceInterval);
   if(_presenceUnsub)_presenceUnsub();
+  if(_onlineUnsub){_onlineUnsub();_onlineUnsub=null;}
   if(_pinnedUnsub)_pinnedUnsub();
   unsubs=[];token='';userData={};allDl=[];courses=[];group={};userRole='student';cachedFiles=[];cachedMats=[];
   // The remembered id and role must not outlive the account that owns

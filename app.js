@@ -1590,28 +1590,55 @@ async function loadUserInfo() {
   } catch(e) {}
 }
 
+// Every branch reports itself. A role that silently falls back to
+// "student" is indistinguishable from one that was never set, from one
+// the read failed on, and from one this function overwrote itself - and
+// the old version could do the last of those: it wrote role:'student'
+// whenever the field looked falsy, which destroys an admin role set by
+// hand. It now only fills the field in when it is genuinely absent, and
+// never touches a document whose role it could not read.
 async function loadUserRole() {
-  if (!window._db || !userData.userid) return false;
+  if (!window._db || !userData.userid) {
+    console.warn('[role] no Firestore or no Moodle userid yet — staying student');
+    return false;
+  }
+  const uid = String(userData.userid);
   const { doc, getDoc, updateDoc } = window._fb;
   try {
-    const snap = await getDoc(doc(window._db,'users',String(userData.userid)));
-    if (snap.exists() && snap.data().banned) {
-      doLogout();
-      showErr('Ваш акаунт заблоковано адміністратором.');
-      return true;
-    }
-    if (snap.exists() && snap.data().role) {
-      userRole = snap.data().role;
-    } else {
-      // No role yet — assign student and save to Firestore
+    const snap = await getDoc(doc(window._db,'users',uid));
+    if (!snap.exists()) {
       userRole = 'student';
-      try { await updateDoc(doc(window._db,'users',String(userData.userid)), { role: 'student' }); } catch(e) {}
+      console.warn('[role] users/' + uid + ' does not exist — nothing to read a role from');
+    } else {
+      const data = snap.data();
+      if (data.banned) {
+        doLogout();
+        showErr('Ваш акаунт заблоковано адміністратором.');
+        return true;
+      }
+      const raw = data.role;
+      if (typeof raw === 'string' && ROLES[raw.trim()]) {
+        userRole = raw.trim();
+        console.info('[role] users/' + uid + ' → ' + userRole);
+      } else {
+        userRole = 'student';
+        console.warn('[role] users/' + uid + ' has no usable role field (got ' +
+          JSON.stringify(raw) + ') — defaulting to student. Valid values: ' + Object.keys(ROLES).join(', '));
+        // Only create the field when it is truly missing. An unrecognised
+        // value is left alone rather than overwritten, so a typo can be
+        // corrected in the console instead of being erased on next login.
+        if (raw === undefined) {
+          try { await updateDoc(doc(window._db,'users',uid), { role: 'student' }); }
+          catch(e) { console.warn('[role] could not initialise the role field:', (e && e.code) || '', e && e.message); }
+        }
+      }
+      userData.nickname = data.nickname || '';
+      userData.avatarUrl = data.avatarUrl || '';
     }
-    if (snap.exists()) {
-      userData.nickname = snap.data().nickname || '';
-      userData.avatarUrl = snap.data().avatarUrl || '';
-    }
-  } catch(e) { userRole = 'student'; }
+  } catch(e) {
+    userRole = 'student';
+    console.error('[role] could not read users/' + uid + ':', (e && e.code) || '', e && e.message);
+  }
   document.getElementById('urole').textContent = ROLES[userRole] || 'Студент';
   document.getElementById('uav').style.background = ROLE_COLORS[userRole] || '#f0c040';
   _applyProfileDisplay();

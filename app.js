@@ -1847,16 +1847,29 @@ function _installScheduleUi() {
     if(filesItem) { filesItem.dataset.page = 'files'; }
     if(materialsItem) { materialsItem.dataset.page = 'materials'; }
     if(notesItem) { notesItem.dataset.page = 'notes'; }
-    if(chatItem && filesItem) nav.insertBefore(chatItem, filesItem);
-    if(!nav.querySelector('.nav-item[data-page="schedule"]')) {
-      var scheduleItem = document.createElement('div');
+    var scheduleItem = nav.querySelector('.nav-item[data-page="schedule"]');
+    if(!scheduleItem) {
+      scheduleItem = document.createElement('div');
       scheduleItem.className = 'nav-item';
       scheduleItem.dataset.page = 'schedule';
       scheduleItem.innerHTML = '<span class="ni">🗓</span>Розклад';
       scheduleItem.onclick = function(){ go('schedule'); };
-      if(filesItem) nav.insertBefore(scheduleItem, filesItem);
-      else if(materialsItem) nav.insertBefore(scheduleItem, materialsItem);
-      else nav.appendChild(scheduleItem);
+    }
+    // The order used to be a side effect of two insertBefore calls, so it
+    // depended on how many times this block had run: the first pass gave
+    // Чати/Розклад, a second one flipped them. State the order instead of
+    // deriving it - this reads the same and lands the same every time.
+    var groupHeader = Array.prototype.slice.call(nav.querySelectorAll('.nav-section'))
+      .filter(function(s){ return /груп/i.test(s.textContent || ''); })[0];
+    if(groupHeader) {
+      var anchor = groupHeader;
+      [chatItem, scheduleItem, filesItem, materialsItem, notesItem].forEach(function(item){
+        if(!item) return;
+        anchor.after(item);
+        anchor = item;
+      });
+    } else if(!scheduleItem.parentNode) {
+      nav.appendChild(scheduleItem);
     }
   }
 

@@ -403,25 +403,77 @@ async function showGroupFallback(tok, siteData) {
     const gsnap = await getDocs(collection(window._db,'groups'));
     const groups = gsnap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(a.name||'').localeCompare(b.name||''));
     groups.forEach(g => { sel.innerHTML += '<option value="'+escHtml(g.id)+'">'+escHtml(g.name)+'</option>'; });
+    // A first-year in early September is in no cohort and enrolled in no
+    // courses yet, so all three detection strategies come up empty - and
+    // this list only ever held groups that already existed, which left
+    // them with nothing to pick and no way forward. The automatic path
+    // has always created missing groups; this one can too.
+    sel.innerHTML += '<option value="__new__">➕ Моєї групи немає — створити</option>';
     document.getElementById('lerr').after(sel);
+
+    const newBox = document.createElement('div');
+    newBox.style.cssText = 'display:none;margin-top:8px;';
+    const fieldCss = 'width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:11px 13px;color:var(--text);font-family:Inter,sans-serif;font-size:13px;outline:none;-webkit-appearance:none;';
+    const nameInp = document.createElement('input');
+    nameInp.type = 'text';
+    nameInp.placeholder = 'Назва групи, напр. 103-ОПУТ-Д24';
+    nameInp.setAttribute('autocomplete','off');
+    nameInp.style.cssText = fieldCss;
+    const facSel = document.createElement('select');
+    facSel.style.cssText = fieldCss + 'margin-top:8px;';
+    const faculties = [];
+    groups.forEach(g => { if(g.faculty && faculties.indexOf(g.faculty) === -1) faculties.push(g.faculty); });
+    facSel.innerHTML = '<option value="">— Факультет (необов\'язково) —</option>' +
+      faculties.sort().map(f => '<option value="'+escHtml(f)+'">'+escHtml(f)+'</option>').join('');
+    newBox.appendChild(nameInp);
+    newBox.appendChild(facSel);
+    sel.after(newBox);
+
+    sel.onchange = function(){
+      newBox.style.display = sel.value === '__new__' ? 'block' : 'none';
+      if(sel.value === '__new__') nameInp.focus();
+    };
+
     const confirmBtn = document.createElement('button');
     confirmBtn.className = 'btn-primary';
     confirmBtn.style.marginTop = '8px';
     confirmBtn.textContent = 'Продовжити';
-    confirmBtn.onclick = async () => {
-      const gid = sel.value;
-      if(!gid) { showErr('Оберіть групу'); return; }
-      confirmBtn.disabled=true; confirmBtn.textContent='Входимо...';
-      const { doc, getDoc } = window._fb;
-      const gSnap = await getDoc(doc(window._db,'groups',gid));
-      if(!gSnap.exists()) { showErr('Групу не знайдено'); confirmBtn.disabled=false; confirmBtn.textContent='Продовжити'; return; }
-      group = { id: gid, ...gSnap.data() };
-      sel.remove(); confirmBtn.remove();
+    const finish = async (gid) => {
+      sel.remove(); newBox.remove(); confirmBtn.remove();
       localStorage.setItem('sh_token', tok);
       localStorage.setItem('sh_gid', gid);
       await initApp();
     };
-    sel.after(confirmBtn);
+    const reset = () => { confirmBtn.disabled = false; confirmBtn.textContent = 'Продовжити'; };
+    confirmBtn.onclick = async () => {
+      const gid = sel.value;
+      if(!gid) { showErr('Оберіть групу'); return; }
+      confirmBtn.disabled = true; confirmBtn.textContent = 'Входимо...';
+      try {
+        if(gid === '__new__') {
+          const name = nameInp.value.trim().replace(/\s+/g,' ');
+          if(name.length < 3 || name.length > 40) {
+            showErr('Введіть назву групи, як вона записана в універі');
+            reset(); nameInp.focus(); return;
+          }
+          // findOrCreateGroup matches an existing name first, so two
+          // people typing the same group still land in one.
+          group = await findOrCreateGroup(name, facSel.value || '');
+          await finish(group.id);
+          return;
+        }
+        const { doc, getDoc } = window._fb;
+        const gSnap = await getDoc(doc(window._db,'groups',gid));
+        if(!gSnap.exists()) { showErr('Групу не знайдено'); reset(); return; }
+        group = { id: gid, ...gSnap.data() };
+        await finish(gid);
+      } catch(e) {
+        console.error('[login] group fallback failed:', e);
+        showErr('Не вдалося увійти: ' + (e && e.message ? e.message : 'помилка'));
+        reset();
+      }
+    };
+    newBox.after(confirmBtn);
   }
 }
 

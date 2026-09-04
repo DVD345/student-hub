@@ -70,8 +70,23 @@ async function choose(page, label, value) {
     return true;
   }, { lbl: label, val: value });
   if (!ok) throw new Error('Не знайдено поле "' + label + '"');
-  // Blazor домальовує наступний крок каскаду через сервер — чекаємо на це.
-  await page.waitForTimeout(900);
+  // Blazor домальовує наступний крок каскаду через сервер.
+  await page.waitForTimeout(400);
+}
+
+// Фіксована пауза після вибору факультету коштувала цілих факультетів:
+// якщо сервер не встигав, список курсів читався порожнім, а порожній
+// список тихо пропускався — у першому повному прогоні так зникло чотири
+// факультети з семи. Чекаємо на появу варіантів, а не на секундомір.
+async function waitForOptions(page, label, timeout = 15000) {
+  const deadline = Date.now() + timeout;
+  let last = null;
+  while (Date.now() < deadline) {
+    last = await options(page, label);
+    if (last && last.length) return last;
+    await page.waitForTimeout(300);
+  }
+  return last || [];
 }
 
 // Та сама функція, що перевірена на живій сторінці.
@@ -135,10 +150,17 @@ async function main() {
     outer:
     for (const faculty of faculties) {
       await choose(page, 'Факультет', faculty.value);
-      const courses = await options(page, 'Курс') || [];
+      const courses = await waitForOptions(page, 'Курс');
+      if (!courses.length) {
+        report.failed++;
+        report.errors.push(faculty.text + ': список курсів не зʼявився');
+        console.log('✗ ' + faculty.text + ': курси не завантажились, факультет пропущено');
+        continue;
+      }
+      console.log('\n▸ ' + faculty.text + ' (' + courses.length + ' курсів)');
       for (const course of courses) {
         await choose(page, 'Курс', course.value);
-        const groupList = await options(page, 'Група') || [];
+        const groupList = await waitForOptions(page, 'Група', 8000);
         for (const g of groupList) {
           if (done >= LIMIT) break outer;
           done++;

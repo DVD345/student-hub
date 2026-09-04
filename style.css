@@ -1532,9 +1532,19 @@ body.deadlines-resizing .dl-width-resizer::before {
 
 /* Тиждень колонками, як на самому UniHub. Вузькі екрани отримують
    одну колонку — на телефоні п'ять колонок поруч нечитабельні. */
+/* Картка розкладу успадковує align-items:flex-start від
+   .schedule-fallback-card, і через це весь вміст стискався по ширині
+   тексту, залишаючи півекрана порожнім. Тут вміст має займати всю
+   ширину картки. */
+#schedule-unihub-card .schedule-fallback-card { align-items:stretch; }
+#schedule-unihub-card .schedule-fallback-card > * { align-self:stretch; }
+#schedule-unihub-card .schedule-fallback-actions { display:flex; gap:8px; }
+
 .uh-week {
   display:grid; gap:10px;
-  grid-template-columns:repeat(auto-fit, minmax(230px, 1fr));
+  /* 165px, а не 230: при 900px картки це різниця між трьома колонками
+     і повним тижнем в один ряд. */
+  grid-template-columns:repeat(auto-fit, minmax(165px, 1fr));
   align-items:start;
 }
 .uh-day {

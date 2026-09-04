@@ -1508,6 +1508,16 @@ body.deadlines-resizing .dl-width-resizer::before {
 }
 /* Unread-ping count, so the room list answers "where was I pinged?"
    without opening every room. Cleared when the room is opened. */
+/* Schedule source switcher (old site / UniHub) */
+.schedule-source-tabs { margin-bottom:10px; }
+.unihub-groups { display:flex; flex-direction:column; gap:6px; max-height:320px; overflow-y:auto; scrollbar-width:thin; }
+.unihub-group {
+  padding:8px 10px; border:1px solid var(--border); border-radius:10px;
+  background:rgba(255,255,255,.02);
+}
+.unihub-group-name { font-size:13px; font-weight:700; color:var(--text); }
+.unihub-group-sub { font-size:11px; color:var(--text2); margin-top:2px; }
+
 /* Dashboard "who's online" — reads the presence collection the chat page
    already maintains. */
 .online-count {

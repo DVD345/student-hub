@@ -2086,6 +2086,8 @@ function _initScheduleUi() {
   if(!document.getElementById('page-schedule')) return;
   _scheduleUiReady = true;
   _installScheduleGroupPicker();
+  _installScheduleSourceUi();
+  setScheduleSource(_scheduleSource, false);
 
   // Fill from the built-ins first so the form is never empty, then swap
   // in the live lists and re-apply whatever the user had selected.
@@ -2128,6 +2130,126 @@ function _initScheduleUi() {
       }
     }
   } catch(e) {}
+}
+
+// ── Where the schedule comes from ────────────────────────────────────
+// The university moved the schedule to unihub.kart.edu.ua, which is a
+// Blazor Server app: its pages talk to the server over a SignalR circuit
+// instead of fetching JSON, so the lessons are not reachable as an API.
+// It does expose /api/groups and /api/departments openly, but sends no
+// CORS headers, so even those have to go through the proxy worker.
+// Meanwhile the old site still answers but returns an empty grid for
+// 2026-2027. Neither source is complete, so the choice is left to the
+// user rather than guessed - and the moment unihub publishes lessons,
+// only _loadUnihubSchedule below needs filling in.
+var SCHEDULE_SOURCE_KEY = 'sh_schedule_source_v1';
+var UNIHUB_URL = 'https://unihub.kart.edu.ua/';
+var UNIHUB_API = SCHEDULE_PROXY_URL + '/unihub';   // worker route, see README
+var _scheduleSource = (function(){
+  try { return localStorage.getItem(SCHEDULE_SOURCE_KEY) === 'unihub' ? 'unihub' : 'legacy'; }
+  catch(e) { return 'legacy'; }
+})();
+
+function setScheduleSource(source, reload) {
+  _scheduleSource = source === 'unihub' ? 'unihub' : 'legacy';
+  try { localStorage.setItem(SCHEDULE_SOURCE_KEY, _scheduleSource); } catch(e) {}
+  document.querySelectorAll('#schedule-source-tabs .schedule-mode-tab').forEach(function(b){
+    b.classList.toggle('active', b.dataset.source === _scheduleSource);
+  });
+  var unihubCard = document.getElementById('schedule-unihub-card');
+  // Everything in the shell except the switcher and the UniHub card is
+  // the old source's UI. Selecting it by role rather than by a fixed list
+  // of ids, because those ids are assigned by code paths that do not all
+  // run.
+  var shell = document.querySelector('#page-schedule .schedule-shell');
+  if(shell) {
+    Array.prototype.slice.call(shell.children).forEach(function(el){
+      if(el.id === 'schedule-source-tabs' || el.id === 'schedule-unihub-card') return;
+      el.style.display = _scheduleSource === 'legacy' ? '' : 'none';
+    });
+  }
+  if(_scheduleSource === 'legacy') {
+    if(typeof setScheduleMode === 'function' && typeof _scheduleMode !== 'undefined' && _scheduleMode) {
+      setScheduleMode(_scheduleMode, false);
+    }
+    if(unihubCard) unihubCard.style.display = 'none';
+  } else if(unihubCard) {
+    unihubCard.style.display = '';
+    if(reload !== false) _loadUnihubSchedule();
+  }
+}
+
+async function _loadUnihubSchedule() {
+  var body = document.getElementById('unihub-body');
+  if(!body) return;
+  body.innerHTML = '<div class="loading"><div class="spinner"></div>Перевіряємо новий сайт…</div>';
+  var groups = null;
+  try {
+    var resp = await fetch(UNIHUB_API + '/api/groups', { method: 'GET' });
+    if(resp.ok) groups = await resp.json();
+  } catch(e) {
+    console.warn('[unihub] groups request failed:', e && e.message);
+  }
+  var openBtn = '<button class="btn a" type="button" onclick="openSafeUrl(UNIHUB_URL)">Відкрити UniHub ↗</button>';
+  if(!Array.isArray(groups)) {
+    body.innerHTML =
+      '<div class="schedule-fallback-card">' +
+        '<div class="schedule-fallback-emo">🚧</div>' +
+        '<div class="schedule-fallback-title">Новий сайт поки не віддає розклад</div>' +
+        '<p class="schedule-fallback-copy">UniHub побудований так, що сторінки спілкуються із сервером напряму, ' +
+        'а не віддають дані для інших застосунків. Відкритих даних розкладу там наразі немає — ' +
+        'щойно вони зʼявляться, розклад показуватиметься тут.</p>' +
+        '<div class="schedule-fallback-actions">' + openBtn + '</div>' +
+      '</div>';
+    return;
+  }
+  var active = groups.filter(function(g){ return g && g.name; });
+  body.innerHTML =
+    '<div class="schedule-fallback-card">' +
+      '<div class="schedule-fallback-title">Групи з UniHub <span class="online-count">' + active.length + '</span></div>' +
+      '<p class="schedule-fallback-copy">Це дані з нового сайту. Самого розкладу він поки не віддає — ' +
+      'відкрий UniHub, щоб подивитися пари.</p>' +
+      '<input class="tb-input" id="unihub-q" placeholder="🔍 Знайти групу…" style="width:100%;margin:10px 0;">' +
+      '<div id="unihub-groups" class="unihub-groups"></div>' +
+      '<div class="schedule-fallback-actions" style="margin-top:10px;">' + openBtn + '</div>' +
+    '</div>';
+  var render = function(q){
+    var needle = String(q||'').trim().toLowerCase();
+    var rows = active.filter(function(g){
+      return !needle || (g.name||'').toLowerCase().indexOf(needle) !== -1
+        || (g.educationProgramName||'').toLowerCase().indexOf(needle) !== -1;
+    }).slice(0, 60);
+    document.getElementById('unihub-groups').innerHTML = rows.length
+      ? rows.map(function(g){
+          return '<div class="unihub-group">' +
+            '<div class="unihub-group-name">' + escHtml(g.name) + '</div>' +
+            '<div class="unihub-group-sub">' + escHtml(g.educationProgramName || '') +
+              (g.course ? ' • ' + g.course + ' курс' : '') + '</div>' +
+          '</div>';
+        }).join('')
+      : '<div class="online-empty">Нічого не знайдено</div>';
+  };
+  render('');
+  var q = document.getElementById('unihub-q');
+  if(q) q.oninput = debounce(function(){ render(q.value); }, 150);
+}
+
+function _installScheduleSourceUi() {
+  var shell = document.querySelector('#page-schedule .schedule-shell');
+  if(!shell || document.getElementById('schedule-source-tabs')) return;
+  var tabs = document.createElement('div');
+  tabs.id = 'schedule-source-tabs';
+  tabs.className = 'schedule-mode-tabs schedule-source-tabs';
+  tabs.innerHTML =
+    '<button class="schedule-mode-tab" type="button" data-source="legacy" onclick="setScheduleSource(\'legacy\')">Старий сайт</button>' +
+    '<button class="schedule-mode-tab" type="button" data-source="unihub" onclick="setScheduleSource(\'unihub\')">UniHub (новий)</button>';
+  shell.insertBefore(tabs, shell.firstChild);
+  var card = document.createElement('div');
+  card.id = 'schedule-unihub-card';
+  card.className = 'schedule-filter-card';
+  card.style.display = 'none';
+  card.innerHTML = '<div id="unihub-body"></div>';
+  shell.appendChild(card);
 }
 
 function _installScheduleModeUi() {

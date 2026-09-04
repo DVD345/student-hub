@@ -1558,9 +1558,26 @@ body.deadlines-resizing .dl-width-resizer::before {
 .uh-day-body { padding:10px; display:flex; flex-direction:column; gap:8px; }
 .uh-free { font-size:11px; color:var(--text2); padding:4px 2px; }
 
-.uh-lesson {
+/* Варіанти однієї пари живуть в одному блоці й розділені лінією, а не
+   проміжком — інакше "3. ПАРНИЙ" і "3. НЕПАРНИЙ" читаються як дві різні
+   пари, що стоять поспіль. */
+.uh-slot {
   border:1px solid var(--border); border-radius:12px;
-  padding:9px 10px; background:var(--card);
+  background:var(--card); overflow:hidden;
+}
+.uh-lesson { padding:9px 10px; }
+.uh-lesson + .uh-lesson { border-top:1px dashed var(--border); }
+
+.uh-parity-switch { display:flex; align-items:center; gap:6px; flex-shrink:0; }
+.uh-parity-btn {
+  background:var(--bg3); border:1px solid var(--border); color:var(--text2);
+  border-radius:9px; padding:6px 11px; cursor:pointer;
+  font-family:'Inter',sans-serif; font-size:11px; font-weight:700;
+  transition:background .15s, color .15s, border-color .15s;
+}
+.uh-parity-btn:hover { color:var(--text); border-color:var(--accent); }
+.uh-parity-btn.on {
+  background:rgba(240,192,64,.14); border-color:var(--accent); color:var(--accent);
 }
 .uh-lesson-title { font-size:12.5px; line-height:1.45; color:var(--text); }
 .uh-teacher {

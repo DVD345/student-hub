@@ -2264,41 +2264,89 @@ async function _loadUnihubSchedule() {
   if(q) q.oninput = debounce(function(){ render(q.value); }, 150);
 }
 
+// Обрана чверть тижня: '' = показувати все, інакше 'парний' / 'непарний'.
+var _uhParity = '';
+var _uhGroupName = '';
+
+function setUnihubParity(p) {
+  _uhParity = (_uhParity === p) ? '' : p;
+  _renderUnihubGroup();
+}
+
 function closeUnihubGroup() {
   var root = document.getElementById('unihub-result');
   if(root) root.innerHTML = '';
+  _uhGroupName = '';
+  _uhParity = '';
 }
 
 function showUnihubGroup(name) {
+  _uhGroupName = name;
+  _uhParity = '';
+  _renderUnihubGroup();
+}
+
+function _renderUnihubGroup() {
+  var name = _uhGroupName;
   var data = (window._unihubCollected || {})[name];
   var root = document.getElementById('unihub-result');
   if(!root) return;
   if(!data) { root.innerHTML = '<div class="online-empty">Для цієї групи розклад ще не зібрано</div>'; return; }
+
   var head = '<div class="unihub-schedule-head">' +
       '<span>' + escHtml(name) + '<span class="unihub-head-sub">' + escHtml(data.faculty || '') +
         (data.course ? ' • ' + escHtml(String(data.course)) : '') + '</span></span>' +
-      '<button class="btn" type="button" onclick="closeUnihubGroup()">✕</button>' +
+      '<div class="uh-parity-switch">' +
+        '<button class="uh-parity-btn' + (_uhParity === 'парний' ? ' on' : '') + '" type="button" ' +
+          'onclick="setUnihubParity(\'парний\')">Парний</button>' +
+        '<button class="uh-parity-btn' + (_uhParity === 'непарний' ? ' on' : '') + '" type="button" ' +
+          'onclick="setUnihubParity(\'непарний\')">Непарний</button>' +
+        '<button class="btn" type="button" onclick="closeUnihubGroup()">✕</button>' +
+      '</div>' +
     '</div>';
+
   var week = (data.days || []).map(function(d){
-    var lessons = (d.lessons || []).map(function(l){
-      var parity = (l.parity || '').toLowerCase();
-      return '<div class="uh-lesson">' +
-        '<div class="uh-lesson-title">' +
-          '<b>' + escHtml(l.num) + '.</b> ' + escHtml(l.subject) +
-          (l.kind ? ', <span class="uh-kind" data-kind="' + escHtml(l.kind) + '">' + escHtml(l.kind) + '</span>' : '') +
-        '</div>' +
-        (l.teacher ? '<div class="uh-teacher"><span class="uh-ico">👤</span>' + escHtml(l.teacher) + '</div>' : '') +
-        '<div class="uh-badges">' +
-          (l.time ? '<span class="uh-badge">' + escHtml(l.time) + '</span>' : '') +
-          (parity ? '<span class="uh-badge uh-parity" data-parity="' + escHtml(parity) + '">' + escHtml(l.parity.toUpperCase()) + '</span>' : '') +
-        '</div>' +
-      '</div>';
+    // Пара без позначки чверті йде щотижня, тому потрапляє в обидва фільтри.
+    var lessons = (d.lessons || []).filter(function(l){
+      if(!_uhParity) return true;
+      var p = (l.parity || '').toLowerCase();
+      return !p || p === _uhParity;
+    });
+
+    // Варіанти однієї пари (той самий номер) склеюємо в один блок: інакше
+    // між "3. ... ПАРНИЙ" і "3. ... НЕПАРНИЙ" зяє такий самий проміжок, як
+    // між різними парами, і вони читаються як дві окремі.
+    var slots = [];
+    lessons.forEach(function(l){
+      var last = slots[slots.length - 1];
+      if(last && last.num === l.num) last.items.push(l);
+      else slots.push({ num: l.num, items: [l] });
+    });
+
+    var body = slots.map(function(slot){
+      return '<div class="uh-slot">' + slot.items.map(function(l){
+        var parity = (l.parity || '').toLowerCase();
+        return '<div class="uh-lesson">' +
+          '<div class="uh-lesson-title">' +
+            '<b>' + escHtml(l.num) + '.</b> ' + escHtml(l.subject) +
+            (l.kind ? ', <span class="uh-kind" data-kind="' + escHtml(l.kind) + '">' + escHtml(l.kind) + '</span>' : '') +
+          '</div>' +
+          (l.teacher ? '<div class="uh-teacher"><span class="uh-ico">👤</span>' + escHtml(l.teacher) + '</div>' : '') +
+          '<div class="uh-badges">' +
+            (l.time ? '<span class="uh-badge">' + escHtml(l.time) + '</span>' : '') +
+            (parity ? '<span class="uh-badge uh-parity" data-parity="' + escHtml(parity) + '">' +
+              escHtml(l.parity.toUpperCase()) + '</span>' : '') +
+          '</div>' +
+        '</div>';
+      }).join('') + '</div>';
     }).join('');
+
     return '<div class="uh-day">' +
       '<div class="uh-day-head">' + escHtml(d.day) + '</div>' +
-      '<div class="uh-day-body">' + (lessons || '<div class="uh-free">Пар немає</div>') + '</div>' +
+      '<div class="uh-day-body">' + (body || '<div class="uh-free">Пар немає</div>') + '</div>' +
     '</div>';
   }).join('');
+
   root.innerHTML = '<div class="unihub-schedule">' + head + '<div class="uh-week">' + week + '</div></div>';
 }
 

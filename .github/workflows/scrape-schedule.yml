@@ -1,0 +1,54 @@
+name: Зібрати розклад з UniHub
+
+# Тільки вручну: Actions → "Зібрати розклад з UniHub" → Run workflow.
+# Розклад змінюється раз на семестр, тому запуск за таймером тут зайвий —
+# і поламку видно одразу, бо ти сам дивишся на результат запуску.
+on:
+  workflow_dispatch:
+    inputs:
+      limit:
+        description: 'Скільки груп зібрати (порожньо = усі; для перевірки постав 3)'
+        required: false
+        default: ''
+
+permissions:
+  contents: write
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Встановити Playwright
+        run: |
+          npm init -y >/dev/null 2>&1 || true
+          npm install --no-save playwright
+          npx playwright install --with-deps chromium
+
+      - name: Зібрати розклад
+        run: |
+          if [ -n "${{ inputs.limit }}" ]; then
+            node tools/scrape-schedule.mjs --limit ${{ inputs.limit }}
+          else
+            node tools/scrape-schedule.mjs
+          fi
+
+      - name: Закомітити результат
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          # package.json/package-lock від npm install у коміт не потрапляють.
+          git add schedule/unihub.json
+          if git diff --staged --quiet; then
+            echo "Розклад не змінився — коміт не потрібен."
+          else
+            git commit -m "Оновити розклад з UniHub"
+            git push
+          fi

@@ -1515,8 +1515,28 @@ body.deadlines-resizing .dl-width-resizer::before {
   padding:8px 10px; border:1px solid var(--border); border-radius:10px;
   background:rgba(255,255,255,.02);
 }
-.unihub-group-name { font-size:13px; font-weight:700; color:var(--text); }
+.unihub-group-name { font-size:13px; font-weight:700; color:var(--text); display:flex; align-items:center; gap:8px; }
 .unihub-group-sub { font-size:11px; color:var(--text2); margin-top:2px; }
+.unihub-group.has-schedule { cursor:pointer; border-color:rgba(240,192,64,.28); }
+.unihub-group.has-schedule:hover { background:rgba(240,192,64,.07); border-color:var(--accent); }
+.unihub-badge {
+  font-size:9px; font-weight:700; padding:2px 6px; border-radius:8px;
+  background:rgba(76,175,80,.14); border:1px solid rgba(76,175,80,.3); color:#4caf50;
+}
+.unihub-schedule { margin-top:12px; border-top:1px solid var(--border); padding-top:12px; }
+.unihub-schedule-head {
+  display:flex; align-items:center; justify-content:space-between; gap:10px;
+  font-size:14px; font-weight:800; margin-bottom:10px;
+}
+.unihub-day { margin-bottom:12px; }
+.unihub-day-name {
+  font-size:10px; font-weight:700; color:var(--accent);
+  text-transform:uppercase; letter-spacing:.8px; margin-bottom:6px;
+}
+.unihub-lesson { padding:8px 10px; border:1px solid var(--border); border-radius:10px; margin-bottom:6px; background:rgba(255,255,255,.02); }
+.unihub-lesson-top { font-size:12.5px; color:var(--text); line-height:1.4; }
+.unihub-lesson-sub { font-size:11px; color:var(--text2); margin-top:3px; }
+.unihub-kind { font-size:10px; color:var(--text2); border:1px solid var(--border); border-radius:6px; padding:1px 5px; }
 
 /* Dashboard "who's online" — reads the presence collection the chat page
    already maintains. */

@@ -2182,49 +2182,79 @@ function setScheduleSource(source, reload) {
 async function _loadUnihubSchedule() {
   var body = document.getElementById('unihub-body');
   if(!body) return;
-  body.innerHTML = '<div class="loading"><div class="spinner"></div>Перевіряємо новий сайт…</div>';
-  var groups = null;
+  body.innerHTML = '<div class="loading"><div class="spinner"></div>Завантажуємо розклад…</div>';
+
+  // Зібраний розклад лежить у самому репозиторії — той самий домен, тож
+  // ані проксі, ані CORS тут не потрібні, і працює навіть офлайн.
+  var collected = null;
   try {
-    var resp = await fetch(UNIHUB_API + '/api/groups', { method: 'GET' });
-    if(resp.ok) groups = await resp.json();
-  } catch(e) {
-    console.warn('[unihub] groups request failed:', e && e.message);
-  }
+    var r = await fetch('schedule/unihub.json?v=' + (typeof APP_BUILD !== 'undefined' ? APP_BUILD : '1'));
+    if(r.ok) collected = await r.json();
+  } catch(e) { console.warn('[unihub] no collected schedule yet:', e && e.message); }
+
+  // Список груп — живий, з UniHub через проксі. Він ширший за зібраний
+  // розклад, тому групу видно навіть тоді, коли пар для неї ще не зібрано.
+  var live = null;
+  try {
+    var r2 = await fetch(UNIHUB_API + '/api/groups');
+    if(r2.ok) live = await r2.json();
+  } catch(e) { console.warn('[unihub] groups request failed:', e && e.message); }
+
   var openBtn = '<button class="btn a" type="button" onclick="openSafeUrl(UNIHUB_URL)">Відкрити UniHub ↗</button>';
-  if(!Array.isArray(groups)) {
+  var collectedGroups = (collected && collected.groups) || {};
+  var names = Object.keys(collectedGroups);
+
+  if(!names.length && !Array.isArray(live)) {
     body.innerHTML =
       '<div class="schedule-fallback-card">' +
         '<div class="schedule-fallback-emo">🚧</div>' +
-        '<div class="schedule-fallback-title">Новий сайт поки не віддає розклад</div>' +
-        '<p class="schedule-fallback-copy">UniHub побудований так, що сторінки спілкуються із сервером напряму, ' +
-        'а не віддають дані для інших застосунків. Відкритих даних розкладу там наразі немає — ' +
-        'щойно вони зʼявляться, розклад показуватиметься тут.</p>' +
+        '<div class="schedule-fallback-title">Розклад ще не зібрано</div>' +
+        '<p class="schedule-fallback-copy">UniHub не віддає розклад як дані, тому його збирають окремо — ' +
+        'запуском Actions у репозиторії. Поки що можна відкрити сайт напряму.</p>' +
         '<div class="schedule-fallback-actions">' + openBtn + '</div>' +
       '</div>';
     return;
   }
-  var active = groups.filter(function(g){ return g && g.name; });
+
+  var all = {};
+  (Array.isArray(live) ? live : []).forEach(function(g){
+    if(g && g.name) all[g.name] = { name:g.name, sub:(g.educationProgramName || ''), course:g.course, has:false };
+  });
+  names.forEach(function(n){
+    var c = collectedGroups[n];
+    all[n] = { name:n, sub:(all[n] && all[n].sub) || c.faculty || '', course:(all[n] && all[n].course) || c.course, has:true };
+  });
+  var list = Object.keys(all).map(function(k){ return all[k]; })
+    .sort(function(a,b){ return (b.has?1:0)-(a.has?1:0) || a.name.localeCompare(b.name); });
+
+  var built = collected && collected.builtAt ? new Date(collected.builtAt).toLocaleDateString('uk-UA') : null;
   body.innerHTML =
     '<div class="schedule-fallback-card">' +
-      '<div class="schedule-fallback-title">Групи з UniHub <span class="online-count">' + active.length + '</span></div>' +
-      '<p class="schedule-fallback-copy">Це дані з нового сайту. Самого розкладу він поки не віддає — ' +
-      'відкрий UniHub, щоб подивитися пари.</p>' +
+      '<div class="schedule-fallback-title">Розклад з UniHub' +
+        (names.length ? ' <span class="online-count">' + names.length + '</span>' : '') + '</div>' +
+      '<p class="schedule-fallback-copy">' +
+        (built ? 'Зібрано ' + escHtml(built) + (collected.year ? ', ' + escHtml(collected.year) : '') + '. ' : '') +
+        'Обери групу, щоб побачити пари.</p>' +
       '<input class="tb-input" id="unihub-q" placeholder="🔍 Знайти групу…" style="width:100%;margin:10px 0;">' +
       '<div id="unihub-groups" class="unihub-groups"></div>' +
+      '<div id="unihub-result"></div>' +
       '<div class="schedule-fallback-actions" style="margin-top:10px;">' + openBtn + '</div>' +
     '</div>';
+
+  window._unihubCollected = collectedGroups;
   var render = function(q){
     var needle = String(q||'').trim().toLowerCase();
-    var rows = active.filter(function(g){
-      return !needle || (g.name||'').toLowerCase().indexOf(needle) !== -1
-        || (g.educationProgramName||'').toLowerCase().indexOf(needle) !== -1;
+    var rows = list.filter(function(g){
+      return !needle || g.name.toLowerCase().indexOf(needle) !== -1 || (g.sub||'').toLowerCase().indexOf(needle) !== -1;
     }).slice(0, 60);
     document.getElementById('unihub-groups').innerHTML = rows.length
       ? rows.map(function(g){
-          return '<div class="unihub-group">' +
-            '<div class="unihub-group-name">' + escHtml(g.name) + '</div>' +
-            '<div class="unihub-group-sub">' + escHtml(g.educationProgramName || '') +
-              (g.course ? ' • ' + g.course + ' курс' : '') + '</div>' +
+          return '<div class="unihub-group' + (g.has ? ' has-schedule' : '') + '"' +
+            (g.has ? ' onclick="showUnihubGroup(this.dataset.g)" data-g="' + escHtml(g.name) + '"' : '') + '>' +
+            '<div class="unihub-group-name">' + escHtml(g.name) +
+              (g.has ? '<span class="unihub-badge">розклад є</span>' : '') + '</div>' +
+            '<div class="unihub-group-sub">' + escHtml(g.sub || '') +
+              (g.course ? ' • ' + escHtml(String(g.course)) + ' курс' : '') + '</div>' +
           '</div>';
         }).join('')
       : '<div class="online-empty">Нічого не знайдено</div>';
@@ -2232,6 +2262,38 @@ async function _loadUnihubSchedule() {
   render('');
   var q = document.getElementById('unihub-q');
   if(q) q.oninput = debounce(function(){ render(q.value); }, 150);
+}
+
+function closeUnihubGroup() {
+  var root = document.getElementById('unihub-result');
+  if(root) root.innerHTML = '';
+}
+
+function showUnihubGroup(name) {
+  var data = (window._unihubCollected || {})[name];
+  var root = document.getElementById('unihub-result');
+  if(!root) return;
+  if(!data) { root.innerHTML = '<div class="online-empty">Для цієї групи розклад ще не зібрано</div>'; return; }
+  root.innerHTML =
+    '<div class="unihub-schedule">' +
+      '<div class="unihub-schedule-head">' + escHtml(name) +
+        '<button class="btn" type="button" onclick="closeUnihubGroup()">✕</button>' +
+      '</div>' +
+      (data.days || []).map(function(d){
+        return '<div class="unihub-day">' +
+          '<div class="unihub-day-name">' + escHtml(d.day) + '</div>' +
+          (d.lessons || []).map(function(l){
+            return '<div class="unihub-lesson">' +
+              '<div class="unihub-lesson-top"><b>' + escHtml(l.num) + '.</b> ' + escHtml(l.subject) +
+                (l.kind ? ' <span class="unihub-kind">' + escHtml(l.kind) + '</span>' : '') + '</div>' +
+              '<div class="unihub-lesson-sub">' + escHtml(l.teacher || '') +
+                (l.time ? ' • ' + escHtml(l.time) : '') +
+                (l.parity ? ' • ' + escHtml(l.parity) : '') + '</div>' +
+            '</div>';
+          }).join('') +
+        '</div>';
+      }).join('') +
+    '</div>';
 }
 
 function _installScheduleSourceUi() {

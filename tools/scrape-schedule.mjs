@@ -24,35 +24,51 @@ const clean = (s) => String(s || '').replace(/\s+/g, ' ').trim();
 
 // Селектори шукаються за підписом поля, а не за позицією в DOM:
 // підписи ("Факультет", "Курс") переживають зміну оформлення, порядок — ні.
-async function selectByLabel(page, label) {
-  return page.evaluateHandle((lbl) => {
+// Усе робиться одним evaluate замість передавання елемента між викликами:
+// так менше рухомих частин і немає залежності від того, як бібліотека
+// серіалізує посилання на вузол.
+async function options(page, label) {
+  return page.evaluate((lbl) => {
     const sels = [...document.querySelectorAll('select')];
-    return sels.find((s) => {
+    const sel = sels.find((s) => {
       const near = s.closest('div');
       return near && near.textContent.trim().startsWith(lbl);
-    }) || null;
-  }, label);
-}
-
-async function options(page, label) {
-  const handle = await selectByLabel(page, label);
-  return page.evaluate((sel) => {
-    if (!sel) return [];
+    });
+    if (!sel) return null;
     return [...sel.options]
       .map((o) => ({ value: o.value, text: o.textContent.trim() }))
       .filter((o) => o.value !== '');
-  }, handle);
+  }, label);
+}
+
+// Те, що зараз реально обране у полі. Раніше рік брався як останній
+// варіант списку — і файл підписувався 2027-2028, хоча збирався розклад
+// за 2026-2027, який стоїть за замовчуванням.
+async function selected(page, label) {
+  return page.evaluate((lbl) => {
+    const sels = [...document.querySelectorAll('select')];
+    const sel = sels.find((s) => {
+      const near = s.closest('div');
+      return near && near.textContent.trim().startsWith(lbl);
+    });
+    if (!sel || sel.selectedIndex < 0) return '';
+    return sel.options[sel.selectedIndex].textContent.trim();
+  }, label);
 }
 
 async function choose(page, label, value) {
-  const handle = await selectByLabel(page, label);
-  const ok = await page.evaluate(({ sel, val }) => {
+  const ok = await page.evaluate(({ lbl, val }) => {
+    const sels = [...document.querySelectorAll('select')];
+    const sel = sels.find((s) => {
+      const near = s.closest('div');
+      return near && near.textContent.trim().startsWith(lbl);
+    });
     if (!sel) return false;
     sel.value = val;
     sel.dispatchEvent(new Event('input', { bubbles: true }));
     sel.dispatchEvent(new Event('change', { bubbles: true }));
     return true;
-  }, { sel: handle, val: value });
+  }, { lbl: label, val: value });
   if (!ok) throw new Error('Не знайдено поле "' + label + '"');
   // Blazor домальовує наступний крок каскаду через сервер — чекаємо на це.
   await page.waitForTimeout(900);
@@ -92,29 +108,37 @@ async function main() {
   let meta = {};
 
   try {
-    await page.goto(BASE, { waitUntil: 'networkidle', timeout: 60000 });
-    // Чекаємо, поки Blazor підніме канал і намалює фільтри.
-    await page.waitForSelector('select', { timeout: 60000 });
-    await page.waitForTimeout(2500);
+    // Не networkidle: Blazor тримає WebSocket відкритим постійно, тож
+    // "мережа затихла" тут не настає ніколи і чекання впиралося б у таймаут.
+    await page.goto(BASE, { waitUntil: 'domcontentloaded', timeout: 60000 });
+    // Чекаємо, поки Blazor підніме канал і намалює фільтри: поява <select>
+    // з реальними опціями — ознака, що канал уже працює.
+    await page.waitForFunction(() => {
+      const s = document.querySelectorAll('select');
+      return s.length >= 4 && [...s].some((x) => x.options.length > 1);
+    }, { timeout: 90000 });
+    await page.waitForTimeout(2000);
 
     const years = await options(page, 'Навчальний рік');
-    const semesters = await options(page, 'Семестр');
+    if (!years) throw new Error('Не знайдено полів фільтра — сторінка змінилася?');
     meta = {
-      year: years.length ? years[years.length - 1].text : '',
-      semester: semesters.length ? semesters[0].text : ''
+      year: await selected(page, 'Навчальний рік'),
+      semester: await selected(page, 'Семестр')
     };
+    console.log('Рік: ' + meta.year + ', семестр: ' + meta.semester);
 
-    const faculties = await options(page, 'Факультет');
+    const faculties = await options(page, 'Факультет') || [];
     console.log('Факультетів: ' + faculties.length);
+    if (!faculties.length) throw new Error('Список факультетів порожній');
 
     let done = 0;
     outer:
     for (const faculty of faculties) {
       await choose(page, 'Факультет', faculty.value);
-      const courses = await options(page, 'Курс');
+      const courses = await options(page, 'Курс') || [];
       for (const course of courses) {
         await choose(page, 'Курс', course.value);
-        const groupList = await options(page, 'Група');
+        const groupList = await options(page, 'Група') || [];
         for (const g of groupList) {
           if (done >= LIMIT) break outer;
           done++;

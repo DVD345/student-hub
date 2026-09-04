@@ -2274,26 +2274,32 @@ function showUnihubGroup(name) {
   var root = document.getElementById('unihub-result');
   if(!root) return;
   if(!data) { root.innerHTML = '<div class="online-empty">Для цієї групи розклад ще не зібрано</div>'; return; }
-  root.innerHTML =
-    '<div class="unihub-schedule">' +
-      '<div class="unihub-schedule-head">' + escHtml(name) +
-        '<button class="btn" type="button" onclick="closeUnihubGroup()">✕</button>' +
-      '</div>' +
-      (data.days || []).map(function(d){
-        return '<div class="unihub-day">' +
-          '<div class="unihub-day-name">' + escHtml(d.day) + '</div>' +
-          (d.lessons || []).map(function(l){
-            return '<div class="unihub-lesson">' +
-              '<div class="unihub-lesson-top"><b>' + escHtml(l.num) + '.</b> ' + escHtml(l.subject) +
-                (l.kind ? ' <span class="unihub-kind">' + escHtml(l.kind) + '</span>' : '') + '</div>' +
-              '<div class="unihub-lesson-sub">' + escHtml(l.teacher || '') +
-                (l.time ? ' • ' + escHtml(l.time) : '') +
-                (l.parity ? ' • ' + escHtml(l.parity) : '') + '</div>' +
-            '</div>';
-          }).join('') +
-        '</div>';
-      }).join('') +
+  var head = '<div class="unihub-schedule-head">' +
+      '<span>' + escHtml(name) + '<span class="unihub-head-sub">' + escHtml(data.faculty || '') +
+        (data.course ? ' • ' + escHtml(String(data.course)) : '') + '</span></span>' +
+      '<button class="btn" type="button" onclick="closeUnihubGroup()">✕</button>' +
     '</div>';
+  var week = (data.days || []).map(function(d){
+    var lessons = (d.lessons || []).map(function(l){
+      var parity = (l.parity || '').toLowerCase();
+      return '<div class="uh-lesson">' +
+        '<div class="uh-lesson-title">' +
+          '<b>' + escHtml(l.num) + '.</b> ' + escHtml(l.subject) +
+          (l.kind ? ', <span class="uh-kind" data-kind="' + escHtml(l.kind) + '">' + escHtml(l.kind) + '</span>' : '') +
+        '</div>' +
+        (l.teacher ? '<div class="uh-teacher"><span class="uh-ico">👤</span>' + escHtml(l.teacher) + '</div>' : '') +
+        '<div class="uh-badges">' +
+          (l.time ? '<span class="uh-badge">' + escHtml(l.time) + '</span>' : '') +
+          (parity ? '<span class="uh-badge uh-parity" data-parity="' + escHtml(parity) + '">' + escHtml(l.parity.toUpperCase()) + '</span>' : '') +
+        '</div>' +
+      '</div>';
+    }).join('');
+    return '<div class="uh-day">' +
+      '<div class="uh-day-head">' + escHtml(d.day) + '</div>' +
+      '<div class="uh-day-body">' + (lessons || '<div class="uh-free">Пар немає</div>') + '</div>' +
+    '</div>';
+  }).join('');
+  root.innerHTML = '<div class="unihub-schedule">' + head + '<div class="uh-week">' + week + '</div></div>';
 }
 
 function _installScheduleSourceUi() {

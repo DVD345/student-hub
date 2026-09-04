@@ -1525,18 +1525,57 @@ body.deadlines-resizing .dl-width-resizer::before {
 }
 .unihub-schedule { margin-top:12px; border-top:1px solid var(--border); padding-top:12px; }
 .unihub-schedule-head {
-  display:flex; align-items:center; justify-content:space-between; gap:10px;
-  font-size:14px; font-weight:800; margin-bottom:10px;
+  display:flex; align-items:flex-start; justify-content:space-between; gap:10px;
+  font-size:15px; font-weight:800; margin-bottom:12px;
 }
-.unihub-day { margin-bottom:12px; }
-.unihub-day-name {
-  font-size:10px; font-weight:700; color:var(--accent);
-  text-transform:uppercase; letter-spacing:.8px; margin-bottom:6px;
+.unihub-head-sub { display:block; font-size:11px; font-weight:400; color:var(--text2); margin-top:2px; }
+
+/* Тиждень колонками, як на самому UniHub. Вузькі екрани отримують
+   одну колонку — на телефоні п'ять колонок поруч нечитабельні. */
+.uh-week {
+  display:grid; gap:10px;
+  grid-template-columns:repeat(auto-fit, minmax(230px, 1fr));
+  align-items:start;
 }
-.unihub-lesson { padding:8px 10px; border:1px solid var(--border); border-radius:10px; margin-bottom:6px; background:rgba(255,255,255,.02); }
-.unihub-lesson-top { font-size:12.5px; color:var(--text); line-height:1.4; }
-.unihub-lesson-sub { font-size:11px; color:var(--text2); margin-top:3px; }
-.unihub-kind { font-size:10px; color:var(--text2); border:1px solid var(--border); border-radius:6px; padding:1px 5px; }
+.uh-day {
+  border:1px solid var(--border); border-radius:14px;
+  background:rgba(255,255,255,.02); overflow:hidden;
+}
+.uh-day-head {
+  padding:10px 12px; font-size:13px; font-weight:800; color:var(--text);
+  border-bottom:1px solid var(--border); background:rgba(255,255,255,.03);
+}
+.uh-day-body { padding:10px; display:flex; flex-direction:column; gap:8px; }
+.uh-free { font-size:11px; color:var(--text2); padding:4px 2px; }
+
+.uh-lesson {
+  border:1px solid var(--border); border-radius:12px;
+  padding:9px 10px; background:var(--card);
+}
+.uh-lesson-title { font-size:12.5px; line-height:1.45; color:var(--text); }
+.uh-teacher {
+  display:flex; align-items:center; gap:6px;
+  font-size:11px; color:var(--text2); margin-top:6px;
+}
+.uh-ico { opacity:.75; font-size:11px; }
+.uh-badges { display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
+.uh-badge {
+  font-size:10px; font-weight:600; padding:3px 7px; border-radius:7px;
+  background:var(--bg3); border:1px solid var(--border); color:var(--text2);
+  white-space:nowrap;
+}
+.uh-parity { font-weight:800; letter-spacing:.4px; }
+.uh-parity[data-parity="парний"]   { color:#7aa2ff; border-color:rgba(122,162,255,.32); background:rgba(122,162,255,.10); }
+.uh-parity[data-parity="непарний"] { color:#c58cff; border-color:rgba(197,140,255,.32); background:rgba(197,140,255,.10); }
+
+/* Вид заняття кольором — так само, як його розрізняє UniHub. */
+.uh-kind { font-weight:700; }
+.uh-kind[data-kind="Лекція"]      { color:#4caf50; }
+.uh-kind[data-kind="Практика"]    { color:#3fb9a8; }
+.uh-kind[data-kind="Лабораторна"] { color:#c58cff; }
+.uh-kind[data-kind="Консультація"]{ color:#f0c040; }
+.uh-kind[data-kind="Екзамен"]     { color:#e05050; }
+.uh-kind[data-kind="Залік"]       { color:#e08a50; }
 
 /* Dashboard "who's online" — reads the presence collection the chat page
    already maintains. */

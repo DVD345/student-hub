@@ -40,6 +40,16 @@ jobs:
             node tools/scrape-schedule.mjs
           fi
 
+      # Збір триває понад десять хвилин, тож результат зберігаємо окремо
+      # ще до спроби коміту: якщо push не пройде, дані все одно можна буде
+      # забрати з артефактів, а не збирати заново.
+      - name: Зберегти результат як артефакт
+        uses: actions/upload-artifact@v4
+        with:
+          name: unihub-schedule
+          path: schedule/unihub.json
+          retention-days: 7
+
       - name: Закомітити результат
         run: |
           git config user.name  "github-actions[bot]"
@@ -48,7 +58,18 @@ jobs:
           git add schedule/unihub.json
           if git diff --staged --quiet; then
             echo "Розклад не змінився — коміт не потрібен."
-          else
-            git commit -m "Оновити розклад з UniHub"
-            git push
+            exit 0
           fi
+          git commit -m "Оновити розклад з UniHub"
+          # За десять хвилин збору гілка встигає піти вперед, і push тоді
+          # відхиляється. Підтягуємо чуже й пробуємо ще раз.
+          for attempt in 1 2 3; do
+            if git push; then
+              echo "Запушено з $attempt спроби."
+              exit 0
+            fi
+            echo "Push відхилено — підтягую зміни й пробую знову."
+            git pull --rebase origin main || { git rebase --abort || true; exit 1; }
+          done
+          echo "Не вдалося запушити після трьох спроб."
+          exit 1

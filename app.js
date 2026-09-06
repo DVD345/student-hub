@@ -2087,7 +2087,10 @@ function _initScheduleUi() {
   _scheduleUiReady = true;
   _installScheduleGroupPicker();
   _installScheduleSourceUi();
-  setScheduleSource(_scheduleSource, false);
+  // true, а не false: UniHub тепер джерело за замовчуванням, тож при
+  // відкритті сторінки його вміст треба одразу завантажити, інакше
+  // користувач бачить порожню картку.
+  setScheduleSource(_scheduleSource, true);
 
   // Fill from the built-ins first so the form is never empty, then swap
   // in the live lists and re-apply whatever the user had selected.
@@ -2146,8 +2149,10 @@ var SCHEDULE_SOURCE_KEY = 'sh_schedule_source_v1';
 var UNIHUB_URL = 'https://unihub.kart.edu.ua/';
 var UNIHUB_API = SCHEDULE_PROXY_URL + '/unihub';   // worker route, see README
 var _scheduleSource = (function(){
-  try { return localStorage.getItem(SCHEDULE_SOURCE_KEY) === 'unihub' ? 'unihub' : 'legacy'; }
-  catch(e) { return 'legacy'; }
+  // UniHub — тепер основне джерело: саме там університет веде розклад.
+  // Старий сайт лишається другою вкладкою, бо на 2026-2027 він порожній.
+  try { return localStorage.getItem(SCHEDULE_SOURCE_KEY) === 'legacy' ? 'legacy' : 'unihub'; }
+  catch(e) { return 'unihub'; }
 })();
 
 function setScheduleSource(source, reload) {
@@ -2235,6 +2240,7 @@ async function _loadUnihubSchedule() {
       '<p class="schedule-fallback-copy">' +
         (built ? 'Зібрано ' + escHtml(built) + (collected.year ? ', ' + escHtml(collected.year) : '') + '. ' : '') +
         'Обери групу, щоб побачити пари.</p>' +
+      '<div id="unihub-recent" class="unihub-recent"></div>' +
       '<input class="tb-input" id="unihub-q" placeholder="🔍 Знайти групу…" style="width:100%;margin:10px 0;">' +
       '<div id="unihub-groups" class="unihub-groups"></div>' +
       '<div id="unihub-result"></div>' +
@@ -2264,6 +2270,38 @@ async function _loadUnihubSchedule() {
   if(q) q.oninput = debounce(function(){ render(q.value); }, 150);
 }
 
+// Дві останні відкриті групи — щоб не шукати щоразу ту саму. Двох
+// вистачає: своя група і та, з ким ділиш пари.
+var UNIHUB_RECENT_KEY = 'sh_unihub_recent_v1';
+function _unihubRecent() {
+  try {
+    var raw = JSON.parse(localStorage.getItem(UNIHUB_RECENT_KEY) || '[]');
+    return Array.isArray(raw) ? raw.filter(function(x){ return typeof x === 'string'; }).slice(0, 2) : [];
+  } catch(e) { return []; }
+}
+function _rememberUnihubGroup(name) {
+  if(!name) return;
+  var list = _unihubRecent().filter(function(n){ return n !== name; });
+  list.unshift(name);
+  list = list.slice(0, 2);
+  try { localStorage.setItem(UNIHUB_RECENT_KEY, JSON.stringify(list)); } catch(e) {}
+  _renderUnihubRecent();
+}
+function _renderUnihubRecent() {
+  var box = document.getElementById('unihub-recent');
+  if(!box) return;
+  var collected = window._unihubCollected || {};
+  // Показуємо лише ті, для яких розклад справді є: інакше кнопка
+  // обіцяє те, чого немає.
+  var list = _unihubRecent().filter(function(n){ return collected[n]; });
+  if(!list.length) { box.innerHTML = ''; return; }
+  box.innerHTML = '<span class="unihub-recent-label">Останні:</span>' +
+    list.map(function(n){
+      return '<button class="unihub-recent-btn" type="button" data-g="' + escHtml(n) + '" ' +
+        'onclick="showUnihubGroup(this.dataset.g)">' + escHtml(n) + '</button>';
+    }).join('');
+}
+
 // Обрана чверть тижня: '' = показувати все, інакше 'парний' / 'непарний'.
 var _uhParity = '';
 var _uhGroupName = '';
@@ -2283,6 +2321,7 @@ function closeUnihubGroup() {
 function showUnihubGroup(name) {
   _uhGroupName = name;
   _uhParity = '';
+  _rememberUnihubGroup(name);
   _renderUnihubGroup();
 }
 
@@ -2357,8 +2396,8 @@ function _installScheduleSourceUi() {
   tabs.id = 'schedule-source-tabs';
   tabs.className = 'schedule-mode-tabs schedule-source-tabs';
   tabs.innerHTML =
-    '<button class="schedule-mode-tab" type="button" data-source="legacy" onclick="setScheduleSource(\'legacy\')">Старий сайт</button>' +
-    '<button class="schedule-mode-tab" type="button" data-source="unihub" onclick="setScheduleSource(\'unihub\')">UniHub (новий)</button>';
+    '<button class="schedule-mode-tab" type="button" data-source="unihub" onclick="setScheduleSource(\'unihub\')">UniHub</button>' +
+    '<button class="schedule-mode-tab" type="button" data-source="legacy" onclick="setScheduleSource(\'legacy\')">Старий сайт</button>';
   shell.insertBefore(tabs, shell.firstChild);
   var card = document.createElement('div');
   card.id = 'schedule-unihub-card';

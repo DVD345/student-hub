@@ -2266,6 +2266,9 @@ async function _loadUnihubSchedule() {
       : '<div class="online-empty">Нічого не знайдено</div>';
   };
   render('');
+  // Історія малювалася лише у відповідь на клік, тож після перезавантаження
+  // сторінки кнопки зникали, хоча самі записи в сховищі лишалися.
+  _renderUnihubRecent();
   var q = document.getElementById('unihub-q');
   if(q) q.oninput = debounce(function(){ render(q.value); }, 150);
 }

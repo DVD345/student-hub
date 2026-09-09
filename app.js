@@ -6704,17 +6704,22 @@ function filterAdminUsers(q){ const filtered=q?_allAdminUsers.filter(u=>(u.name|
 function renderAdminUsers(users) {
   const el=document.getElementById('admin-users-list');
   if(!users.length){el.innerHTML='<div class="empty"><p>Користувачів ще немає</p></div>';return;}
-  el.innerHTML=users.map(u=>
-    '<div class="user-row">'+
-    '<div class="uav" style="background:'+escHtml(ROLE_COLORS[u.role]||'#8888aa')+'">'+escHtml((u.name||'?')[0].toUpperCase())+'</div>'+
+  // Роль може бути відсутня: клієнт більше не створює це поле, і для
+  // нового користувача його просто немає. Без нормалізації жоден <option>
+  // не отримував selected, і список показував першу роль з ROLES —
+  // тобто кожен новачок виглядав як Супер-адмін, хоча прав не мав.
+  el.innerHTML=users.map(u=>{
+    const role = (u.role && ROLES[u.role]) ? u.role : 'student';
+    return '<div class="user-row">'+
+    '<div class="uav" style="background:'+escHtml(ROLE_COLORS[role]||'#8888aa')+'">'+escHtml((u.name||'?')[0].toUpperCase())+'</div>'+
     '<div style="flex:1;min-width:0;"><div class="uname" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+escHtml(u.name||'?')+(u.nickname?' <span style="color:var(--text2);font-weight:400;">('+escHtml(u.nickname)+')</span>':'')+'</div>'+
     '<div style="font-size:9px;color:var(--text2);">'+escHtml(u.groupName||'')+(u.banned?' • <span style="color:var(--accent2);font-weight:700;">заблоковано</span>':'')+'</div></div>'+
     (canAdmin()?'<select class="role-sel" data-uid="'+escHtml(u.id)+'" onchange="setRole(this.dataset.uid,this.value)">'+
-      Object.keys(ROLES).map(r=>'<option value="'+escHtml(r)+'"'+(u.role===r?' selected':'')+'>'+escHtml(ROLES[r])+'</option>').join('')+
+      Object.keys(ROLES).map(r=>'<option value="'+escHtml(r)+'"'+(role===r?' selected':'')+'>'+escHtml(ROLES[r])+'</option>').join('')+
     '</select>':'')+
     (canAdmin()?'<button class="btn ban-toggle-btn'+(u.banned?' a':' d')+'" style="font-size:11px;" data-uid="'+escHtml(u.id)+'" data-uname="'+escHtml(u.name||'')+'" data-banned="'+(u.banned?'1':'0')+'" onclick="toggleBanUser(this.dataset.uid,this.dataset.uname,this.dataset.banned===\'1\')" title="'+(u.banned?'Розблокувати':'Заблокувати')+'">'+(u.banned?'✅':'🚫')+'</button>':'')+
-    '</div>'
-  ).join('');
+    '</div>';
+  }).join('');
 }
 async function setRole(uid,role){
   const target = _allAdminUsers.find(u=>u.id===uid);

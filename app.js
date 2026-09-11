@@ -5284,14 +5284,31 @@ function listenMats() {
   const {collection,query,where,onSnapshot}=window._fb;
   const q=query(collection(window._db,'materials'),where('groupId','==',group.id));
   const unsub=onSnapshot(q,snap=>{ cachedMats=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(b.createdAt||0)-(a.createdAt||0)); renderMats(cachedMats); renderDashboardSummary(); renderDashboardEvents(); },
-  err=>{ document.getElementById('mats-list').innerHTML='<div class="empty"><div class="emo">⚠️</div><p>Помилка завантаження матеріалів.</p></div>'; });
+  err=>{
+    var code=(err&&err.code)||'';
+    console.error('[materials] listener failed:', code, err&&err.message);
+    var hint = code==='permission-denied'
+      ? 'Сесія застаріла або немає прав — спробуйте увійти знову.'
+      : 'Перевірте зʼєднання та оновіть сторінку.';
+    document.getElementById('mats-list').innerHTML=
+      '<div class="empty"><div class="emo">⚠️</div><p>Не вдалося завантажити матеріали'+
+      (code?' ('+escHtml(code)+')':'')+'</p>'+
+      '<p style="font-size:11px;color:var(--text2);margin-top:4px;">'+escHtml(hint)+'</p></div>';
+  });
   unsubs.push(unsub);
 }
 function filterMats(q) { renderMats(cachedMats,(q||'').toLowerCase()); }
 function renderMats(list,q='') {
   const el=document.getElementById('mats-list');
   const items=q?list.filter(m=>(m.name||'').toLowerCase().includes(q)||(m.subject||'').toLowerCase().includes(q)):list;
-  if(!items.length){el.innerHTML='<div class="empty"><div class="emo">📝</div><p>Матеріалів ще немає</p></div>';return;}
+  // "Нічого не знайдено" і "нічого немає" — різні речі: за пошуку,
+  // який нічого не дав, повідомлення про порожню теку збиває з пантелику.
+  if(!items.length){
+    el.innerHTML = q
+      ? '<div class="empty"><div class="emo">🔍</div><p>За запитом нічого не знайдено</p></div>'
+      : '<div class="empty"><div class="emo">📝</div><p>Матеріалів ще немає</p></div>';
+    return;
+  }
   el.innerHTML='<div class="file-list">'+items.map(m=>
     '<div class="file-item">'+
     '<div class="file-ext eo">📝</div>'+
@@ -5340,9 +5357,21 @@ async function addMat() {
   const name=document.getElementById('mn').value.trim();
   const subject=document.getElementById('ms').value.trim();
   const desc=document.getElementById('md').value.trim();
-  if(!name)return;
+  if(!name){ alert('Введіть назву матеріалу'); return; }
+  if(!window._db || !window._fb){ alert('Firebase ще не готовий — спробуйте за мить.'); return; }
+  if(!group || !group.id){ alert('Спочатку потрібно увійти у групу.'); return; }
   const {collection,addDoc}=window._fb;
-  await addDoc(collection(window._db,'materials'),{groupId:group.id,groupName:group.name,name,subject,desc,uploader:userData.fullname||'?',createdAt:Date.now()});
+  try {
+    await addDoc(collection(window._db,'materials'),{groupId:group.id,groupName:group.name,name,subject,desc,uploader:userData.fullname||'?',createdAt:Date.now()});
+  } catch(e) {
+    // Раніше помилка тут нікуди не йшла: вікно не закривалося, поля не
+    // очищалися, і людина просто натискала "Створити" без жодної реакції.
+    console.error('[materials] could not add:', (e && e.code) || '', e && e.message);
+    alert(e && e.code === 'permission-denied'
+      ? 'Немає прав додавати матеріали. Можливо, сесія застаріла — увійдіть знову.'
+      : 'Не вдалося додати матеріал: ' + ((e && e.message) || 'помилка'));
+    return;   // вікно лишається відкритим, набраний текст не втрачається
+  }
   logAdminAction('add_material', subject ? name + ' (' + subject + ')' : name);
   closeModal('add-mat');
   ['mn','ms','md'].forEach(id=>document.getElementById(id).value='');

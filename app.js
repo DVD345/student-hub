@@ -2242,8 +2242,11 @@ async function _loadUnihubSchedule() {
         'Обери групу, щоб побачити пари.</p>' +
       '<div id="unihub-recent" class="unihub-recent"></div>' +
       '<input class="tb-input" id="unihub-q" placeholder="🔍 Знайти групу…" style="width:100%;margin:10px 0;">' +
-      '<div id="unihub-groups" class="unihub-groups"></div>' +
+      // Розклад іде одразу під пошуком, а список груп — під ним: коли
+      // групу обрано, гортати до пар не треба. Поки нічого не обрано,
+      // цей блок порожній і не займає місця, тож вигляд той самий.
       '<div id="unihub-result"></div>' +
+      '<div id="unihub-groups" class="unihub-groups"></div>' +
       '<div class="schedule-fallback-actions" style="margin-top:10px;">' + openBtn + '</div>' +
     '</div>';
 

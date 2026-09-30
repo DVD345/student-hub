@@ -2424,6 +2424,9 @@ function _renderUnihubGroup() {
 var ZOOM_CACHE_KEY = 'sh_zoom_v1';
 var ZOOM_TTL_MS = 7 * 24 * 3600 * 1000;
 var _zoomLinks = [];
+// Підсумок останнього збору: скільки курсів переглянули, скільки знайшли
+// і які Moodle не віддав. Без цього незрозуміло, чому кнопок менше, ніж пар.
+var _zoomLastRun = null;
 
 function _zoomNorm(s) {
   return String(s || '').toLowerCase()
@@ -2552,6 +2555,7 @@ async function collectZoomLinks(manual) {
   if(!token || !Array.isArray(courses) || !courses.length) return _zoomLinks;
   collectZoomLinks._busy = true;
   var found = [];
+  var failed = [];
   try {
     // Пачками по чотири: Moodle і без того інколи віддає 403, а пустити
     // всі запити разом — найпростіший спосіб це на себе накликати.
@@ -2559,7 +2563,10 @@ async function collectZoomLinks(manual) {
       await Promise.all(courses.slice(i, i + 4).map(async function(c){
         try {
           var secs = await moodlePost('core_course_get_contents', { courseid: c.id });
-          if(!Array.isArray(secs)) return;
+          // Курс, який Moodle не віддав, — це не «посилань немає», а
+          // «ми не подивилися». Мовчки ковтати це не можна: інакше
+          // незрозуміло, чому кнопок менше, ніж пар.
+          if(!Array.isArray(secs)) { failed.push(c.fullname || c.shortname || c.id); return; }
           var subject = _zoomSubject(c.fullname || c.shortname || '');
           secs.forEach(function(s){
             var blocks = [s.summary || ''];
@@ -2574,7 +2581,7 @@ async function collectZoomLinks(manual) {
               });
             });
           });
-        } catch(e) {}
+        } catch(e) { failed.push(c.fullname || c.shortname || c.id); }
       }));
     }
   } finally { collectZoomLinks._busy = false; }
@@ -2583,7 +2590,10 @@ async function collectZoomLinks(manual) {
   _zoomSaveCache();
   _zoomPublish();
   if(_uhGroupName) _renderUnihubGroup();
-  _zoomRenderStatus(manual ? found.length : null);
+  if(typeof renderWidgetPara === 'function') renderWidgetPara();
+  _zoomLastRun = { scanned: courses.length, found: found.length, failed: failed };
+  if(failed.length) console.warn('[zoom] Moodle не віддав курси:', failed);
+  _zoomRenderStatus(manual);
   return _zoomLinks;
 }
 
@@ -2609,17 +2619,27 @@ function _zoomForLesson(lesson) {
   return exact[0] || byTeacher[0];
 }
 
-function _zoomRenderStatus(justFound) {
+function _zoomRenderStatus(showRun) {
   var el = document.getElementById('zoom-status');
   if(!el) return;
-  if(!_zoomLinks.length) {
+  if(!_zoomLinks.length && !_zoomLastRun) {
     el.textContent = token
-      ? 'Посилань на Zoom ще немає — натисни «Зібрати посилання».'
+      ? 'Посилань на Zoom ще немає — натисни «Зібрати посилання на Zoom».'
       : 'Посилання на Zoom збираються з твоїх курсів у Moodle — увійди, щоб їх підтягнути.';
     return;
   }
-  el.textContent = 'Посилань на Zoom: ' + _zoomLinks.length +
-    (justFound !== null && justFound !== undefined ? ' (знайдено цього разу: ' + justFound + ')' : '');
+  var text = 'Посилань на Zoom: ' + _zoomLinks.length;
+  if(showRun && _zoomLastRun) {
+    text += '. Переглянуто курсів: ' + _zoomLastRun.scanned +
+      ', знайдено цього разу: ' + _zoomLastRun.found + '.';
+    if(_zoomLastRun.failed.length) {
+      text += ' Moodle не віддав ' + _zoomLastRun.failed.length +
+        ' — спробуй ще раз за хвилину.';
+    }
+    text += ' Кнопка з’являється лише там, де викладач у розкладі той самий, ' +
+      'що й у курсі.';
+  }
+  el.textContent = text;
 }
 
 async function refreshZoomLinks(btn) {
@@ -2629,6 +2649,133 @@ async function refreshZoomLinks(btn) {
   try { await collectZoomLinks(true); }
   finally { if(btn) { btn.disabled = false; btn.innerHTML = prev; } }
 }
+
+// ===== Пара зараз / далі =====
+// Чверть тижня в розкладі позначена словом, а не датою, тож рахувати її
+// доводиться від відомого понеділка: тиждень, що починається 28 вересня
+// 2026 року, — парний. Далі чверть просто чергується щотижня.
+var UH_PARITY_ANCHOR = Date.UTC(2026, 8, 28);
+var UH_DAYS = ['Неділя', 'Понеділок', 'Вівторок', 'Середа', 'Четвер', 'П\'ятниця', 'Субота'];
+
+function _uhWeekParity(date) {
+  var t = date || new Date();
+  var monday = Date.UTC(t.getFullYear(), t.getMonth(), t.getDate() - ((t.getDay() + 6) % 7));
+  var weeks = Math.round((monday - UH_PARITY_ANCHOR) / 604800000);
+  return ((weeks % 2) + 2) % 2 === 0 ? 'парний' : 'непарний';
+}
+
+function _uhDayLessons(groupName, date) {
+  var g = (window._unihubCollected || {})[groupName];
+  if(!g) return [];
+  var day = (g.days || []).filter(function(d){ return d.day === UH_DAYS[date.getDay()]; })[0];
+  if(!day) return [];
+  var parity = _uhWeekParity(date);
+  return (day.lessons || []).filter(function(l){
+    // Пара без позначки чверті йде щотижня, тому проходить будь-який фільтр.
+    var p = (l.parity || '').toLowerCase();
+    return !p || p === parity;
+  }).map(function(l){
+    var m = String(l.time || '').match(/(\d{1,2}):(\d{2})\s*-\s*(\d{1,2}):(\d{2})/);
+    if(!m) return null;
+    var start = new Date(date), end = new Date(date);
+    start.setHours(+m[1], +m[2], 0, 0);
+    end.setHours(+m[3], +m[4], 0, 0);
+    return { subject: l.subject, kind: l.kind, teacher: l.teacher, time: l.time, start: start, end: end };
+  }).filter(Boolean).sort(function(a, b){ return a.start - b.start; });
+}
+
+function _uhMyGroup() {
+  var collected = window._unihubCollected || {};
+  var mine = (typeof group !== 'undefined' && group && group.name) ? String(group.name).trim() : '';
+  if(mine) {
+    if(collected[mine]) return mine;
+    var lower = mine.toLowerCase();
+    var hit = Object.keys(collected).filter(function(n){ return n.toLowerCase() === lower; })[0];
+    if(hit) return hit;
+  }
+  // Гість, або група, якої в UniHub ще немає: показуємо ту, яку
+  // востаннє дивилися в розкладі, — інакше віджет просто порожній.
+  return _unihubRecent().filter(function(n){ return collected[n]; })[0] || '';
+}
+
+function _uhParaRow(lesson, label, isNow) {
+  var z = _zoomForLesson(lesson);
+  return '<div class="para-row' + (isNow ? ' now' : '') + '">' +
+    '<div class="para-when">' + escHtml(label) + '</div>' +
+    '<div class="para-main">' +
+      '<div class="para-subject">' + escHtml(lesson.subject || 'Пара') + '</div>' +
+      '<div class="para-meta">' + escHtml(lesson.time || '') +
+        (lesson.kind ? ' • ' + escHtml(lesson.kind) : '') +
+        (lesson.teacher ? ' • ' + escHtml(lesson.teacher) : '') +
+      '</div>' +
+    '</div>' +
+    (z ? '<a class="para-join" href="' + escHtml(z.url) + '" target="_blank" rel="noopener">Приєднатися</a>' : '') +
+  '</div>';
+}
+
+async function renderWidgetPara() {
+  var el = document.getElementById('w-para');
+  if(!el) return;
+  // Розклад лежить у репозиторії, але дотепер його тягнула лише сторінка
+  // розкладу. Віджет на головній її не відкриває, тож тягнемо самі.
+  if(!window._unihubCollected) {
+    try {
+      var r = await fetch('schedule/unihub.json?v=' + (typeof APP_BUILD !== 'undefined' ? APP_BUILD : '1'));
+      window._unihubCollected = r.ok ? ((await r.json()).groups || {}) : {};
+    } catch(e) { window._unihubCollected = {}; }
+  }
+  if(!_zoomLinks.length) _zoomLoadCache();
+
+  var name = _uhMyGroup();
+  if(!name) {
+    el.innerHTML = '<div class="widget-empty">Розкладу для твоєї групи ще немає — обери її в розкладі</div>';
+    return;
+  }
+
+  var now = new Date();
+  var today = _uhDayLessons(name, now);
+  var current = today.filter(function(l){ return l.start <= now && now < l.end; })[0] || null;
+  var next = today.filter(function(l){ return l.start > now; })[0] || null;
+  var nextLabel = 'Далі';
+
+  if(!next) {
+    for(var i = 1; i <= 7 && !next; i++) {
+      var d = new Date(now);
+      d.setDate(d.getDate() + i);
+      var ls = _uhDayLessons(name, d);
+      if(ls.length) { next = ls[0]; nextLabel = (i === 1 ? 'Завтра' : UH_DAYS[d.getDay()]); }
+    }
+  }
+
+  if(!current && !next) {
+    el.innerHTML = '<div class="widget-empty">🎉 Пар більше немає</div>';
+    return;
+  }
+
+  var rows = '';
+  if(current) {
+    var left = Math.max(1, Math.round((current.end - now) / 60000));
+    rows += _uhParaRow(current, 'Зараз • ' + left + ' хв', true);
+  }
+  if(next) {
+    var label = nextLabel;
+    if(nextLabel === 'Далі') {
+      var inMin = Math.round((next.start - now) / 60000);
+      label = 'Далі • ' + (inMin >= 60 ? Math.round(inMin / 60) + ' год' : inMin + ' хв');
+    }
+    rows += _uhParaRow(next, label, false);
+  }
+  el.innerHTML = rows + '<div class="para-foot">' + escHtml(name) + ' • ' +
+    escHtml(_uhWeekParity(now)) + ' тиждень</div>';
+}
+
+// «Зараз» живе рівно до кінця пари, тож раз на хвилину перемальовуємо —
+// але тільки поки головна справді на екрані.
+setInterval(function(){
+  var el = document.getElementById('w-para');
+  var page = document.getElementById('page-dashboard');
+  if(el && page && getComputedStyle(page).display !== 'none') renderWidgetPara();
+}, 60000);
 
 function _installScheduleSourceUi() {
   var shell = document.querySelector('#page-schedule .schedule-shell');
@@ -8674,6 +8821,7 @@ function renderDashWidgets() {
   renderDashboardMiniCalendar();
   renderDashboardEvents();
   _renderDeadlineSmartPanels();
+  renderWidgetPara();
   renderWidgetToday();
   renderWidgetWeek();
   renderWidgetNotes();

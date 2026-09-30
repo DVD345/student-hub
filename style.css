@@ -1615,12 +1615,39 @@ body.deadlines-resizing .dl-width-resizer::before {
   transition:background .15s, border-color .15s;
 }
 .uh-zoom:hover { background:rgba(45,140,255,.22); border-color:rgba(45,140,255,.6); }
-.unihub-zoom-status { font-size:11px; color:var(--text2); margin-top:8px; }
+.unihub-zoom-status { font-size:11px; color:var(--text2); margin-top:8px; line-height:1.5; }
+
+/* Ідентифікатор і код: частина конференцій без них не пускає, а на
+   телефоні підказки під курсором немає — тому окрема кнопка. */
+/* Панель розкривається рядком усередині картки, а не спливає над нею:
+   у клітинок розкладу overflow:hidden, і будь-яке спливаюче вікно тут
+   просто обрізається по краю картки. */
+.zoom-wrap { display:flex; flex-wrap:wrap; align-items:center; gap:4px; }
+.zoom-wrap.open { flex-basis:100%; }
+.zoom-i {
+  font-size:11px; line-height:1; padding:3px 6px; border-radius:6px; cursor:pointer;
+  color:#2d8cff; background:rgba(45,140,255,.12); border:1px solid rgba(45,140,255,.34);
+}
+.zoom-i:hover { background:rgba(45,140,255,.22); }
+.zoom-info {
+  flex:0 0 100%; margin-top:4px;
+  display:flex; flex-direction:column; gap:5px; padding:7px 8px;
+  background:var(--bg3); border:1px solid var(--border); border-radius:8px;
+}
+.zoom-info[hidden] { display:none; }
+.zi-row { display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
+.zi-k { font-size:10px; color:var(--text2); }
+.zi-v { font-size:12px; font-weight:700; color:var(--text); font-family:inherit; }
+.zi-copy {
+  font-size:10px; padding:2px 7px; border-radius:6px; cursor:pointer; margin-left:auto;
+  color:var(--text2); background:var(--card); border:1px solid var(--border);
+}
+.zi-copy:hover { color:var(--text); border-color:var(--accent); }
 
 /* Віджет «Пари» на головній. Рядок «зараз» підсвічений, бо саме його
    шукають очима, коли відкривають сайт між парами. */
 .para-row {
-  display:flex; align-items:center; gap:10px;
+  display:flex; align-items:center; gap:10px; flex-wrap:wrap;
   padding:8px 10px; border-radius:10px;
   border:1px solid var(--border); background:var(--bg3);
   margin-bottom:6px;

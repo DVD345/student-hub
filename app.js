@@ -2376,10 +2376,7 @@ function _renderUnihubGroup() {
     var body = slots.map(function(slot){
       return '<div class="uh-slot">' + slot.items.map(function(l){
         var parity = (l.parity || '').toLowerCase();
-        var z = _zoomForLesson(l);
-        var zoomTip = z ? ['Zoom' + (z.subject ? ' • ' + z.subject : ''),
-          z.meetingId ? 'Ідентифікатор: ' + z.meetingId : '',
-          z.passcode ? 'Пароль: ' + z.passcode : ''].filter(Boolean).join('\n') : '';
+        var z = _zoomForLesson(l, name);
         return '<div class="uh-lesson">' +
           '<div class="uh-lesson-title">' +
             '<b>' + escHtml(l.num) + '.</b> ' + escHtml(l.subject) +
@@ -2390,8 +2387,7 @@ function _renderUnihubGroup() {
             (l.time ? '<span class="uh-badge">' + escHtml(l.time) + '</span>' : '') +
             (parity ? '<span class="uh-badge uh-parity" data-parity="' + escHtml(parity) + '">' +
               escHtml(l.parity.toUpperCase()) + '</span>' : '') +
-            (z ? '<a class="uh-zoom" href="' + escHtml(z.url) + '" target="_blank" rel="noopener" ' +
-              'title="' + escHtml(zoomTip) + '">🎥 Zoom</a>' : '') +
+            _zoomBadgeHtml(z) +
           '</div>' +
         '</div>';
       }).join('') + '</div>';
@@ -2449,52 +2445,207 @@ function _zoomClean(s) {
 // пишуться з великої («Посилання», «Ідентифікатор»), але в такий ланцюжок
 // не стають, а ті, що могли б, відсіюємо окремо.
 var _ZOOM_PIB = /[А-ЯІЇЄҐ][а-яіїєґ'’-]+(?:\s+[А-ЯІЇЄҐ][а-яіїєґ'’-]+){1,2}/g;
-var _ZOOM_NOT_NAME = /^(Посилання|Ідентифікатор|Конференція|Час|Лектор|Лектори|Викладач|Викладачі|Пароль|Зустріч|Підключитися|Перенесення)\b/i;
+// Межу слова тут не можна писати через \b: у JS вона рахується за
+// латиницею, тож між пробілом і «Л» ніякої межі немає і шаблон не
+// спрацьовує зовсім. Замість неї — явна перевірка на не-літеру.
+var _ZOOM_NL = '[^А-Яа-яІіЇїЄєҐґA-Za-z]';
+var _ZOOM_NOT_NAME = new RegExp('^(Посилання|Ідентифікатор|Конференція|Час|Лектор|Лектори|Викладач|Викладачі|Пароль|Зустріч|Підключитися|Перенесення)(' + _ZOOM_NL + '|$)', 'i');
+
+// Титули й підписи стоять упритул до ПІБ («Лектор Кім Катерина
+// Володимирівна»), і ланцюжок слів із великої літери захоплює їх разом з
+// іменем. Викидаємо їх із тексту до пошуку, а не відсіюємо знайдене:
+// інакше «Лектор Кім Катерина» відпадає цілком — разом із прізвищем.
+var _ZOOM_TITLES = new RegExp(
+  '(^|' + _ZOOM_NL + ')(Провідний|Лектори|Лектора|Лектор|Керівник|Викладачі|Викладач|Доцент|Професор|' +
+  'Асистент|Старший|Кандидат|Онлайн|Заняття|Посилання|Конференції|Конференція|Конференцію|Пароль|Час|' +
+  'Зустріч|Перенесення|Підключитися)(?=' + _ZOOM_NL + '|$)', 'gi');
 
 function _zoomPib(text) {
-  var t = _zoomClean(text).split(/Ідентифікатор|Zoom\s*ID|Meeting\s*ID|Пароль|passcode|password/i)[0];
+  var t = _zoomClean(text)
+    .split(/Ідентифікатор|Zoom\s*ID|Meeting\s*ID|Пароль|passcode|password|e-?mail|тел[.:]/i)[0]
+    .replace(_ZOOM_TITLES, '$1 ');
   var found = t.match(_ZOOM_PIB) || [];
   for(var i = 0; i < found.length; i++) if(!_ZOOM_NOT_NAME.test(found[i])) return found[i];
   return '';
 }
 
+var _ZOOM_HOST = /zoom\.us\/j\/|meet\.google\.com\/|teams\.microsoft\.com\//i;
+
+// Посилання трапляється і тегом, і «голим» текстом: Moodle не завжди
+// перетворює його на <a>. Ловимо обидва випадки одним проходом і
+// прибираємо дублікат, коли текст посилання дорівнює самому посиланню.
+function _zoomUrls(text) {
+  var out = [], seen = {}, m;
+  var re = /href="([^"]+)"|(https?:\/\/[^\s<>"']+)/gi;
+  while((m = re.exec(text))) {
+    var u = (m[1] || m[2] || '').replace(/&amp;/g, '&').replace(/[).,;]+$/, '');
+    if(!_ZOOM_HOST.test(u) || seen[u]) continue;
+    seen[u] = 1;
+    // Кінець посилання — це закривний </a>, а не кінець самого href.
+    // Інакше підпис лінка лишається в тексті наступної конференції, і
+    // та забирає собі чуже ім'я.
+    var end = re.lastIndex;
+    if(m[1]) {
+      var close = text.indexOf('</a>', end);
+      if(close !== -1) end = close + 4;
+    }
+    out.push({ url: u, at: m.index, end: end });
+  }
+  return out;
+}
+
+// Між словом і значенням буває що завгодно: двокрапка, пробіл, «конференції
+// у ZOOM», просто нічого («ZOOM ідентифікатор 6920659822»). Тому дозволяємо
+// будь-який текст без цифр, а не конкретний роздільник.
+// Читаємо по очищеному тексту, а не по розмітці: «<strong>Пароль
+// конференції</strong>: 299292» інакше не збирається — між словом і
+// двокрапкою стоїть тег.
+function _zoomId(text) {
+  var m = _zoomClean(text).match(/(?:Ідентифікатор|Zoom\s*ID|Meeting\s*ID)[^\d]{0,30}(\d[\d\s]{6,})/i);
+  return m ? m[1].replace(/\s+/g, ' ').trim() : '';
+}
+
+function _zoomPass(text) {
+  var s = _zoomClean(text);
+  // Спершу варіант із двокрапкою: «Пароль конференції: 299292». Без
+  // вимоги двокрапки сюди потрапляло слово «конференції» замість коду.
+  var m = s.match(/(?:Пароль|Код доступу|Код|passcode|password)[^:]{0,30}:\s*([^\s,]+)/i);
+  if(m) return m[1];
+  // Потім без неї: «пароль 555». Значення має починатися з цифри, інакше
+  // під нього підходить будь-яке наступне слово.
+  m = s.match(/(?:Пароль|Код доступу|passcode|password)\s+(\d[0-9A-Za-z]{2,19})\b/i);
+  return m ? m[1] : '';
+}
+
+// Шифр групи в тексті: «101-МКТ-Д24». У табличних врізках він стоїть
+// просто в сусідній комірці рядка, і це найточніший ключ із можливих —
+// точніший за предмет, бо не залежить від того, як названо курс.
+var _ZOOM_GROUP = /\b\d{3}[-–][А-ЯІЇЄҐ]{2,6}[-–][ДЗдз]\d{2}\b/g;
+
+function _zoomGroups(text) {
+  var found = _zoomClean(text).match(_ZOOM_GROUP) || [];
+  var seen = {};
+  return found.filter(function(g){
+    var k = g.toUpperCase();
+    if(seen[k]) return false;
+    seen[k] = 1;
+    return true;
+  });
+}
+
+function _zoomKind(text) {
+  var t = _zoomClean(text).toLowerCase();
+  if(/практичн/.test(t)) return 'Практика';
+  if(/лектор|лекці/.test(t)) return 'Лекція';
+  return '';
+}
+
+// Опис конференції стоїть або перед посиланням, або після нього, і в
+// межах однієї врізки — завжди однаково. Тому визначаємо бік один раз:
+// дивимося, з якого боку від ПЕРШОГО посилання взагалі є що читати.
+// Робити це для кожного посилання окремо не можна — текст між двома
+// посиланнями належить рівно одному з них, і без спільного правила
+// другий забирає дані першого.
+function _zoomSide(whole, hits) {
+  var head = whole.slice(0, hits[0].at);
+  if(_zoomId(head) || _zoomPass(head) || _zoomPib(head)) return 'before';
+  var tail = whole.slice(hits[0].end, hits.length > 1 ? hits[1].at : whole.length);
+  if(_zoomId(tail) || _zoomPass(tail) || _zoomPib(tail)) return 'after';
+  return 'before';
+}
+
 function _zoomParse(html) {
   if(!html) return [];
-  var parts = String(html).split(/<\/p>|<p[\s>]|(?:<br\s*\/?>\s*){2,}|<\/li>|<\/tr>/i);
-  var out = [];
-  parts.forEach(function(part){
-    var linkRe = /<a\s[^>]*href="([^"]*(?:zoom\.us\/j\/|meet\.google\.com\/|teams\.microsoft\.com\/)[^"]*)"[^>]*>([\s\S]*?)<\/a>/gi;
-    var m;
-    while((m = linkRe.exec(part))) {
-      var before = part.slice(0, m.index);
-      var after = part.slice(linkRe.lastIndex);
-      var idM = part.match(/(?:Ідентифікатор(?:\s+конференції)?|Zoom\s*ID|Meeting\s*ID)\s*:?\s*(\d[\d\s]{6,})/i);
-      var passM = part.match(/(?:Пароль|Код доступу|passcode|password)\s*:?\s*([^\s<,&]+)/i);
-      out.push({
-        teacher: _zoomPib(before) || _zoomPib(after) || _zoomPib(m[2]) || '',
-        url: m[1].replace(/&amp;/g, '&'),
-        meetingId: idM ? idM[1].replace(/\s+/g, ' ').trim() : '',
-        passcode: passM ? passM[1] : ''
-      });
-    }
+  var whole = String(html);
+  if(!_ZOOM_HOST.test(whole)) return [];
+
+  var hits = _zoomUrls(whole);
+  if(!hits.length) return [];
+  var side = _zoomSide(whole, hits);
+
+  var out = hits.map(function(hit, i){
+    var win = hits.length === 1 ? whole
+      : side === 'before'
+        ? whole.slice(i === 0 ? 0 : hits[i - 1].end, hit.at)
+        : whole.slice(hit.end, i + 1 < hits.length ? hits[i + 1].at : whole.length);
+    return {
+      teacher: _zoomPib(win),
+      groups: _zoomGroups(win),
+      kind: _zoomKind(win),
+      url: hit.url,
+      meetingId: _zoomId(win),
+      passcode: _zoomPass(win)
+    };
+  });
+
+  // Ідентифікатор завжди зашитий у саме посилання — це надійніше за
+  // будь-який текст поруч, тож беремо звідти, якщо його ще немає.
+  out.forEach(function(z){
+    if(z.meetingId) return;
+    var m = z.url.match(/zoom\.us\/j\/(\d{8,})/i);
+    if(m) z.meetingId = m[1].replace(/^(\d{3})(\d{3})(\d+)$/, '$1 $2 $3');
   });
   return out;
 }
 
-// Повна назва курсу: «2026/2027-1-денна/заочна-Предмет (УПП)-Прізвище І.П., …»
+// Назву курсу кожна кафедра пише по-своєму, спільне лише розташування:
+// спершу рік і форма навчання, потім предмет, наприкінці викладачі.
+//   «2026/2027-1-денна/заочна-Системи керування рухом поїздів (УПП)-Сіроклин І.М.»
+//   «2026/2027 - 1- д - ІМПС - Пономаренко В. копіювання 1»
+//   «2026-27-1-денна, УПП-Правознавство-Кім К.В.»
+// Тому не шукаємо один шаблон, а зрізаємо початок і кінець за змістом.
+var _ZOOM_HEAD = /^(\d{1,4}(\/\d{1,4})?|[іiІ]?\d{1,2}|(денна|заочна|вечірня|дистанційна)[^-]*|[дзДЗ])$/i;
+var _ZOOM_TEACHER_TAIL = /^[А-ЯІЇЄҐ][а-яіїєґ'’-]+\s+[А-ЯІЇЄҐ]\.\s*([А-ЯІЇЄҐ]\.)?$/;
+
 function _zoomSubject(fullname) {
-  var s = String(fullname || '').trim();
-  var m = s.match(/^\s*\d{4}\/\d{4}\s*-\s*\d+\s*-\s*[^-]*-\s*(.+?)\s*-\s*[^-]*$/);
-  return (m ? m[1] : s).replace(/\s*\([^)]*\)\s*$/, '').trim();
+  // \w у JS — це латиниця, тож «копіювання» через \w* не зрізається:
+  // перелічуємо кириличні літери явно.
+  var s = String(fullname || '')
+    .replace(/\s*копіюванн[а-яіїєґ]*\s*\d*\s*$/i, '')
+    .trim();
+  var parts = s.split(/\s*[-–—]\s*/).map(function(x){ return x.trim(); }).filter(Boolean);
+  while(parts.length > 1 && _ZOOM_HEAD.test(parts[0])) parts.shift();
+  // Хвіст — це викладачі: «Кім К.В.» або «Сіроклин І.М., Лазарев О.В.».
+  while(parts.length > 1) {
+    var last = parts[parts.length - 1];
+    var allNames = last.split(/\s*,\s*/).filter(Boolean).every(function(n){
+      return _ZOOM_TEACHER_TAIL.test(n);
+    });
+    if(!allNames) break;
+    parts.pop();
+  }
+  return (parts.join(' - ') || s)
+    .replace(/\s*\([^)]*\)\s*$/, '')
+    .replace(/[_\s]\d+\s*[кk]$/i, '')   // «…_3к» — номер курсу, не частина назви
+    .trim();
 }
 
-function _zoomKey(z) { return _zoomNorm(z.teacher) + ' :: ' + _zoomNorm(z.subject); }
+// «Іноземна мова (за професійним спрямуванням)» у розкладі — і «ІМПС»
+// у назві курсу. Це той самий предмет, тож окрім точного збігу назв
+// пробуємо скорочення за першими літерами значущих слів.
+var _ZOOM_SKIP_WORD = /^(за|та|і|й|з|із|на|для|в|у|про|до|the|of|and)$/i;
+
+function _zoomAbbr(subject) {
+  var words = _zoomNorm(subject).split(' ').filter(function(w){
+    return w && !_ZOOM_SKIP_WORD.test(w);
+  });
+  return words.map(function(w){ return w[0]; }).join('');
+}
+
+// Ключ містить і посилання: одну кімнату дають на кілька предметів, а
+// один предмет буває в кількох кімнатах (лекція й практика), і губити
+// жодну з них не можна.
+function _zoomKey(z) {
+  return [_zoomNorm(z.teacher), _zoomNorm(z.subject), (z.groups || []).join(','), z.url].join(' :: ');
+}
 
 function _zoomMerge(list) {
   var seen = {};
   _zoomLinks.concat(list || []).forEach(function(z){
-    if(!z || !z.teacher || !z.url) return;
-    seen[_zoomKey(z) + ' :: ' + z.url] = z;
+    // Запис без викладача теж потрібен: у багатьох врізках імені немає
+    // взагалі, і тоді пара знаходиться за предметом або шифром групи.
+    if(!z || !z.url) return;
+    seen[_zoomKey(z)] = z;
   });
   _zoomLinks = Object.keys(seen).map(function(k){ return seen[k]; });
 }
@@ -2521,10 +2672,13 @@ async function _zoomPublish() {
   try {
     var fb = window._fb;
     var map = {};
-    _zoomLinks.forEach(function(z){
-      map[_zoomKey(z)] = {
-        teacher: z.teacher, subject: z.subject || '', url: z.url,
-        meetingId: z.meetingId || '', passcode: z.passcode || '', at: Date.now()
+    _zoomLinks.forEach(function(z, i){
+      // Ключ мапи — номер із хешу посилання, бо в назвах полів Firestore
+      // не можна тримати довільний текст із крапками й слешами.
+      map['z' + i + '_' + String(z.url).replace(/\W+/g, '').slice(-16)] = {
+        teacher: z.teacher || '', subject: z.subject || '',
+        groups: z.groups || [], kind: z.kind || '', course: z.course || '',
+        url: z.url, meetingId: z.meetingId || '', passcode: z.passcode || '', at: Date.now()
       };
     });
     await fb.setDoc(fb.doc(window._db, 'zoomLinks', 'shared'), { links: map }, { merge: true });
@@ -2573,10 +2727,11 @@ async function collectZoomLinks(manual) {
             (s.modules || []).forEach(function(m){ blocks.push(m.description || ''); });
             blocks.forEach(function(html){
               _zoomParse(html).forEach(function(z){
-                if(!z.teacher) return;
                 found.push({
-                  teacher: z.teacher, subject: subject, url: z.url,
-                  meetingId: z.meetingId, passcode: z.passcode
+                  teacher: z.teacher || '', subject: subject, groups: z.groups || [],
+                  kind: z.kind || '', url: z.url,
+                  meetingId: z.meetingId, passcode: z.passcode,
+                  course: c.fullname || c.shortname || ''
                 });
               });
             });
@@ -2607,16 +2762,123 @@ function _zoomAutoCollect() {
   setTimeout(function(){ collectZoomLinks(false); }, 4000);
 }
 
-function _zoomForLesson(lesson) {
-  if(!lesson || !lesson.teacher || !_zoomLinks.length) return null;
+function _zoomForLesson(lesson, groupName) {
+  if(!lesson || !_zoomLinks.length) return null;
   var tk = _zoomNorm(lesson.teacher);
-  var byTeacher = _zoomLinks.filter(function(z){ return _zoomNorm(z.teacher) === tk; });
-  if(!byTeacher.length) return null;
-  // Один викладач може вести кілька предметів із різних кімнат, тож коли
-  // предмет збігається — беремо саме його, а не першу-ліпшу кімнату.
   var sk = _zoomNorm(lesson.subject);
-  var exact = byTeacher.filter(function(z){ return _zoomNorm(z.subject) === sk; });
-  return exact[0] || byTeacher[0];
+  var ak = _zoomAbbr(lesson.subject);
+  var gk = String(groupName || '').toUpperCase();
+
+  // Шифр групи у врізці — найточніше, що взагалі буває: він не залежить
+  // ані від назви курсу, ані від того, кого вписали викладачем.
+  var byGroup = !gk ? [] : _zoomLinks.filter(function(z){
+    return (z.groups || []).some(function(g){ return g.toUpperCase() === gk; });
+  });
+  if(byGroup.length) {
+    // У табличних врізках лекцію й практику ведуть різні люди з різних
+    // кімнат, і рядок таблиці прямо про це й каже.
+    var byKind = byGroup.filter(function(z){ return z.kind && z.kind === lesson.kind; });
+    var pool = byKind.length ? byKind : byGroup;
+    if(tk) {
+      var gt = pool.filter(function(z){ return _zoomNorm(z.teacher) === tk; });
+      if(gt.length) return gt[0];
+    }
+    if(pool.length === 1) return pool[0];
+  }
+
+  if(tk) {
+    var byTeacher = _zoomLinks.filter(function(z){ return _zoomNorm(z.teacher) === tk; });
+    if(byTeacher.length) {
+      // Один викладач веде кілька предметів із різних кімнат, тож коли
+      // предмет збігається — беремо саме його, а не першу-ліпшу кімнату.
+      var exact = byTeacher.filter(function(z){ return _zoomNorm(z.subject) === sk; });
+      return exact[0] || byTeacher[0];
+    }
+  }
+
+  // Імені у врізці може не бути зовсім. Тоді лишається предмет — точною
+  // назвою або скороченням, яким названо курс («ІМПС»).
+  var bySubject = _zoomLinks.filter(function(z){
+    if(z.teacher) return false;
+    var zs = _zoomNorm(z.subject);
+    return zs && (zs === sk || (ak.length >= 3 && _zoomNorm(zs).replace(/\s/g, '') === ak));
+  });
+  // Беремо тільки тоді, коли варіант один: інакше це вгадування, а
+  // чуже посилання гірше за відсутнє.
+  return bySubject.length === 1 ? bySubject[0] : null;
+}
+
+// Частина конференцій просить ідентифікатор і код руками — саме посилання
+// туди не пускає. Тримати їх у title не можна: на телефоні підказки немає
+// взагалі, а це більшість. Тому поруч із посиланням окрема кнопка «ⓘ»,
+// яка їх показує, з копіюванням у буфер.
+function _zoomBadgeHtml(z) {
+  if(!z) return '';
+  var rows = '';
+  if(z.meetingId) rows += _zoomInfoRow('Ідентифікатор', z.meetingId, z.meetingId.replace(/\s+/g, ''));
+  if(z.passcode)  rows += _zoomInfoRow('Код', z.passcode, z.passcode);
+  return '<span class="zoom-wrap">' +
+    '<a class="uh-zoom" href="' + escHtml(z.url) + '" target="_blank" rel="noopener">🎥 Zoom</a>' +
+    (rows
+      ? '<button class="zoom-i" type="button" title="Ідентифікатор і код" ' +
+          'onclick="_toggleZoomInfo(this)">ⓘ</button>' +
+        '<span class="zoom-info" hidden>' + rows + '</span>'
+      : '') +
+  '</span>';
+}
+
+function _zoomInfoRow(label, shown, copyValue) {
+  return '<span class="zi-row">' +
+    '<span class="zi-k">' + escHtml(label) + '</span>' +
+    '<code class="zi-v">' + escHtml(shown) + '</code>' +
+    '<button class="zi-copy" type="button" data-v="' + escHtml(copyValue) + '" ' +
+      'onclick="_copyZoom(this)">копіювати</button>' +
+  '</span>';
+}
+
+function _toggleZoomInfo(btn) {
+  var box = btn.parentNode.querySelector('.zoom-info');
+  if(!box) return;
+  var open = !box.hasAttribute('hidden');
+  // Відкритою лишається одна: кілька розгорнутих панелей у щільній
+  // сітці розкладу розсовують колонки й читати стає нічого.
+  Array.prototype.forEach.call(document.querySelectorAll('.zoom-info'), function(el){
+    el.setAttribute('hidden', '');
+    if(el.parentNode) el.parentNode.classList.remove('open');
+  });
+  if(!open) {
+    box.removeAttribute('hidden');
+    btn.parentNode.classList.add('open');
+  }
+}
+
+function _copyZoom(btn) {
+  var value = btn.dataset.v || '';
+  var done = function(){
+    var prev = btn.textContent;
+    btn.textContent = 'скопійовано';
+    setTimeout(function(){ btn.textContent = prev; }, 1200);
+  };
+  try {
+    if(navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(value).then(done, function(){ _copyZoomFallback(value, done); });
+    } else _copyZoomFallback(value, done);
+  } catch(e) { _copyZoomFallback(value, done); }
+}
+
+// Safari до сімнадцятої версії не дає clipboard без жесту в тому ж такті,
+// та й на http його немає зовсім — лишається старий спосіб.
+function _copyZoomFallback(value, done) {
+  try {
+    var ta = document.createElement('textarea');
+    ta.value = value;
+    ta.style.cssText = 'position:fixed;top:-100px;opacity:0;';
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    done();
+  } catch(e) {}
 }
 
 function _zoomRenderStatus(showRun) {
@@ -2636,8 +2898,8 @@ function _zoomRenderStatus(showRun) {
       text += ' Moodle не віддав ' + _zoomLastRun.failed.length +
         ' — спробуй ще раз за хвилину.';
     }
-    text += ' Кнопка з’являється лише там, де викладач у розкладі той самий, ' +
-      'що й у курсі.';
+    text += ' Кнопка стає біля пари, коли збігся шифр групи, викладач ' +
+      'або предмет — інакше посилання лишається без пари.';
   }
   el.textContent = text;
 }
@@ -2698,8 +2960,8 @@ function _uhMyGroup() {
   return _unihubRecent().filter(function(n){ return collected[n]; })[0] || '';
 }
 
-function _uhParaRow(lesson, label, isNow) {
-  var z = _zoomForLesson(lesson);
+function _uhParaRow(lesson, label, isNow, groupName) {
+  var z = _zoomForLesson(lesson, groupName);
   return '<div class="para-row' + (isNow ? ' now' : '') + '">' +
     '<div class="para-when">' + escHtml(label) + '</div>' +
     '<div class="para-main">' +
@@ -2709,7 +2971,19 @@ function _uhParaRow(lesson, label, isNow) {
         (lesson.teacher ? ' • ' + escHtml(lesson.teacher) : '') +
       '</div>' +
     '</div>' +
-    (z ? '<a class="para-join" href="' + escHtml(z.url) + '" target="_blank" rel="noopener">Приєднатися</a>' : '') +
+    (z
+      ? '<span class="zoom-wrap">' +
+          '<a class="para-join" href="' + escHtml(z.url) + '" target="_blank" rel="noopener">Приєднатися</a>' +
+          ((z.meetingId || z.passcode)
+            ? '<button class="zoom-i" type="button" title="Ідентифікатор і код" ' +
+                'onclick="_toggleZoomInfo(this)">ⓘ</button>' +
+              '<span class="zoom-info" hidden>' +
+                (z.meetingId ? _zoomInfoRow('Ідентифікатор', z.meetingId, z.meetingId.replace(/\s+/g, '')) : '') +
+                (z.passcode ? _zoomInfoRow('Код', z.passcode, z.passcode) : '') +
+              '</span>'
+            : '') +
+        '</span>'
+      : '') +
   '</div>';
 }
 
@@ -2755,7 +3029,7 @@ async function renderWidgetPara() {
   var rows = '';
   if(current) {
     var left = Math.max(1, Math.round((current.end - now) / 60000));
-    rows += _uhParaRow(current, 'Зараз • ' + left + ' хв', true);
+    rows += _uhParaRow(current, 'Зараз • ' + left + ' хв', true, name);
   }
   if(next) {
     var label = nextLabel;
@@ -2763,7 +3037,7 @@ async function renderWidgetPara() {
       var inMin = Math.round((next.start - now) / 60000);
       label = 'Далі • ' + (inMin >= 60 ? Math.round(inMin / 60) + ' год' : inMin + ' хв');
     }
-    rows += _uhParaRow(next, label, false);
+    rows += _uhParaRow(next, label, false, name);
   }
   el.innerHTML = rows + '<div class="para-foot">' + escHtml(name) + ' • ' +
     escHtml(_uhWeekParity(now)) + ' тиждень</div>';

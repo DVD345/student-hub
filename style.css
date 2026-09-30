@@ -1606,6 +1606,17 @@ body.deadlines-resizing .dl-width-resizer::before {
 .uh-parity[data-parity="парний"]   { color:#7aa2ff; border-color:rgba(122,162,255,.32); background:rgba(122,162,255,.10); }
 .uh-parity[data-parity="непарний"] { color:#c58cff; border-color:rgba(197,140,255,.32); background:rgba(197,140,255,.10); }
 
+/* Посилання на пару. Стоїть у тому ж рядку, що час і чверть тижня, але
+   помітно яскравіше — це єдине, на що тут справді тиснуть. */
+.uh-zoom {
+  font-size:10px; font-weight:800; padding:3px 8px; border-radius:7px;
+  white-space:nowrap; text-decoration:none; cursor:pointer;
+  color:#2d8cff; background:rgba(45,140,255,.12); border:1px solid rgba(45,140,255,.34);
+  transition:background .15s, border-color .15s;
+}
+.uh-zoom:hover { background:rgba(45,140,255,.22); border-color:rgba(45,140,255,.6); }
+.unihub-zoom-status { font-size:11px; color:var(--text2); margin-top:8px; }
+
 /* Вид заняття кольором — так само, як його розрізняє UniHub. */
 .uh-kind { font-weight:700; }
 .uh-kind[data-kind="Лекція"]      { color:#4caf50; }

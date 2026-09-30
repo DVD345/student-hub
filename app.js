@@ -2247,9 +2247,14 @@ async function _loadUnihubSchedule() {
       // цей блок порожній і не займає місця, тож вигляд той самий.
       '<div id="unihub-result"></div>' +
       '<div id="unihub-groups" class="unihub-groups"></div>' +
-      '<div class="schedule-fallback-actions" style="margin-top:10px;">' + openBtn + '</div>' +
+      '<div class="schedule-fallback-actions" style="margin-top:10px;">' + openBtn +
+        '<button class="btn" type="button" onclick="refreshZoomLinks(this)">🎥 Зібрати посилання на Zoom</button>' +
+      '</div>' +
+      '<div id="zoom-status" class="unihub-zoom-status"></div>' +
     '</div>';
 
+  _zoomLoadCache();
+  _zoomRenderStatus();
   window._unihubCollected = collectedGroups;
   var render = function(q){
     var needle = String(q||'').trim().toLowerCase();
@@ -2371,6 +2376,10 @@ function _renderUnihubGroup() {
     var body = slots.map(function(slot){
       return '<div class="uh-slot">' + slot.items.map(function(l){
         var parity = (l.parity || '').toLowerCase();
+        var z = _zoomForLesson(l);
+        var zoomTip = z ? ['Zoom' + (z.subject ? ' • ' + z.subject : ''),
+          z.meetingId ? 'Ідентифікатор: ' + z.meetingId : '',
+          z.passcode ? 'Пароль: ' + z.passcode : ''].filter(Boolean).join('\n') : '';
         return '<div class="uh-lesson">' +
           '<div class="uh-lesson-title">' +
             '<b>' + escHtml(l.num) + '.</b> ' + escHtml(l.subject) +
@@ -2381,6 +2390,8 @@ function _renderUnihubGroup() {
             (l.time ? '<span class="uh-badge">' + escHtml(l.time) + '</span>' : '') +
             (parity ? '<span class="uh-badge uh-parity" data-parity="' + escHtml(parity) + '">' +
               escHtml(l.parity.toUpperCase()) + '</span>' : '') +
+            (z ? '<a class="uh-zoom" href="' + escHtml(z.url) + '" target="_blank" rel="noopener" ' +
+              'title="' + escHtml(zoomTip) + '">🎥 Zoom</a>' : '') +
           '</div>' +
         '</div>';
       }).join('') + '</div>';
@@ -2393,6 +2404,230 @@ function _renderUnihubGroup() {
   }).join('');
 
   root.innerHTML = '<div class="unihub-schedule">' + head + '<div class="uh-week">' + week + '</div></div>';
+}
+
+// ===== Посилання на Zoom =====
+// У Moodle пара в Zoom — це не окремий модуль, а текстова врізка на
+// сторінці курсу («Час проведення on-line занять», «Лектори»), тому
+// жодна функція API її як дані не віддає: доводиться розбирати HTML.
+// Прив'язуємо посилання до пари за ПІБ викладача — в розкладі UniHub
+// воно записане так само повно, як у Moodle («Сіроклин Іван Миколайович»).
+// Розкладок врізки дві, і обидві трапляються в реальних курсах:
+//   1) <a>Посилання на Zoom</a> Прізвище <a>Ім'я По-батькові</a>
+//      Ідентифікатор конференції: 920 580 9295 Пароль: 0
+//   2) 4 курс <a>Прізвище Ім'я По-батькові</a> … Zoom ID: … passcode: …
+//      <a>ZOOM Ім'я Прізвище</a>
+// Тобто ім'я стоїть то після посилання, то перед ним. Тому врізку
+// спершу ріжемо на абзаци, і вже всередині абзацу шукаємо в обидва боки:
+// інакше до посилання чіпляється прізвище наступного викладача.
+
+var ZOOM_CACHE_KEY = 'sh_zoom_v1';
+var ZOOM_TTL_MS = 7 * 24 * 3600 * 1000;
+var _zoomLinks = [];
+
+function _zoomNorm(s) {
+  return String(s || '').toLowerCase()
+    .replace(/[’`ʼ]/g, "'")
+    .replace(/[^0-9a-zа-яіїєґ' ]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function _zoomClean(s) {
+  return String(s || '')
+    .replace(/&nbsp;|&#160;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+// ПІБ — це два-три слова з великої літери поспіль. Службові слова теж
+// пишуться з великої («Посилання», «Ідентифікатор»), але в такий ланцюжок
+// не стають, а ті, що могли б, відсіюємо окремо.
+var _ZOOM_PIB = /[А-ЯІЇЄҐ][а-яіїєґ'’-]+(?:\s+[А-ЯІЇЄҐ][а-яіїєґ'’-]+){1,2}/g;
+var _ZOOM_NOT_NAME = /^(Посилання|Ідентифікатор|Конференція|Час|Лектор|Лектори|Викладач|Викладачі|Пароль|Зустріч|Підключитися|Перенесення)\b/i;
+
+function _zoomPib(text) {
+  var t = _zoomClean(text).split(/Ідентифікатор|Zoom\s*ID|Meeting\s*ID|Пароль|passcode|password/i)[0];
+  var found = t.match(_ZOOM_PIB) || [];
+  for(var i = 0; i < found.length; i++) if(!_ZOOM_NOT_NAME.test(found[i])) return found[i];
+  return '';
+}
+
+function _zoomParse(html) {
+  if(!html) return [];
+  var parts = String(html).split(/<\/p>|<p[\s>]|(?:<br\s*\/?>\s*){2,}|<\/li>|<\/tr>/i);
+  var out = [];
+  parts.forEach(function(part){
+    var linkRe = /<a\s[^>]*href="([^"]*(?:zoom\.us\/j\/|meet\.google\.com\/|teams\.microsoft\.com\/)[^"]*)"[^>]*>([\s\S]*?)<\/a>/gi;
+    var m;
+    while((m = linkRe.exec(part))) {
+      var before = part.slice(0, m.index);
+      var after = part.slice(linkRe.lastIndex);
+      var idM = part.match(/(?:Ідентифікатор(?:\s+конференції)?|Zoom\s*ID|Meeting\s*ID)\s*:?\s*(\d[\d\s]{6,})/i);
+      var passM = part.match(/(?:Пароль|Код доступу|passcode|password)\s*:?\s*([^\s<,&]+)/i);
+      out.push({
+        teacher: _zoomPib(before) || _zoomPib(after) || _zoomPib(m[2]) || '',
+        url: m[1].replace(/&amp;/g, '&'),
+        meetingId: idM ? idM[1].replace(/\s+/g, ' ').trim() : '',
+        passcode: passM ? passM[1] : ''
+      });
+    }
+  });
+  return out;
+}
+
+// Повна назва курсу: «2026/2027-1-денна/заочна-Предмет (УПП)-Прізвище І.П., …»
+function _zoomSubject(fullname) {
+  var s = String(fullname || '').trim();
+  var m = s.match(/^\s*\d{4}\/\d{4}\s*-\s*\d+\s*-\s*[^-]*-\s*(.+?)\s*-\s*[^-]*$/);
+  return (m ? m[1] : s).replace(/\s*\([^)]*\)\s*$/, '').trim();
+}
+
+function _zoomKey(z) { return _zoomNorm(z.teacher) + ' :: ' + _zoomNorm(z.subject); }
+
+function _zoomMerge(list) {
+  var seen = {};
+  _zoomLinks.concat(list || []).forEach(function(z){
+    if(!z || !z.teacher || !z.url) return;
+    seen[_zoomKey(z) + ' :: ' + z.url] = z;
+  });
+  _zoomLinks = Object.keys(seen).map(function(k){ return seen[k]; });
+}
+
+function _zoomLoadCache() {
+  try {
+    var raw = JSON.parse(localStorage.getItem(ZOOM_CACHE_KEY) || 'null');
+    if(raw && Array.isArray(raw.links)) { _zoomLinks = raw.links; return raw.builtAt || 0; }
+  } catch(e) {}
+  return 0;
+}
+
+function _zoomSaveCache() {
+  try {
+    localStorage.setItem(ZOOM_CACHE_KEY, JSON.stringify({ builtAt: Date.now(), links: _zoomLinks }));
+  } catch(e) {}
+}
+
+// Курси бачить лише той, хто в них записаний, тож зібране віддаємо
+// спільним документом: одногрупник, у якого предмет той самий, а курс у
+// Moodle інший, інакше кнопки не побачить.
+async function _zoomPublish() {
+  if(!window._db || !window._fb || !_zoomLinks.length) return;
+  try {
+    var fb = window._fb;
+    var map = {};
+    _zoomLinks.forEach(function(z){
+      map[_zoomKey(z)] = {
+        teacher: z.teacher, subject: z.subject || '', url: z.url,
+        meetingId: z.meetingId || '', passcode: z.passcode || '', at: Date.now()
+      };
+    });
+    await fb.setDoc(fb.doc(window._db, 'zoomLinks', 'shared'), { links: map }, { merge: true });
+  } catch(e) {
+    // Найчастіше це permission-denied, поки в правилах немає zoomLinks.
+    // Локальний кеш від цього не страждає, тому просто пишемо в консоль.
+    console.warn('[zoom] не вдалося поділитися посиланнями:', e && e.code || e);
+  }
+}
+
+async function _zoomLoadShared() {
+  if(!window._db || !window._fb) return;
+  try {
+    var fb = window._fb;
+    var snap = await fb.getDoc(fb.doc(window._db, 'zoomLinks', 'shared'));
+    var links = snap && snap.exists() ? (snap.data() || {}).links : null;
+    if(!links) return;
+    _zoomMerge(Object.keys(links).map(function(k){ return links[k]; }));
+    _zoomSaveCache();
+    if(_uhGroupName) _renderUnihubGroup();
+  } catch(e) {
+    console.warn('[zoom] не вдалося прочитати спільні посилання:', e && e.code || e);
+  }
+}
+
+async function collectZoomLinks(manual) {
+  if(collectZoomLinks._busy) return _zoomLinks;
+  if(!token || !Array.isArray(courses) || !courses.length) return _zoomLinks;
+  collectZoomLinks._busy = true;
+  var found = [];
+  try {
+    // Пачками по чотири: Moodle і без того інколи віддає 403, а пустити
+    // всі запити разом — найпростіший спосіб це на себе накликати.
+    for(var i = 0; i < courses.length; i += 4) {
+      await Promise.all(courses.slice(i, i + 4).map(async function(c){
+        try {
+          var secs = await moodlePost('core_course_get_contents', { courseid: c.id });
+          if(!Array.isArray(secs)) return;
+          var subject = _zoomSubject(c.fullname || c.shortname || '');
+          secs.forEach(function(s){
+            var blocks = [s.summary || ''];
+            (s.modules || []).forEach(function(m){ blocks.push(m.description || ''); });
+            blocks.forEach(function(html){
+              _zoomParse(html).forEach(function(z){
+                if(!z.teacher) return;
+                found.push({
+                  teacher: z.teacher, subject: subject, url: z.url,
+                  meetingId: z.meetingId, passcode: z.passcode
+                });
+              });
+            });
+          });
+        } catch(e) {}
+      }));
+    }
+  } finally { collectZoomLinks._busy = false; }
+
+  _zoomMerge(found);
+  _zoomSaveCache();
+  _zoomPublish();
+  if(_uhGroupName) _renderUnihubGroup();
+  _zoomRenderStatus(manual ? found.length : null);
+  return _zoomLinks;
+}
+
+// Після входу збираємо тихо й не частіше разу на тиждень: розклад пар у
+// Zoom за семестр майже не рухається, а обхід усіх курсів — це десяток
+// запитів до Moodle.
+function _zoomAutoCollect() {
+  var builtAt = _zoomLoadCache();
+  _zoomLoadShared();
+  if(Date.now() - builtAt < ZOOM_TTL_MS) return;
+  setTimeout(function(){ collectZoomLinks(false); }, 4000);
+}
+
+function _zoomForLesson(lesson) {
+  if(!lesson || !lesson.teacher || !_zoomLinks.length) return null;
+  var tk = _zoomNorm(lesson.teacher);
+  var byTeacher = _zoomLinks.filter(function(z){ return _zoomNorm(z.teacher) === tk; });
+  if(!byTeacher.length) return null;
+  // Один викладач може вести кілька предметів із різних кімнат, тож коли
+  // предмет збігається — беремо саме його, а не першу-ліпшу кімнату.
+  var sk = _zoomNorm(lesson.subject);
+  var exact = byTeacher.filter(function(z){ return _zoomNorm(z.subject) === sk; });
+  return exact[0] || byTeacher[0];
+}
+
+function _zoomRenderStatus(justFound) {
+  var el = document.getElementById('zoom-status');
+  if(!el) return;
+  if(!_zoomLinks.length) {
+    el.textContent = token
+      ? 'Посилань на Zoom ще немає — натисни «Зібрати посилання».'
+      : 'Посилання на Zoom збираються з твоїх курсів у Moodle — увійди, щоб їх підтягнути.';
+    return;
+  }
+  el.textContent = 'Посилань на Zoom: ' + _zoomLinks.length +
+    (justFound !== null && justFound !== undefined ? ' (знайдено цього разу: ' + justFound + ')' : '');
+}
+
+async function refreshZoomLinks(btn) {
+  if(!token) { alert('Посилання лежать у твоїх курсах у Moodle — спочатку увійди.'); return; }
+  var prev = btn ? btn.innerHTML : '';
+  if(btn) { btn.disabled = true; btn.innerHTML = '⏳ Збираємо…'; }
+  try { await collectZoomLinks(true); }
+  finally { if(btn) { btn.disabled = false; btn.innerHTML = prev; } }
 }
 
 function _installScheduleSourceUi() {
@@ -3522,6 +3757,7 @@ async function loadCourses() {
     var sCourses = document.getElementById('s-courses');
     if(sCourses) sCourses.textContent = courses.length;
     filterCourses();
+    _zoomAutoCollect();
   } catch(e) {
     console.warn('loadCourses failed:', e);
     if(!courses.length) {

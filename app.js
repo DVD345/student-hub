@@ -2435,7 +2435,7 @@ var ZOOM_TTL_MS = 7 * 24 * 3600 * 1000;
 // старішою версією, доводиться саме викидати, а не правити: інакше
 // виправлений парсер нічого не змінює, бо поруч лежать старі хибні
 // записи й підставляються замість нових.
-var ZOOM_PARSE_VERSION = 2;
+var ZOOM_PARSE_VERSION = 3;
 var _zoomSharedStale = false;
 var _zoomLinks = [];
 // Підсумок останнього збору: скільки курсів переглянули, скільки знайшли
@@ -2478,13 +2478,27 @@ var _ZOOM_TITLES = new RegExp(
   'Асистент|Старший|Кандидат|Онлайн|Заняття|Посилання|Конференції|Конференція|Конференцію|Пароль|Час|' +
   'Зустріч|Перенесення|Підключитися)(?=' + _ZOOM_NL + '|$)', 'gi');
 
-function _zoomPib(text) {
+// last=true бере ОСТАННЄ входження замість першого. Це потрібно, коли
+// опис стоїть перед посиланням: у довгій врізці перед ним лежить хвіст
+// попереднього запису, і найближчий до посилання — саме останній.
+function _matchPick(text, re, last) {
+  var g = new RegExp(re.source, re.flags.indexOf('g') === -1 ? re.flags + 'g' : re.flags);
+  var m, found = null;
+  while((m = g.exec(text))) {
+    found = m;
+    if(!last) break;
+    if(m.index === g.lastIndex) g.lastIndex++;
+  }
+  return found;
+}
+
+function _zoomPib(text, last) {
   var t = _zoomClean(text)
     .split(/Ідентифікатор|Zoom\s*ID|Meeting\s*ID|Пароль|passcode|password|e-?mail|тел[.:]/i)[0]
     .replace(_ZOOM_TITLES, '$1 ');
-  var found = t.match(_ZOOM_PIB) || [];
-  for(var i = 0; i < found.length; i++) if(!_ZOOM_NOT_NAME.test(found[i])) return found[i];
-  return '';
+  var found = (t.match(_ZOOM_PIB) || []).filter(function(n){ return !_ZOOM_NOT_NAME.test(n); });
+  if(!found.length) return '';
+  return last ? found[found.length - 1] : found[0];
 }
 
 var _ZOOM_HOST = /zoom\.us\/j\/|meet\.google\.com\/|teams\.microsoft\.com\//i;
@@ -2493,20 +2507,24 @@ var _ZOOM_HOST = /zoom\.us\/j\/|meet\.google\.com\/|teams\.microsoft\.com\//i;
 // перетворює його на <a>. Ловимо обидва випадки одним проходом і
 // прибираємо дублікат, коли текст посилання дорівнює самому посиланню.
 function _zoomUrls(text) {
-  var out = [], seen = {}, m;
+  var out = [], m, cursor = 0;
   var re = /href="([^"]+)"|(https?:\/\/[^\s<>"']+)/gi;
   while((m = re.exec(text))) {
+    // Пропускаємо тільки те, що лежить усередині вже зчитаного
+    // посилання: підпис лінка часто дорівнює самому лінку. А ось
+    // однакові адреси в РІЗНИХ місцях врізки — це різні записи
+    // (одну кімнату дають і на лекцію, і на практику), і викидати
+    // їх не можна: тоді текст наступного запису дістається чужому.
+    if(m.index < cursor) continue;
     var u = (m[1] || m[2] || '').replace(/&amp;/g, '&').replace(/[).,;]+$/, '');
-    if(!_ZOOM_HOST.test(u) || seen[u]) continue;
-    seen[u] = 1;
+    if(!_ZOOM_HOST.test(u)) continue;
     // Кінець посилання — це закривний </a>, а не кінець самого href.
-    // Інакше підпис лінка лишається в тексті наступної конференції, і
-    // та забирає собі чуже ім'я.
     var end = re.lastIndex;
     if(m[1]) {
       var close = text.indexOf('</a>', end);
       if(close !== -1) end = close + 4;
     }
+    cursor = end;
     out.push({ url: u, at: m.index, end: end });
   }
   return out;
@@ -2518,20 +2536,21 @@ function _zoomUrls(text) {
 // Читаємо по очищеному тексту, а не по розмітці: «<strong>Пароль
 // конференції</strong>: 299292» інакше не збирається — між словом і
 // двокрапкою стоїть тег.
-function _zoomId(text) {
-  var m = _zoomClean(text).match(/(?:Ідентифікатор|Zoom\s*ID|Meeting\s*ID)[^\d]{0,30}(\d[\d\s]{6,})/i);
+function _zoomId(text, last) {
+  var m = _matchPick(_zoomClean(text),
+    /(?:Ідентифікатор|Zoom\s*ID|Meeting\s*ID)[^\d]{0,30}(\d[\d\s]{6,})/i, last);
   return m ? m[1].replace(/\s+/g, ' ').trim() : '';
 }
 
-function _zoomPass(text) {
+function _zoomPass(text, last) {
   var s = _zoomClean(text);
   // Спершу варіант із двокрапкою: «Пароль конференції: 299292». Без
   // вимоги двокрапки сюди потрапляло слово «конференції» замість коду.
-  var m = s.match(/(?:Пароль|Код доступу|Код|passcode|password)[^:]{0,30}:\s*([^\s,]+)/i);
+  var m = _matchPick(s, /(?:Пароль|Код доступу|Код|passcode|password)[^:]{0,30}:\s*([^\s,]+)/i, last);
   if(m) return m[1];
   // Потім без неї: «пароль 555». Значення має починатися з цифри, інакше
   // під нього підходить будь-яке наступне слово.
-  m = s.match(/(?:Пароль|Код доступу|passcode|password)\s+(\d[0-9A-Za-z]{2,19})\b/i);
+  m = _matchPick(s, /(?:Пароль|Код доступу|passcode|password)\s+(\d[0-9A-Za-z]{2,19})\b/i, last);
   return m ? m[1] : '';
 }
 
@@ -2540,8 +2559,16 @@ function _zoomPass(text) {
 // точніший за предмет, бо не залежить від того, як названо курс.
 var _ZOOM_GROUP = /\b\d{3}[-–][А-ЯІЇЄҐ]{2,6}[-–][ДЗдз]\d{2}\b/g;
 
-function _zoomGroups(text) {
-  var found = _zoomClean(text).match(_ZOOM_GROUP) || [];
+function _zoomGroups(text, last) {
+  var t = _zoomClean(text);
+  // Наприкінці запису пишуть «Розклад занять: 101-МКТ-Д24 - вівторок…»,
+  // і ці шифри належать попередньому викладачеві, а не наступному. Коли
+  // опис іде перед посиланням, читаємо лише від останнього «Група».
+  if(last) {
+    var head = _matchPick(t, /Груп[аи]/i, true);
+    if(head) t = t.slice(head.index);
+  }
+  var found = t.match(_ZOOM_GROUP) || [];
   var seen = {};
   return found.filter(function(g){
     var k = g.toUpperCase();
@@ -2581,18 +2608,26 @@ function _zoomParse(html) {
   if(!hits.length) return [];
   var side = _zoomSide(whole, hits);
 
+  // Коли опис іде перед посиланням, у вікні лежить ще й хвіст
+  // попереднього запису, тож беремо останнє входження — найближче.
+  var last = side === 'before';
+  var carriedKind = '';
   var out = hits.map(function(hit, i){
     var win = hits.length === 1 ? whole
       : side === 'before'
         ? whole.slice(i === 0 ? 0 : hits[i - 1].end, hit.at)
         : whole.slice(hit.end, i + 1 < hits.length ? hits[i + 1].at : whole.length);
+    // «Лектори» і «Викладачі практичних занять» — це заголовки списків:
+    // слово стоїть один раз, а стосується всіх записів під ним.
+    var kind = _zoomKind(win);
+    if(kind) carriedKind = kind; else kind = carriedKind;
     return {
-      teacher: _zoomPib(win),
-      groups: _zoomGroups(win),
-      kind: _zoomKind(win),
+      teacher: _zoomPib(win, last),
+      groups: _zoomGroups(win, last),
+      kind: kind,
       url: hit.url,
-      meetingId: _zoomId(win),
-      passcode: _zoomPass(win)
+      meetingId: _zoomId(win, last),
+      passcode: _zoomPass(win, last)
     };
   });
 
@@ -2612,7 +2647,10 @@ function _zoomParse(html) {
 //   «2026/2027 - 1- д - ІМПС - Пономаренко В. копіювання 1»
 //   «2026-27-1-денна, УПП-Правознавство-Кім К.В.»
 // Тому не шукаємо один шаблон, а зрізаємо початок і кінець за змістом.
-var _ZOOM_HEAD = /^(\d{1,4}(\/\d{1,4})?|[іiІ]?\d{1,2}|(денна|заочна|вечірня|дистанційна)[^-]*|[дзДЗ])$/i;
+// Семестр пишуть і «1», і «1/2», і «1,2»; форму навчання — «денна»,
+// «денна/заочна», «денна,заочна», «д», «д,з». Кома тут така сама
+// звичайна, як слеш, і саме на ній розбір спотикався.
+var _ZOOM_HEAD = /^(\d{1,4}([\/,]\d{1,4})*|[іiІ]?\d{1,2}|(денна|заочна|вечірня|дистанційна)[^-]*|[дзДЗ]([\/,]\s*[дзДЗ])*)$/i;
 var _ZOOM_TEACHER_TAIL = /^[А-ЯІЇЄҐ][а-яіїєґ'’-]+\s+[А-ЯІЇЄҐ]\.\s*([А-ЯІЇЄҐ]\.)?$/;
 
 function _zoomSubject(fullname) {
@@ -2858,9 +2896,12 @@ function _courseForLesson(lesson) {
   var sur = _zoomNorm(lesson.teacher).split(' ')[0];
   if(sur && sur.length > 2) {
     var byT = hit.filter(function(c){ return _zoomNorm(c.fullname || '').indexOf(sur) !== -1; });
-    if(byT.length === 1) return byT[0];
+    if(byT.length) return byT[0];
   }
-  return null;
+  // На відміну від посилання, тут помилитися майже нічим: кнопка лише
+  // відкриває курс, а його повну назву видно в заголовку. Тож коли
+  // кандидатів кілька, краще показати перший, ніж не показати нічого.
+  return hit[0];
 }
 
 function _courseBtnHtml(lesson) {

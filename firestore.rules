@@ -1,0 +1,108 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    // Безпечне читання ролі: якщо документа немає або поля role немає —
+    // повертає 'student', а не падає з помилкою (падіння = відмова).
+    function roleOf(uid) {
+      return exists(/databases/$(database)/documents/users/$(uid))
+        ? get(/databases/$(database)/documents/users/$(uid)).data.get('role', 'student')
+        : 'student';
+    }
+    function myRole() {
+      return isSignedIn() ? roleOf(request.auth.uid) : 'student';
+    }
+    function isAdmin() {
+      return myRole() in ['admin', 'superadmin'];
+    }
+    function isMod() {
+      return myRole() in ['moderator', 'admin', 'superadmin'];
+    }
+
+    // Групи — читати всім авторизованим.
+    // ТИМЧАСОВО (вступна кампанія): створювати може будь-який авторизований.
+    match /groups/{groupId} {
+      allow read: if isSignedIn();
+
+      allow create: if isSignedIn()
+                    && request.resource.data.name is string
+                    && request.resource.data.name.size() >= 3
+                    && request.resource.data.name.size() <= 40;
+
+      // Прив'язка до когорти Moodle — лише це поле і лише поки порожнє.
+      allow update: if isAdmin()
+                    || (isSignedIn()
+                        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['cohortId'])
+                        && resource.data.get('cohortId', null) == null);
+
+      allow delete: if isAdmin();
+    }
+
+    // Профілі. Роль і бан може змінювати ТІЛЬКИ адмін — інакше будь-хто
+    // призначив би себе суперадміном, записавши власний документ.
+    match /users/{userId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && request.auth.uid == userId
+                    && !request.resource.data.keys().hasAny(['role', 'banned']);
+      allow update: if isAdmin()
+                    || (isSignedIn() && request.auth.uid == userId
+                        && !request.resource.data.diff(resource.data)
+                             .affectedKeys().hasAny(['role', 'banned']));
+      allow delete: if isAdmin();
+    }
+
+    // Повідомлення: редагувати й видаляти — автор або модератор.
+    // Окремо дозволено будь-кому міняти лише reactions (це і є реакції).
+    match /messages/{id} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && request.resource.data.get('uid', '') == request.auth.uid;
+      allow update: if isMod()
+                    || (isSignedIn() && resource.data.get('uid', '') == request.auth.uid)
+                    || (isSignedIn() && request.resource.data.diff(resource.data)
+                                          .affectedKeys().hasOnly(['reactions']));
+      allow delete: if isMod() || (isSignedIn() && resource.data.get('uid', '') == request.auth.uid);
+    }
+
+    // Файли, матеріали, нотатки — будь-який авторизований (див. примітку нижче)
+    match /files/{id}     { allow read, write: if isSignedIn(); }
+    match /materials/{id} { allow read, write: if isSignedIn(); }
+    match /notes/{id}     { allow read, write: if isSignedIn(); }
+
+    // Посилання на Zoom. Курс у Moodle бачить лише той, хто в ньому
+    // записаний, тож кожен збирає зі своїх курсів, а результат спільний:
+    // інакше одногрупник із іншим набором курсів кнопок не побачить.
+    match /zoomLinks/{id} { allow read, write: if isSignedIn(); }
+
+    // Налаштування користувача — кожен тільки своє
+    match /userSettings/{userId} {
+      allow read, write: if isSignedIn() && request.auth.uid == userId;
+    }
+
+    // Присутність — кожен пише лише свою, бачать усі
+    match /presence/{id} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn() && request.auth.uid == id;
+    }
+
+    match /pinned/{id} { allow read, write: if isSignedIn(); }
+
+    // Журнал дій — дописують усі (входи, модератори), читає адмін.
+    // Редагувати й стирати не можна нікому: журнал, який можна
+    // переписати заднім числом, не має сенсу.
+    match /auditLog/{id} {
+      allow read: if isAdmin();
+      allow create: if isSignedIn();
+      allow update, delete: if false;
+    }
+
+    // Оголошення — читають всі, публікує тільки адмін
+    match /settings/{id} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+  }
+}

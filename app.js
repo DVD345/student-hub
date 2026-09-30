@@ -2074,6 +2074,15 @@ async function _refreshScheduleOptions() {
   }
 }
 
+function _refreshScheduleOptionsAndRefill() {
+  return _refreshScheduleOptions().then(function(changed){
+    if(!changed) return;
+    var current = _collectScheduleFilters();
+    _fillScheduleSelects();
+    _applyScheduleFilters(current);
+  });
+}
+
 function _fillScheduleSelects() {
   _fillScheduleSelect('sch-year', SCHEDULE_YEARS);
   _fillScheduleSelect('sch-semester', SCHEDULE_SEMESTERS);
@@ -2100,12 +2109,11 @@ function _initScheduleUi() {
   var defaults = _getDefaultScheduleFilters();
   _applyScheduleFilters(saved || defaults);
 
-  _refreshScheduleOptions().then(function(changed){
-    if(!changed) return;
-    var current = _collectScheduleFilters();
-    _fillScheduleSelects();
-    _applyScheduleFilters(current);
-  });
+  // Списки років і факультетів тягнуться зі старого сайту, а той лежить
+  // і віддає 523 по три секунди. Відколи UniHub став джерелом за
+  // замовчуванням, цей запит на кожному відкритті сторінки нікому не
+  // потрібен — робимо його лише тоді, коли старе джерело справді обрали.
+  if(_scheduleSource === 'legacy') _refreshScheduleOptionsAndRefill();
 
   ['sch-year','sch-semester','sch-week-type','sch-faculty'].forEach(function(id){
     var el = document.getElementById(id);
@@ -2174,6 +2182,9 @@ function setScheduleSource(source, reload) {
     });
   }
   if(_scheduleSource === 'legacy') {
+    // Списки підтягуємо тут, а не при відкритті сторінки: тепер це
+    // єдине місце, де вони справді знадобляться.
+    _refreshScheduleOptionsAndRefill();
     if(typeof setScheduleMode === 'function' && typeof _scheduleMode !== 'undefined' && _scheduleMode) {
       setScheduleMode(_scheduleMode, false);
     }

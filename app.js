@@ -2399,6 +2399,7 @@ function _renderUnihubGroup() {
             (parity ? '<span class="uh-badge uh-parity" data-parity="' + escHtml(parity) + '">' +
               escHtml(l.parity.toUpperCase()) + '</span>' : '') +
             _zoomBadgeHtml(z) +
+            _courseBtnHtml(l) +
           '</div>' +
         '</div>';
       }).join('') + '</div>';
@@ -2430,6 +2431,12 @@ function _renderUnihubGroup() {
 
 var ZOOM_CACHE_KEY = 'sh_zoom_v1';
 var ZOOM_TTL_MS = 7 * 24 * 3600 * 1000;
+// Піднімати щоразу, коли міняється розбір врізок. Записи, зібрані
+// старішою версією, доводиться саме викидати, а не правити: інакше
+// виправлений парсер нічого не змінює, бо поруч лежать старі хибні
+// записи й підставляються замість нових.
+var ZOOM_PARSE_VERSION = 2;
+var _zoomSharedStale = false;
 var _zoomLinks = [];
 // Підсумок останнього збору: скільки курсів переглянули, скільки знайшли
 // і які Moodle не віддав. Без цього незрозуміло, чому кнопок менше, ніж пар.
@@ -2664,15 +2671,32 @@ function _zoomMerge(list) {
 function _zoomLoadCache() {
   try {
     var raw = JSON.parse(localStorage.getItem(ZOOM_CACHE_KEY) || 'null');
-    if(raw && Array.isArray(raw.links)) { _zoomLinks = raw.links; return raw.builtAt || 0; }
+    // Кеш, зібраний старішим розбором, не лагодиться — його треба
+    // перезібрати. Інакше виправлення парсера нічого не змінює: на
+    // екран і далі йдуть учорашні хибні записи.
+    if(raw && Array.isArray(raw.links) && raw.v === ZOOM_PARSE_VERSION) {
+      _zoomMerge(raw.links);
+      return raw.builtAt || 0;
+    }
+    // Застарілий кеш прибираємо одразу, інакше він лежатиме доти,
+    // доки не збереться новий, і весь цей час підмінятиме собою свіжі.
+    if(raw) localStorage.removeItem(ZOOM_CACHE_KEY);
   } catch(e) {}
   return 0;
 }
 
 function _zoomSaveCache() {
   try {
-    localStorage.setItem(ZOOM_CACHE_KEY, JSON.stringify({ builtAt: Date.now(), links: _zoomLinks }));
+    localStorage.setItem(ZOOM_CACHE_KEY, JSON.stringify({
+      v: ZOOM_PARSE_VERSION, builtAt: Date.now(), links: _zoomLinks
+    }));
   } catch(e) {}
+}
+
+// Назва поля в Firestore не може містити крапок і слешів, тому з
+// посилання лишаємо тільки літери й цифри.
+function _zoomDocKey(url) {
+  return 'u_' + String(url).replace(/[^0-9a-zA-Z]+/g, '').slice(-40);
 }
 
 // Курси бачить лише той, хто в них записаний, тож зібране віддаємо
@@ -2683,16 +2707,23 @@ async function _zoomPublish() {
   try {
     var fb = window._fb;
     var map = {};
-    _zoomLinks.forEach(function(z, i){
-      // Ключ мапи — номер із хешу посилання, бо в назвах полів Firestore
-      // не можна тримати довільний текст із крапками й слешами.
-      map['z' + i + '_' + String(z.url).replace(/\W+/g, '').slice(-16)] = {
+    _zoomLinks.forEach(function(z){
+      // Ключ — саме посилання, а не порядковий номер. З номером кожна
+      // пересборка створювала НОВІ ключі, а merge старі не прибирає,
+      // тож у документі назавжди лишалися записи всіх попередніх,
+      // ще хибних, розборів — і саме вони потім і показувалися.
+      map[_zoomDocKey(z.url)] = {
+        v: ZOOM_PARSE_VERSION,
         teacher: z.teacher || '', subject: z.subject || '',
         groups: z.groups || [], kind: z.kind || '', course: z.course || '',
         url: z.url, meetingId: z.meetingId || '', passcode: z.passcode || '', at: Date.now()
       };
     });
-    await fb.setDoc(fb.doc(window._db, 'zoomLinks', 'shared'), { links: map }, { merge: true });
+    // Поки в документі лежать записи старих версій, merge їх не чистить.
+    // Один раз перезаписуємо документ цілком, далі знову доповнюємо.
+    var purge = _zoomSharedStale;
+    await fb.setDoc(fb.doc(window._db, 'zoomLinks', 'shared'), { links: map }, { merge: !purge });
+    _zoomSharedStale = false;
   } catch(e) {
     // Найчастіше це permission-denied, поки в правилах немає zoomLinks.
     // Локальний кеш від цього не страждає, тому просто пишемо в консоль.
@@ -2707,7 +2738,18 @@ async function _zoomLoadShared() {
     var snap = await fb.getDoc(fb.doc(window._db, 'zoomLinks', 'shared'));
     var links = snap && snap.exists() ? (snap.data() || {}).links : null;
     if(!links) return;
-    _zoomMerge(Object.keys(links).map(function(k){ return links[k]; }));
+    var all = Object.keys(links).map(function(k){ return links[k]; });
+    var fresh = all.filter(function(z){ return z && z.v === ZOOM_PARSE_VERSION; });
+    if(fresh.length !== all.length) {
+      // У документі лежать записи старого розбору. Не читаємо їх і
+      // позначаємо, що при наступному збиранні документ треба
+      // перезаписати цілком, а не доповнити.
+      _zoomSharedStale = true;
+      console.warn('[zoom] у спільному документі ' + (all.length - fresh.length) +
+        ' записів старого розбору — пропускаємо, їх перезапише наступний збір.');
+    }
+    if(!fresh.length) return;
+    _zoomMerge(fresh);
     _zoomSaveCache();
     if(_uhGroupName) _renderUnihubGroup();
   } catch(e) {
@@ -2799,6 +2841,35 @@ function _zoomSubjectMatches(z, lesson) {
   if(zs.indexOf(sk) === 0 || sk.indexOf(zs) === 0) return true;
   var ak = _zoomAbbr(lesson.subject);
   return ak.length >= 3 && zs.replace(/\s/g, '') === ak;
+}
+
+// Пара → курс у Moodle. Тримається на тій самій перевірці назви, що й
+// посилання, але корисна навіть тоді, коли посилання не підчепилося:
+// у відкритому курсі врізка з конференцією видно як є.
+function _courseForLesson(lesson) {
+  if(!lesson || !Array.isArray(courses) || !courses.length) return null;
+  var hit = courses.filter(function(c){
+    return _zoomSubjectMatches({ subject: _zoomSubject(c.fullname || c.shortname || '') }, lesson);
+  });
+  if(hit.length === 1) return hit[0];
+  if(!hit.length) return null;
+  // Той самий предмет у кількох курсах — розрізняємо за прізвищем: у
+  // назві курсу воно стоїть у кінці («…-Правознавство-Кім К.В.»).
+  var sur = _zoomNorm(lesson.teacher).split(' ')[0];
+  if(sur && sur.length > 2) {
+    var byT = hit.filter(function(c){ return _zoomNorm(c.fullname || '').indexOf(sur) !== -1; });
+    if(byT.length === 1) return byT[0];
+  }
+  return null;
+}
+
+function _courseBtnHtml(lesson) {
+  var c = _courseForLesson(lesson);
+  if(!c) return '';
+  return '<button class="uh-course" type="button" data-cid="' + escHtml(String(c.id)) + '" ' +
+    'data-cname="' + escHtml(c.fullname || c.shortname || 'Курс') + '" ' +
+    'title="Відкрити курс" ' +
+    'onclick="openCourseContents(this.dataset.cid, null, this.dataset.cname)">📖 Курс</button>';
 }
 
 function _zoomForLesson(lesson, groupName) {
@@ -2923,6 +2994,20 @@ function _copyZoomFallback(value, done) {
   } catch(e) {}
 }
 
+// Діагностика: показати, що саме зібралося і звідки. Без цього
+// «кнопка веде не туди» неможливо перевірити — видно лише наслідок.
+function zoomDump() {
+  console.log('[zoom] версія розбору ' + ZOOM_PARSE_VERSION + ', записів ' + _zoomLinks.length);
+  console.table(_zoomLinks.map(function(z){
+    return {
+      предмет: z.subject || '', викладач: z.teacher || '', вид: z.kind || '',
+      групи: (z.groups || []).join(' '), ідентифікатор: z.meetingId || '',
+      код: z.passcode || '', посилання: z.url, курс: z.course || ''
+    };
+  }));
+  return _zoomLinks;
+}
+
 function _zoomRenderStatus(showRun) {
   var el = document.getElementById('zoom-status');
   if(!el) return;
@@ -3021,6 +3106,7 @@ function _uhParaRow(lesson, label, isNow, groupName) {
           '<span class="zoom-info" hidden>' + _zoomInfoRows(z) + '</span>' +
         '</span>'
       : '') +
+    _courseBtnHtml(lesson) +
   '</div>';
 }
 
@@ -4126,10 +4212,10 @@ function _ccModule(m) {
   '</div>';
 }
 
-async function openCourseContents(courseId, el) {
+async function openCourseContents(courseId, el, nameOverride) {
   var card = el && el.closest ? el.closest('.course-card') : null;
   var nameEl = card ? card.querySelector('.c-name') : null;
-  var courseName = nameEl ? nameEl.textContent : 'Курс';
+  var courseName = nameOverride || (nameEl ? nameEl.textContent : 'Курс');
   var modal = document.getElementById('course-contents-modal');
   var body = document.getElementById('cc-body');
   document.getElementById('cc-title').textContent = courseName;

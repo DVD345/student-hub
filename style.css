@@ -1618,6 +1618,16 @@ body.deadlines-resizing .dl-width-resizer::before {
 .uh-zoom:hover { background:rgba(45,140,255,.22); border-color:rgba(45,140,255,.6); }
 .unihub-zoom-status { font-size:11px; color:var(--text2); margin-top:8px; line-height:1.5; }
 
+/* Відкрити курс просто з пари. Навмисно спокійніша за Zoom: заходять
+   сюди рідше, але саме тут видно все, що до пари не підчепилося. */
+.uh-course {
+  font-size:10px; font-weight:700; padding:3px 8px; border-radius:7px;
+  white-space:nowrap; cursor:pointer;
+  color:var(--text2); background:var(--bg3); border:1px solid var(--border);
+  transition:color .15s, border-color .15s;
+}
+.uh-course:hover { color:var(--text); border-color:var(--accent); }
+
 /* Ідентифікатор і код: частина конференцій без них не пускає, а на
    телефоні підказки під курсором немає — тому окрема кнопка. */
 /* Панель розкривається рядком усередині картки, а не спливає над нею:

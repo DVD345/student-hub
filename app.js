@@ -2773,50 +2773,71 @@ function _zoomAutoCollect() {
   setTimeout(function(){ collectZoomLinks(false); }, 4000);
 }
 
+// Кілька різних кімнат — це не вибір, а вгадування. Віддаємо посилання
+// лише тоді, коли воно одне: чуже посилання гірше за відсутнє.
+function _zoomOnly(list) {
+  if(!list || !list.length) return null;
+  var urls = {};
+  list.forEach(function(z){ urls[z.url] = 1; });
+  return Object.keys(urls).length === 1 ? list[0] : null;
+}
+
+// Звужуємо список, але тільки якщо після звуження щось лишилося:
+// ознака, якої в даних немає, не повинна відкидати всі варіанти.
+function _zoomNarrow(list, fn) {
+  var hit = list.filter(fn);
+  return hit.length ? hit : list;
+}
+
+function _zoomSubjectMatches(z, lesson) {
+  var zs = _zoomNorm(z.subject);
+  var sk = _zoomNorm(lesson.subject);
+  if(!zs || !sk) return false;
+  if(zs === sk) return true;
+  // «Іноземна мова» в розкладі і «Іноземна мова (за професійним
+  // спрямуванням)» у Moodle — той самий предмет, дописаний довше.
+  if(zs.indexOf(sk) === 0 || sk.indexOf(zs) === 0) return true;
+  var ak = _zoomAbbr(lesson.subject);
+  return ak.length >= 3 && zs.replace(/\s/g, '') === ak;
+}
+
 function _zoomForLesson(lesson, groupName) {
   if(!lesson || !_zoomLinks.length) return null;
   var tk = _zoomNorm(lesson.teacher);
-  var sk = _zoomNorm(lesson.subject);
-  var ak = _zoomAbbr(lesson.subject);
   var gk = String(groupName || '').toUpperCase();
 
-  // Шифр групи у врізці — найточніше, що взагалі буває: він не залежить
-  // ані від назви курсу, ані від того, кого вписали викладачем.
-  var byGroup = !gk ? [] : _zoomLinks.filter(function(z){
-    return (z.groups || []).some(function(g){ return g.toUpperCase() === gk; });
-  });
-  if(byGroup.length) {
-    // У табличних врізках лекцію й практику ведуть різні люди з різних
-    // кімнат, і рядок таблиці прямо про це й каже.
-    var byKind = byGroup.filter(function(z){ return z.kind && z.kind === lesson.kind; });
-    var pool = byKind.length ? byKind : byGroup;
+  // Предмет — обов'язкова умова, а не одна з підказок. Без неї шифр
+  // групи притягував до пари кімнату зовсім іншого предмета: у
+  // табличній врізці група згадана один раз на весь курс, і збіг по
+  // ній сам собою не означає нічого.
+  var cand = _zoomLinks.filter(function(z){ return _zoomSubjectMatches(z, lesson); });
+
+  if(cand.length) {
+    if(gk) cand = _zoomNarrow(cand, function(z){
+      return (z.groups || []).some(function(g){ return g.toUpperCase() === gk; });
+    });
+    // Лекцію й практику ведуть різні люди з різних кімнат, і таблиця
+    // у врізці прямо про це й каже.
+    if(lesson.kind) cand = _zoomNarrow(cand, function(z){ return z.kind === lesson.kind; });
+
     if(tk) {
-      var gt = pool.filter(function(z){ return _zoomNorm(z.teacher) === tk; });
-      if(gt.length) return gt[0];
+      var byT = cand.filter(function(z){ return _zoomNorm(z.teacher) === tk; });
+      if(byT.length) return _zoomOnly(byT);
+      // Викладача в розкладі вказано, а серед знайдених його немає.
+      // На потоці з двома групами це означає кімнату чужої групи, тож
+      // лишаємо тільки ті записи, де імені не було зовсім.
+      if(cand.some(function(z){ return z.teacher; })) {
+        cand = cand.filter(function(z){ return !z.teacher; });
+      }
     }
-    if(pool.length === 1) return pool[0];
+    var hit = _zoomOnly(cand);
+    if(hit) return hit;
   }
 
-  if(tk) {
-    var byTeacher = _zoomLinks.filter(function(z){ return _zoomNorm(z.teacher) === tk; });
-    if(byTeacher.length) {
-      // Один викладач веде кілька предметів із різних кімнат, тож коли
-      // предмет збігається — беремо саме його, а не першу-ліпшу кімнату.
-      var exact = byTeacher.filter(function(z){ return _zoomNorm(z.subject) === sk; });
-      return exact[0] || byTeacher[0];
-    }
-  }
-
-  // Імені у врізці може не бути зовсім. Тоді лишається предмет — точною
-  // назвою або скороченням, яким названо курс («ІМПС»).
-  var bySubject = _zoomLinks.filter(function(z){
-    if(z.teacher) return false;
-    var zs = _zoomNorm(z.subject);
-    return zs && (zs === sk || (ak.length >= 3 && _zoomNorm(zs).replace(/\s/g, '') === ak));
-  });
-  // Беремо тільки тоді, коли варіант один: інакше це вгадування, а
-  // чуже посилання гірше за відсутнє.
-  return bySubject.length === 1 ? bySubject[0] : null;
+  // Назви можуть не збігатися зовсім: у Moodle «Правознавство», у
+  // розкладі «Основи права». Тоді єдиний надійний доказ — повний ПІБ.
+  if(tk) return _zoomOnly(_zoomLinks.filter(function(z){ return _zoomNorm(z.teacher) === tk; }));
+  return null;
 }
 
 // Частина конференцій просить ідентифікатор і код руками — саме посилання
@@ -2825,9 +2846,7 @@ function _zoomForLesson(lesson, groupName) {
 // яка їх показує, з копіюванням у буфер.
 function _zoomBadgeHtml(z) {
   if(!z) return '';
-  var rows = '';
-  if(z.meetingId) rows += _zoomInfoRow('Ідентифікатор', z.meetingId, z.meetingId.replace(/\s+/g, ''));
-  if(z.passcode)  rows += _zoomInfoRow('Код', z.passcode, z.passcode);
+  var rows = _zoomInfoRows(z);
   return '<span class="zoom-wrap">' +
     '<a class="uh-zoom" href="' + escHtml(z.url) + '" target="_blank" rel="noopener">🎥 Zoom</a>' +
     (rows
@@ -2836,6 +2855,18 @@ function _zoomBadgeHtml(z) {
         '<span class="zoom-info" hidden>' + rows + '</span>'
       : '') +
   '</span>';
+}
+
+// Курс, з якого взято посилання, показуємо завжди: коли кімната раптом
+// не та, видно одразу, звідки вона приїхала, — інакше лишається гадати.
+function _zoomInfoRows(z) {
+  var rows = '';
+  if(z.meetingId) rows += _zoomInfoRow('Ідентифікатор', z.meetingId, z.meetingId.replace(/\s+/g, ''));
+  if(z.passcode)  rows += _zoomInfoRow('Код', z.passcode, z.passcode);
+  if(z.course || z.subject) {
+    rows += '<span class="zi-row zi-src">З курсу: ' + escHtml(z.course || z.subject) + '</span>';
+  }
+  return rows;
 }
 
 function _zoomInfoRow(label, shown, copyValue) {
@@ -2985,14 +3016,9 @@ function _uhParaRow(lesson, label, isNow, groupName) {
     (z
       ? '<span class="zoom-wrap">' +
           '<a class="para-join" href="' + escHtml(z.url) + '" target="_blank" rel="noopener">Приєднатися</a>' +
-          ((z.meetingId || z.passcode)
-            ? '<button class="zoom-i" type="button" title="Ідентифікатор і код" ' +
-                'onclick="_toggleZoomInfo(this)">ⓘ</button>' +
-              '<span class="zoom-info" hidden>' +
-                (z.meetingId ? _zoomInfoRow('Ідентифікатор', z.meetingId, z.meetingId.replace(/\s+/g, '')) : '') +
-                (z.passcode ? _zoomInfoRow('Код', z.passcode, z.passcode) : '') +
-              '</span>'
-            : '') +
+          '<button class="zoom-i" type="button" title="Ідентифікатор і код" ' +
+            'onclick="_toggleZoomInfo(this)">ⓘ</button>' +
+          '<span class="zoom-info" hidden>' + _zoomInfoRows(z) + '</span>' +
         '</span>'
       : '') +
   '</div>';
@@ -3995,36 +4021,146 @@ function _moodleFileUrl(fileurl) {
   return fileurl + (fileurl.indexOf('?') === -1 ? '?' : '&') + 'token=' + encodeURIComponent(token);
 }
 
-async function openCourseContents(courseId, btn) {
-  const courseName = btn ? btn.closest('.course-card').querySelector('.c-name').textContent : 'Курс';
-  const modal = document.getElementById('course-contents-modal');
-  const body = document.getElementById('cc-body');
+// Опис модуля пише викладач, тобто це чужий HTML. Виводити його як є
+// не можна: вистачить одного onerror, щоб чужий скрипт виконався з
+// нашим токеном під рукою. Лишаємо тільки розмітку тексту.
+var _CC_TAGS = ['b','strong','i','em','u','s','br','p','ul','ol','li','a','span','div','h3','h4','h5','table','thead','tbody','tr','td','th','code','pre','blockquote','sup','sub','hr','img'];
+var _CC_DROP = ['script','style','iframe','object','embed','noscript','svg','form','input','button','select','textarea','link','meta'];
+
+function _ccSanitize(html) {
+  if(!html) return '';
+  var doc;
+  try { doc = new DOMParser().parseFromString('<div>' + html + '</div>', 'text/html'); }
+  catch(e) { return escHtml(_zoomClean(html)); }
+  var root = doc.body.firstChild;
+  if(!root) return '';
+  var walk = function(node){
+    Array.prototype.slice.call(node.childNodes).forEach(function(ch){
+      if(ch.nodeType === 3) return;                       // текст лишаємо
+      if(ch.nodeType !== 1) { ch.remove(); return; }
+      var tag = ch.tagName.toLowerCase();
+      // Скрипт і форму викидаємо разом із вмістом: якщо просто зняти
+      // теги, тіло скрипта лишається в тексті й читається як абзац.
+      if(_CC_DROP.indexOf(tag) !== -1) { ch.remove(); return; }
+      if(_CC_TAGS.indexOf(tag) === -1) { ch.replaceWith.apply(ch, ch.childNodes); return; }
+      Array.prototype.slice.call(ch.attributes).forEach(function(a){
+        var n = a.name.toLowerCase(), v = String(a.value || '');
+        var keep = (tag === 'a' && n === 'href') || (tag === 'img' && (n === 'src' || n === 'alt'));
+        if(!keep || /^\s*javascript:/i.test(v)) ch.removeAttribute(a.name);
+      });
+      if(tag === 'a') { ch.setAttribute('target', '_blank'); ch.setAttribute('rel', 'noopener'); }
+      if(tag === 'img') { ch.setAttribute('loading', 'lazy'); ch.removeAttribute('onerror'); }
+      walk(ch);
+    });
+  };
+  walk(root);
+  return root.innerHTML;
+}
+
+var _CC_ICO = {
+  resource:'📄', url:'🔗', assign:'📝', quiz:'📊', forum:'💬', folder:'📁',
+  page:'📃', video:'🎥', label:'📌', book:'📘', choice:'🗳', feedback:'📋',
+  glossary:'📖', lesson:'🎓', wiki:'🌐', workshop:'🛠', scorm:'🧩', attendance:'📅'
+};
+
+function _ccDate(ts) {
+  if(!ts) return '';
+  return new Date(ts * 1000).toLocaleString('uk-UA', {
+    day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit'
+  });
+}
+
+function _ccSize(bytes) {
+  if(!bytes || bytes < 1024) return '';
+  return bytes < 1048576 ? Math.round(bytes / 1024) + ' КБ'
+                         : (bytes / 1048576).toFixed(1) + ' МБ';
+}
+
+function _ccModule(m) {
+  // Написи (label) — це не посилання, а текст просто на сторінці курсу.
+  // Саме в них живуть посилання на Zoom і оголошення, тож раніше,
+  // відфільтровані, вони забирали з вмісту найпотрібніше.
+  if(m.modname === 'label') {
+    var text = _ccSanitize(m.description || '');
+    return text ? '<div class="cc-label">' + text + '</div>' : '';
+  }
+
+  var files = (m.contents || []).filter(function(c){ return c.type === 'file' && c.fileurl; });
+  var main = files[0] ? _moodleFileUrl(files[0].fileurl) : null;
+  var link = main || m.url || 'https://do.kart.edu.ua/mod/' + m.modname + '/view.php?id=' + m.id;
+
+  var badges = '';
+  (m.dates || []).forEach(function(d){
+    if(!d || !d.timestamp) return;
+    badges += '<span class="cc-badge">' + escHtml(String(d.label || '').replace(/:\s*$/, '')) +
+      ' ' + escHtml(_ccDate(d.timestamp)) + '</span>';
+  });
+  var sz = files[0] ? _ccSize(files[0].filesize) : '';
+  if(sz) badges += '<span class="cc-badge">' + escHtml(sz) + '</span>';
+  if(m.completiondata && (m.completiondata.state === 1 || m.completiondata.state === 2)) {
+    badges += '<span class="cc-badge cc-done">✓ виконано</span>';
+  }
+  if(m.availabilityinfo) {
+    badges += '<span class="cc-badge cc-locked">🔒 ' + escHtml(_zoomClean(m.availabilityinfo)) + '</span>';
+  }
+
+  // Другий і подальші файли — окремими рядками: у теці чи завданні їх
+  // буває кілька, і раніше було видно лише перший.
+  var extra = files.slice(1).map(function(f){
+    return '<a class="cc-file" href="' + escHtml(_moodleFileUrl(f.fileurl)) + '" target="_blank" rel="noopener">' +
+      '📎 ' + escHtml(f.filename || 'файл') +
+      (_ccSize(f.filesize) ? ' <span class="cc-dim">' + escHtml(_ccSize(f.filesize)) + '</span>' : '') + '</a>';
+  }).join('');
+
+  var desc = m.modname === 'url' ? '' : _ccSanitize(m.description || '');
+
+  return '<div class="cc-mod">' +
+    '<a class="cc-mod-head" href="' + escHtml(link) + '" target="_blank" rel="noopener">' +
+      '<span class="cc-ico">' + (_CC_ICO[m.modname] || '📌') + '</span>' +
+      '<span class="cc-name">' + escHtml(m.name || m.modname) + '</span>' +
+      '<span class="cc-arrow">↗</span>' +
+    '</a>' +
+    (badges ? '<div class="cc-badges">' + badges + '</div>' : '') +
+    (desc ? '<div class="cc-desc">' + desc + '</div>' : '') +
+    extra +
+  '</div>';
+}
+
+async function openCourseContents(courseId, el) {
+  var card = el && el.closest ? el.closest('.course-card') : null;
+  var nameEl = card ? card.querySelector('.c-name') : null;
+  var courseName = nameEl ? nameEl.textContent : 'Курс';
+  var modal = document.getElementById('course-contents-modal');
+  var body = document.getElementById('cc-body');
   document.getElementById('cc-title').textContent = courseName;
   body.innerHTML = '<div class="loading"><div class="spinner"></div>Завантаження...</div>';
   modal.style.display = 'block';
   try {
-    const sections = await moodlePost('core_course_get_contents', { courseid: courseId });
-    if(!sections) { btn.textContent='📖 Вміст'; return; }
-    if(!Array.isArray(sections)) { body.innerHTML = '<div class="empty"><p>Не вдалося завантажити</p></div>'; return; }
-    const nonEmpty = sections.filter(s => s.modules && s.modules.filter(m=>m.modname!=='label').length);
-    if(!nonEmpty.length) { body.innerHTML = '<div class="empty"><p>Розділів поки немає</p></div>'; return; }
-    const modIco = { resource:'📄', url:'🔗', assign:'📝', quiz:'📊', forum:'💬', folder:'📁', page:'📃', video:'🎥' };
-    body.innerHTML = nonEmpty.map(s => {
-      const mods = s.modules.filter(m=>m.modname!=='label').map(m => {
-        const ico = modIco[m.modname] || '📌';
-        const fileUrl = m.contents && m.contents[0] ? _moodleFileUrl(m.contents[0].fileurl) : null;
-        const link = fileUrl || m.url || 'https://do.kart.edu.ua/mod/'+m.modname+'/view.php?id='+m.id;
-        const sz = m.contents && m.contents[0] && m.contents[0].filesize > 1024
-          ? ' <span style="color:var(--text2);font-size:10px;">' + Math.round(m.contents[0].filesize/1024) + ' КБ</span>' : '';
-        return '<a href="'+escHtml(link)+'" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:10px;padding:10px 12px;color:var(--text);text-decoration:none;border-bottom:1px solid var(--border);transition:background .15s;" onmouseover="this.style.background=&quot;var(--bg3)&quot;" onmouseout="this.style.background=&quot;&quot;">'+
-          '<span style="font-size:16px;flex-shrink:0;">'+ico+'</span>'+
-          '<span style="flex:1;font-size:13px;">'+escHtml(m.name)+sz+'</span>'+
-          '<span style="opacity:.4;font-size:11px;">↗</span></a>';
-      }).join('');
-      return '<div style="margin-bottom:12px;"><div style="font-size:10px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px;">'+escHtml(s.name)+'</div>'+
-        '<div style="background:var(--card);border:1px solid var(--border);border-radius:10px;overflow:hidden;">'+mods+'</div></div>';
+    var sections = await moodlePost('core_course_get_contents', { courseid: courseId });
+    if(!Array.isArray(sections)) {
+      body.innerHTML = '<div class="empty"><p>Moodle не віддав вміст курсу. Спробуй ще раз за хвилину.</p></div>';
+      return;
+    }
+    var moodleUrl = 'https://do.kart.edu.ua/course/view.php?id=' + encodeURIComponent(courseId);
+    var html = sections.map(function(s){
+      var mods = (s.modules || [])
+        .filter(function(m){ return m.uservisible !== false; })
+        .map(_ccModule).join('');
+      var summary = _ccSanitize(s.summary || '');
+      if(!mods && !summary) return '';
+      return '<div class="cc-section">' +
+        '<div class="cc-section-head">' + escHtml(s.name || 'Розділ') + '</div>' +
+        (summary ? '<div class="cc-label">' + summary + '</div>' : '') +
+        mods +
+      '</div>';
     }).join('');
-  } catch(e) { body.innerHTML = '<div class="empty"><p>Помилка: '+escHtml(e.message)+'</p></div>'; }
+
+    body.innerHTML = (html || '<div class="empty"><p>Розділів поки немає</p></div>') +
+      '<div class="cc-foot"><a class="btn" href="' + escHtml(moodleUrl) +
+        '" target="_blank" rel="noopener">↗ Відкрити курс у Moodle</a></div>';
+  } catch(e) {
+    body.innerHTML = '<div class="empty"><p>Помилка: ' + escHtml(e.message) + '</p></div>';
+  }
 }
 
 // ✅ IMPROVEMENT 2: syncMoodle runs loadCourses + loadDeadlines in PARALLEL
@@ -4222,11 +4358,16 @@ function filterCourses() {
   const cls=cvMode==='list'?'course-grid lv':'course-grid';
   const gridStyle = cvMode==='list' ? '' : ' style="--course-grid-cols:'+_courseGridCols+';"';
   el.innerHTML='<div class="'+cls+'"'+gridStyle+'>'+list.map((c,i)=>
-    '<div class="course-card" onclick="openSafeUrl(\'https://do.kart.edu.ua/course/view.php?id='+encodeURIComponent(c.id)+'\')">' +
+    // Натискання на картку відкриває вміст просто тут, а не викидає в
+    // Moodle: у дев'яти випадках із десяти потрібне саме воно, а Moodle
+    // лишається окремою маленькою кнопкою.
+    '<div class="course-card" onclick="openCourseContents('+c.id+',this)">' +
     '<button class="hide-course-btn" data-cid="'+escHtml(String(c.id))+'" onclick="hideCourse(this.dataset.cid,event)" title="Сховати курс">✕ Сховати</button>'+
     '<div class="c-num">№'+(i+1)+'</div>'+
     '<div class="c-name">'+escHtml(c.fullname||c.shortname)+'</div>'+
-    '<div class="c-meta">'+escHtml(c.shortname||'')+'</div><div style="margin-top:8px;"><button class="btn" style="font-size:10px;padding:4px 9px;min-height:28px;" onclick="event.stopPropagation();openCourseContents('+c.id+',this)">📖 Вміст</button></div></div>'
+    '<div class="c-meta">'+escHtml(c.shortname||'')+'</div>'+
+    '<div style="margin-top:8px;"><button class="btn" style="font-size:10px;padding:4px 9px;min-height:28px;" '+
+      'onclick="event.stopPropagation();openSafeUrl(\'https://do.kart.edu.ua/course/view.php?id='+encodeURIComponent(c.id)+'\')">↗ Moodle</button></div></div>'
   ).join('')+'</div>';
 
   if(_hiddenCourses.length > 0) {

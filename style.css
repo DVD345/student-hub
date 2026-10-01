@@ -1665,6 +1665,22 @@ body.deadlines-resizing .dl-width-resizer::before {
   color:var(--text2); background:var(--card); border:1px solid var(--border);
 }
 .zi-copy:hover { color:var(--text); border-color:var(--accent); }
+/* Підказка «повідом про помилку». Тримається праворуч і навмисно тиха:
+   має бути під рукою, коли щось не так, і не відвертати, коли все гаразд. */
+.schedule-bugnote {
+  display:flex; align-items:flex-start; gap:7px;
+  width:max-content; max-width:100%; margin:0 0 10px auto;
+  padding:7px 11px; border-radius:9px;
+  font-size:11px; line-height:1.45; color:var(--text2);
+  background:var(--bg3); border:1px solid var(--border);
+}
+.schedule-bugnote-ico { flex-shrink:0; }
+.schedule-bugnote a { color:var(--accent); font-weight:600; text-decoration:none; }
+.schedule-bugnote a:hover { text-decoration:underline; }
+@media (max-width:720px) {
+  .schedule-bugnote { width:auto; margin-left:0; }
+}
+
 /* Вміст курсу */
 .cc-section { margin-bottom:14px; }
 .cc-section-head {

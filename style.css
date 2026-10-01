@@ -1612,10 +1612,17 @@ body.deadlines-resizing .dl-width-resizer::before {
 .uh-zoom {
   font-size:10px; font-weight:800; padding:3px 8px; border-radius:7px;
   white-space:nowrap; text-decoration:none; cursor:pointer;
-  color:#2d8cff; background:rgba(45,140,255,.12); border:1px solid rgba(45,140,255,.34);
+  color:var(--accent);
+  background:rgba(255,255,255,.06);
+  background:color-mix(in srgb, var(--accent) 12%, transparent);
+  border:1px solid rgba(255,255,255,.18);
+  border-color:color-mix(in srgb, var(--accent) 34%, transparent);
   transition:background .15s, border-color .15s;
 }
-.uh-zoom:hover { background:rgba(45,140,255,.22); border-color:rgba(45,140,255,.6); }
+.uh-zoom:hover {
+  background:color-mix(in srgb, var(--accent) 22%, transparent);
+  border-color:var(--accent);
+}
 .unihub-zoom-status { font-size:11px; color:var(--text2); margin-top:8px; line-height:1.5; }
 
 /* Відкрити курс просто з пари. Навмисно спокійніша за Zoom: заходять
@@ -1637,9 +1644,13 @@ body.deadlines-resizing .dl-width-resizer::before {
 .zoom-wrap.open { flex-basis:100%; }
 .zoom-i {
   font-size:11px; line-height:1; padding:3px 6px; border-radius:6px; cursor:pointer;
-  color:#2d8cff; background:rgba(45,140,255,.12); border:1px solid rgba(45,140,255,.34);
+  color:var(--accent);
+  background:rgba(255,255,255,.06);
+  background:color-mix(in srgb, var(--accent) 12%, transparent);
+  border:1px solid rgba(255,255,255,.18);
+  border-color:color-mix(in srgb, var(--accent) 34%, transparent);
 }
-.zoom-i:hover { background:rgba(45,140,255,.22); }
+.zoom-i:hover { background:color-mix(in srgb, var(--accent) 22%, transparent); }
 .zoom-info {
   flex:0 0 100%; margin-top:4px;
   display:flex; flex-direction:column; gap:5px; padding:7px 8px;
@@ -1660,12 +1671,15 @@ body.deadlines-resizing .dl-width-resizer::before {
   font-size:10px; font-weight:700; color:var(--accent); text-transform:uppercase;
   letter-spacing:.8px; margin-bottom:7px;
 }
+/* Повний --text, а не --text2: врізка — це суцільний текст на багато
+   рядків, а --text2 задуманий під дрібні підписи й дає на ній близько
+   4:1 контрасту. Для підписів це норма, для абзацу — ні. */
 .cc-label {
-  font-size:12.5px; line-height:1.6; color:var(--text2);
+  font-size:12.5px; line-height:1.6; color:var(--text);
   background:var(--bg3); border:1px solid var(--border); border-radius:10px;
   padding:10px 12px; margin-bottom:8px; overflow-wrap:anywhere;
 }
-.cc-label a { color:#2d8cff; }
+.cc-label a { color:var(--accent); }
 .cc-label p { margin:0 0 6px; }
 .cc-label p:last-child { margin-bottom:0; }
 .cc-label img, .cc-desc img { max-width:100%; height:auto; border-radius:6px; }
@@ -1692,11 +1706,14 @@ body.deadlines-resizing .dl-width-resizer::before {
 }
 .cc-done { color:#4caf50; border-color:rgba(76,175,80,.35); background:rgba(76,175,80,.10); }
 .cc-locked { color:var(--warning); border-color:rgba(255,170,60,.32); }
+/* Опис модуля другорядний, але це теж текст для читання: приглушуємо
+   прозорістю від --text, а не окремим кольором — так воно лишається
+   читабельним у кожній темі. */
 .cc-desc {
-  font-size:11.5px; line-height:1.55; color:var(--text2);
+  font-size:11.5px; line-height:1.55; color:var(--text); opacity:.8;
   padding:0 12px 10px; overflow-wrap:anywhere;
 }
-.cc-desc a { color:#2d8cff; }
+.cc-desc a { color:var(--accent); opacity:1; }
 .cc-file {
   display:block; padding:7px 12px; font-size:11.5px; color:var(--text);
   text-decoration:none; border-top:1px solid var(--border);
@@ -1718,12 +1735,15 @@ body.deadlines-resizing .dl-width-resizer::before {
   border:1px solid var(--border); background:var(--bg3);
   margin-bottom:6px;
 }
-.para-row.now { border-color:rgba(45,140,255,.45); background:rgba(45,140,255,.08); }
+.para-row.now {
+  border-color:color-mix(in srgb, var(--accent) 45%, transparent);
+  background:color-mix(in srgb, var(--accent) 8%, transparent);
+}
 .para-when {
   flex-shrink:0; width:96px; font-size:10px; font-weight:800;
   text-transform:uppercase; letter-spacing:.4px; color:var(--text2); line-height:1.3;
 }
-.para-row.now .para-when { color:#2d8cff; }
+.para-row.now .para-when { color:var(--accent); }
 .para-main { flex:1; min-width:0; }
 .para-subject {
   font-size:13px; font-weight:600; color:var(--text);
@@ -1733,10 +1753,12 @@ body.deadlines-resizing .dl-width-resizer::before {
   font-size:10px; color:var(--text2); margin-top:2px;
   overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
 }
+/* Головна дія віджета — заливка акцентом, як у .btn.a: темний текст
+   читається на всіх акцентах, що є в темах. */
 .para-join {
   flex-shrink:0; font-size:10px; font-weight:800; padding:5px 10px; border-radius:8px;
   text-decoration:none; white-space:nowrap;
-  color:#fff; background:#2d8cff; border:1px solid #2d8cff;
+  color:#07070f; background:var(--accent); border:1px solid var(--accent);
   transition:filter .15s;
 }
 .para-join:hover { filter:brightness(1.12); }

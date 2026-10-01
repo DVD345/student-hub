@@ -1988,13 +1988,12 @@ function _installScheduleUi() {
   page.id = 'page-schedule';
   page.innerHTML = [
     '<div class="page-header"><h2>🗓 Розклад</h2><p>Офіційний розклад з сайту універу прямо всередині StudentHub</p></div>',
-    // Розклад і посилання збираються з чужих сайтів, тож помилки тут
-    // неминучі — а побачити їх може тільки той, хто знає свої пари.
+    // Розклад і посилання збираються з чужих сайтів, тож похибки тут
+    // неминучі — а помітити їх може лише той, хто знає свої пари.
     '<div class="schedule-bugnote">',
       '<span class="schedule-bugnote-ico">🐞</span>',
       '<span>Помітив помилку в розкладі чи не те посилання на пару? ',
-      '<a href="https://www.patreon.com/cw/Student_Hub" target="_blank" rel="noopener">Напиши на Patreon</a>',
-      ' — виправлю.</span>',
+      '<a href="https://www.patreon.com/cw/Student_Hub" target="_blank" rel="noopener">Напиши на Patreon</a></span>',
     '</div>',
     '<div class="schedule-shell">',
       '<div class="schedule-filter-card">',

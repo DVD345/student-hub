@@ -2884,11 +2884,36 @@ function _zoomSubjectMatches(z, lesson) {
 // Пара → курс у Moodle. Тримається на тій самій перевірці назви, що й
 // посилання, але корисна навіть тоді, коли посилання не підчепилося:
 // у відкритому курсі врізка з конференцією видно як є.
+// Для кнопки курсу можна звіряти назви вільніше, ніж для посилання:
+// вона лише відкриває курс, а повну назву видно в заголовку. Тут
+// вистачає, щоб усі значущі слова коротшої назви знайшлися в довшій —
+// це ловить «Вантажні перевезення» проти «Вантажні перевезення та
+// комерційна робота» й подібні розбіжності формулювань.
+function _courseLooseMatch(courseSubject, lessonSubject) {
+  // «теорії» і «теорія» — те саме слово в різних відмінках, тож
+  // порівнюємо без двох останніх літер. Грубо, але для назв предметів
+  // вистачає, а короткі слова лишаємо як є.
+  var words = function(s){
+    return _zoomNorm(s).split(' ').filter(function(w){
+      return w.length > 2 && !_ZOOM_SKIP_WORD.test(w);
+    }).map(function(w){ return w.length > 5 ? w.slice(0, w.length - 2) : w; });
+  };
+  var a = words(courseSubject), b = words(lessonSubject);
+  if(a.length < 2 || b.length < 2) return false;
+  var short = a.length <= b.length ? a : b;
+  var long  = a.length <= b.length ? b : a;
+  return short.every(function(w){ return long.indexOf(w) !== -1; });
+}
+
 function _courseForLesson(lesson) {
   if(!lesson || !Array.isArray(courses) || !courses.length) return null;
+  var subjectOf = function(c){ return _zoomSubject(c.fullname || c.shortname || ''); };
   var hit = courses.filter(function(c){
-    return _zoomSubjectMatches({ subject: _zoomSubject(c.fullname || c.shortname || '') }, lesson);
+    return _zoomSubjectMatches({ subject: subjectOf(c) }, lesson);
   });
+  if(!hit.length) {
+    hit = courses.filter(function(c){ return _courseLooseMatch(subjectOf(c), lesson.subject); });
+  }
   if(hit.length === 1) return hit[0];
   if(!hit.length) return null;
   // Той самий предмет у кількох курсах — розрізняємо за прізвищем: у
@@ -2902,6 +2927,14 @@ function _courseForLesson(lesson) {
   // відкриває курс, а його повну назву видно в заголовку. Тож коли
   // кандидатів кілька, краще показати перший, ніж не показати нічого.
   return hit[0];
+}
+
+// Перемалювати те, що в парах залежить від списку курсів і посилань.
+function _refreshLessonExtras() {
+  try {
+    if(typeof _uhGroupName !== 'undefined' && _uhGroupName) _renderUnihubGroup();
+    if(typeof renderWidgetPara === 'function') renderWidgetPara();
+  } catch(e) { console.warn('[schedule] не вдалося перемалювати пари:', e && e.message); }
 }
 
 function _courseBtnHtml(lesson) {
@@ -4464,6 +4497,10 @@ async function loadCourses() {
     if(sCourses) sCourses.textContent = courses.length;
     filterCourses();
     _zoomAutoCollect();
+    // Розклад малюється раніше, ніж приходить список курсів, а кнопка
+    // «Курс» без нього не з'являється. Хто вже відкрив розклад, так її
+    // і не бачив до наступного перемикання групи.
+    _refreshLessonExtras();
   } catch(e) {
     console.warn('loadCourses failed:', e);
     if(!courses.length) {

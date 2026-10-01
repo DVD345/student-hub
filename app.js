@@ -1991,7 +1991,6 @@ function _installScheduleUi() {
     // Розклад і посилання збираються з чужих сайтів, тож похибки тут
     // неминучі — а помітити їх може лише той, хто знає свої пари.
     '<div class="schedule-bugnote">',
-      '<span class="schedule-bugnote-ico">🐞</span>',
       '<span>Помітив помилку в розкладі чи не те посилання на пару? ',
       '<a href="https://www.patreon.com/cw/Student_Hub" target="_blank" rel="noopener">Напиши на Patreon</a></span>',
     '</div>',

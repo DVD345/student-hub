@@ -1674,7 +1674,6 @@ body.deadlines-resizing .dl-width-resizer::before {
   font-size:11px; line-height:1.45; color:var(--text2);
   background:var(--bg3); border:1px solid var(--border);
 }
-.schedule-bugnote-ico { flex-shrink:0; }
 .schedule-bugnote a { color:var(--accent); font-weight:600; text-decoration:none; }
 .schedule-bugnote a:hover { text-decoration:underline; }
 @media (max-width:720px) {

@@ -2435,7 +2435,7 @@ var ZOOM_TTL_MS = 7 * 24 * 3600 * 1000;
 // старішою версією, доводиться саме викидати, а не правити: інакше
 // виправлений парсер нічого не змінює, бо поруч лежать старі хибні
 // записи й підставляються замість нових.
-var ZOOM_PARSE_VERSION = 3;
+var ZOOM_PARSE_VERSION = 4;
 var _zoomSharedStale = false;
 var _zoomLinks = [];
 // Підсумок останнього збору: скільки курсів переглянули, скільки знайшли
@@ -2924,6 +2924,16 @@ function _zoomForLesson(lesson, groupName) {
   // ній сам собою не означає нічого.
   var cand = _zoomLinks.filter(function(z){ return _zoomSubjectMatches(z, lesson); });
 
+  // Той самий предмет читають кільком потокам, і курсів у Moodle теж
+  // кілька. Якщо для пари вдалося визначити курс — беремо посилання
+  // лише з нього, інакше в хід ідуть кімнати чужого потоку.
+  var course = _courseForLesson(lesson);
+  if(course && cand.length) {
+    var ownName = course.fullname || course.shortname || '';
+    var own = cand.filter(function(z){ return z.course && z.course === ownName; });
+    if(own.length) cand = own;
+  }
+
   if(cand.length) {
     if(gk) cand = _zoomNarrow(cand, function(z){
       return (z.groups || []).some(function(g){ return g.toUpperCase() === gk; });
@@ -2935,12 +2945,10 @@ function _zoomForLesson(lesson, groupName) {
     if(tk) {
       var byT = cand.filter(function(z){ return _zoomNorm(z.teacher) === tk; });
       if(byT.length) return _zoomOnly(byT);
-      // Викладача в розкладі вказано, а серед знайдених його немає.
-      // На потоці з двома групами це означає кімнату чужої групи, тож
-      // лишаємо тільки ті записи, де імені не було зовсім.
-      if(cand.some(function(z){ return z.teacher; })) {
-        cand = cand.filter(function(z){ return !z.teacher; });
-      }
+      // Викладача пари серед записів немає, а імена там узагалі
+      // проставлені — отже, це чиїсь інші кімнати. Раніше в такому разі
+      // підставлявся запис без імені, і пара отримувала чуже посилання.
+      if(cand.some(function(z){ return z.teacher; })) return null;
     }
     var hit = _zoomOnly(cand);
     if(hit) return hit;
@@ -2975,9 +2983,12 @@ function _zoomInfoRows(z) {
   var rows = '';
   if(z.meetingId) rows += _zoomInfoRow('Ідентифікатор', z.meetingId, z.meetingId.replace(/\s+/g, ''));
   if(z.passcode)  rows += _zoomInfoRow('Код', z.passcode, z.passcode);
-  if(z.course || z.subject) {
-    rows += '<span class="zi-row zi-src">З курсу: ' + escHtml(z.course || z.subject) + '</span>';
-  }
+  // Чиє це посилання — видно одразу, без відкривання курсу. Якщо
+  // прізвище тут не те, що в парі, помилка впадає в око сама.
+  var src = [];
+  if(z.teacher) src.push('Кімната: ' + z.teacher + (z.kind ? ' • ' + z.kind : ''));
+  if(z.course || z.subject) src.push('З курсу: ' + (z.course || z.subject));
+  if(src.length) rows += '<span class="zi-row zi-src">' + escHtml(src.join('\n')) + '</span>';
   return rows;
 }
 

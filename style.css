@@ -1724,7 +1724,8 @@ body.deadlines-resizing .dl-width-resizer::before {
 
 .zi-src {
   font-size:10px; color:var(--text2); line-height:1.4;
-  border-top:1px solid var(--border); padding-top:5px; white-space:normal;
+  border-top:1px solid var(--border); padding-top:5px;
+  white-space:pre-line; display:block;
 }
 
 /* Віджет «Пари» на головній. Рядок «зараз» підсвічений, бо саме його

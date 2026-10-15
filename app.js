@@ -4166,6 +4166,19 @@ function _ccModule(m) {
   '</div>';
 }
 
+function closeCourseContents() {
+  var modal = document.getElementById('course-contents-modal');
+  if(modal) modal.style.display = 'none';
+}
+
+// Esc закриває вміст курсу. Перевіряємо, що він справді відкритий:
+// інакше клавіша «спрацьовує» там, де нічого не відбувається.
+document.addEventListener('keydown', function(e){
+  if(e.key !== 'Escape') return;
+  var modal = document.getElementById('course-contents-modal');
+  if(modal && modal.style.display !== 'none') closeCourseContents();
+});
+
 async function openCourseContents(courseId, el, nameOverride) {
   var card = el && el.closest ? el.closest('.course-card') : null;
   var nameEl = card ? card.querySelector('.c-name') : null;
